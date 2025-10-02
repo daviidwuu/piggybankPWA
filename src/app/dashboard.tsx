@@ -9,14 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay } from 'date-fns';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 
@@ -35,7 +28,7 @@ const chartColors = [
 export function Dashboard({ initialData }: { initialData: { transactions: Transaction[], budgets: Budget[] }}) {
   const [transactions, setTransactions] = useState<Transaction[]>(initialData.transactions);
   const [budgets, setBudgets] = useState<Budget[]>(initialData.budgets);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(5);
@@ -44,11 +37,14 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
 
   useEffect(() => {
     setIsClient(true);
+    setLoading(false); // Initial server data is already loaded
 
     async function fetchData(revalidate = false) {
+      if (!revalidate) return;
+      
       setLoading(true);
       try {
-        const res = await fetch(`/api/sheet?revalidate=${revalidate}`);
+        const res = await fetch(`/api/sheet?revalidate=true`);
         if (!res.ok) {
           throw new Error('Failed to fetch data');
         }
@@ -193,7 +189,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
 
-  if (!isClient || (loading && transactions.length === 0)) {
+  if (loading && transactions.length === 0) {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center">
         <div className="w-full max-w-[428px] border-x border-border p-6">
@@ -215,24 +211,16 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
               <div className="text-primary text-3xl">David</div>
             </h1>
             <div className="flex items-center gap-2">
-              <Dialog>
-                <DialogTrigger asChild>
+              <Popover>
+                <PopoverTrigger asChild>
                   <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
                     <Sparkles className="h-4 w-4" />
                   </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <Sparkles className="text-primary" /> AI Analysis
-                    </DialogTitle>
-                    <DialogDescription>
-                      Get personalized insights on your spending.
-                    </DialogDescription>
-                  </DialogHeader>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
                   <AiAnalysis transactions={expenseTransactions} />
-                </DialogContent>
-              </Dialog>
+                </PopoverContent>
+              </Popover>
               <DateFilter value={dateRange} onValueChange={setDateRange} transactions={transactions}/>
             </div>
           </div>

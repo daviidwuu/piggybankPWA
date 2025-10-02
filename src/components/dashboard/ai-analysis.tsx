@@ -8,7 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Lightbulb, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
+import { Lightbulb, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
 import type { Transaction } from "@/lib/data";
 import { Separator } from "@/components/ui/separator";
 
@@ -59,13 +59,14 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
     if (!hasAnalyzed) {
       handleAnalysis();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasAnalyzed]);
 
 
   return (
     <div className="h-full flex flex-col">
         {!analysis && isLoading ? (
-          <div className="space-y-4 pt-6">
+          <div className="space-y-4 pt-2">
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-16 w-full" />
             <Skeleton className="h-6 w-1/2" />
