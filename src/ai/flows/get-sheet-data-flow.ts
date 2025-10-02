@@ -7,7 +7,6 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { mockTransactions } from '@/lib/data';
 import {
   GetSheetDataInputSchema,
   GetSheetDataOutputSchema,
@@ -28,11 +27,30 @@ const getSheetDataFlow = ai.defineFlow(
     outputSchema: GetSheetDataOutputSchema,
   },
   async (input) => {
-    // In a real scenario, you would fetch the data from the URL.
-    // For now, we are returning mock data.
-    // This functionality will be implemented in a future step.
     console.log(`Fetching data from ${input.googleSheetUrl}`);
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    return mockTransactions;
+    try {
+      const response = await fetch(input.googleSheetUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+
+      // Assuming the Apps Script returns data in the format you described,
+      // we need to transform it to match our Transaction schema.
+      const transformedData = data.map((row: any, index: number) => ({
+        id: String(index + 1), // Or use a unique ID from the sheet if available
+        date: new Date(row.Date).toISOString(),
+        description: row.Description,
+        category: row.Category,
+        amount: Number(row.Amount),
+      }));
+
+      return transformedData;
+    } catch (error) {
+      console.error('Failed to fetch or parse sheet data:', error);
+      // Return an empty array or throw a more specific error
+      // to be handled by the frontend.
+      throw new Error('Could not retrieve data from the provided Google Sheet URL.');
+    }
   }
 );

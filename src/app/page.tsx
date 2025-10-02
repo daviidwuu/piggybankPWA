@@ -10,10 +10,9 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
+  SelectTrigger,
   SelectContent,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "lucide-react";
 import { DataImporter } from "@/components/dashboard/data-importer";
@@ -30,8 +29,17 @@ export default function DashboardPage() {
 
   const handleImport = (transactions: Transaction[]) => {
     setAllTransactions(transactions);
+    setFilteredTransactions(transactions); // Initially, show all imported data
     setIsDataLoaded(true);
+    setTimeRange("monthly"); // Default to monthly to show all data
   };
+  
+  // Auto-fetch data when component mounts
+  useEffect(() => {
+    // This is where you could trigger an automatic fetch if the URL is known
+    // For now, we rely on the user to input the URL
+  }, []);
+
 
   useEffect(() => {
     if (!isDataLoaded) return;
@@ -51,7 +59,7 @@ export default function DashboardPage() {
         oneWeekAgo.setDate(now.getDate() - 7);
         return transactionDate >= oneWeekAgo;
       }
-      // Monthly is the default and shows all mock data for simplicity
+      // Monthly shows all transactions from the imported data
       return true;
     });
     setFilteredTransactions(filtered);

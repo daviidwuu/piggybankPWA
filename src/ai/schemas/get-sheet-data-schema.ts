@@ -8,20 +8,20 @@ export const GetSheetDataInputSchema = z.object({
 });
 export type GetSheetDataInput = z.infer<typeof GetSheetDataInputSchema>;
 
-export const GetSheetDataOutputSchema = z.array(
-  z.object({
-    id: z.string(),
-    date: z.string(),
-    description: z.string(),
-    category: z.enum([
-      'Food',
-      'Transport',
-      'Shopping',
-      'Utilities',
-      'Entertainment',
-      'Other',
-    ]),
-    amount: z.number(),
-  })
-);
+const TransactionSchema = z.object({
+  id: z.string(),
+  date: z.string(),
+  description: z.string(),
+  category: z.enum([
+    'Food',
+    'Transport',
+    'Shopping',
+    'Utilities',
+    'Entertainment',
+    'Other',
+  ]),
+  amount: z.number(),
+});
+
+export const GetSheetDataOutputSchema = z.array(TransactionSchema);
 export type GetSheetDataOutput = z.infer<typeof GetSheetDataOutputSchema>;
