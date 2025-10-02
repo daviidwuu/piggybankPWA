@@ -34,11 +34,11 @@ export function Balance({
 
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="px-6 pb-2 pt-6">
         <CardTitle>Spending</CardTitle>
         <CardDescription>Your spending vs. budget for this period.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-2 px-6 pb-2">
         <div className="flex justify-between items-baseline">
           <div className="text-3xl font-bold text-foreground">
             ${totalSpending.toFixed(2)}
@@ -70,11 +70,11 @@ export function Balance({
           </div>
         )}
         {aggregatedData.length > 0 && (
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-1">
             <Button
               variant="ghost"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full h-auto p-1 hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
             </Button>
