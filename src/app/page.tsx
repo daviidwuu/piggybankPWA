@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { type Transaction } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
@@ -30,10 +30,7 @@ export default function DashboardPage() {
 
   const handleImport = (transactions: Transaction[]) => {
     setAllTransactions(transactions);
-    // When new data is imported, filter it based on the current time range
-    const now = new Date();
-    const filtered = filterTransactions(transactions, timeRange, now);
-    setFilteredTransactions(filtered);
+    setFilteredTransactions(transactions); // Initially, show all transactions
     setIsDataLoaded(true);
   };
 
@@ -42,30 +39,36 @@ export default function DashboardPage() {
     range: "daily" | "weekly" | "monthly",
     now: Date
   ) => {
-    return transactions.filter((t) => {
-      const transactionDate = new Date(t.date);
-      if (range === "daily") {
+    if (range === "monthly") {
+      // Show all transactions for the current month
+      return transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate.getMonth() === now.getMonth() && transactionDate.getFullYear() === now.getFullYear();
+      });
+    }
+    if (range === "weekly") {
+      const oneWeekAgo = new Date(now);
+      oneWeekAgo.setDate(now.getDate() - 7);
+      return transactions.filter(t => {
+        const transactionDate = new Date(t.date);
+        return transactionDate >= oneWeekAgo && transactionDate <= now;
+      });
+    }
+    if (range === "daily") {
+      return transactions.filter((t) => {
+        const transactionDate = new Date(t.date);
         return (
           transactionDate.getDate() === now.getDate() &&
           transactionDate.getMonth() === now.getMonth() &&
           transactionDate.getFullYear() === now.getFullYear()
         );
-      }
-      if (range === "weekly") {
-        const oneWeekAgo = new Date(now);
-        oneWeekAgo.setDate(now.getDate() - 7);
-        return transactionDate >= oneWeekAgo;
-      }
-      // "monthly" or any other case will show all transactions
-      return true;
-    });
+      });
+    }
+    return transactions;
   };
 
-  // This effect re-filters transactions when the time range changes
-  // without needing to re-fetch the data.
-  useState(() => {
+  useEffect(() => {
     if (!isDataLoaded) return;
-
     const now = new Date();
     const filtered = filterTransactions(allTransactions, timeRange, now);
     setFilteredTransactions(filtered);

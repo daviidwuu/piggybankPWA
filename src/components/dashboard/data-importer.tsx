@@ -48,7 +48,8 @@ export function DataImporter({ onImport }: DataImporterProps) {
       }
     }
     fetchData();
-  }, [onImport, toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // This component no longer needs to render a UI. It just silently loads data.
   // The loading state is handled on the main page.
