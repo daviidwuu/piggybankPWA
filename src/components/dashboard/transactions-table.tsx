@@ -25,7 +25,14 @@ interface TransactionsTableProps {
 
 export function TransactionsTable({ data, chartConfig }: TransactionsTableProps) {
   const sortedData = [...data]
-    .sort((a, b) => new Date(b.Date).getTime() - new Date(a.Date).getTime())
+    .sort((a, b) => {
+        const dateA = new Date(a.Date);
+        const dateB = new Date(b.Date);
+        // Handle invalid dates by pushing them to the bottom
+        if (isNaN(dateA.getTime())) return 1;
+        if (isNaN(dateB.getTime())) return -1;
+        return dateB.getTime() - dateA.getTime();
+    })
     .slice(0, 5);
 
   const formatDate = (dateString: string) => {
