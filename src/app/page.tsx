@@ -25,7 +25,7 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(5);
 
