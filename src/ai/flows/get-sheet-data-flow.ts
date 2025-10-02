@@ -12,21 +12,33 @@ import {
   GetSheetDataOutputSchema,
   type GetSheetDataInput,
   type GetSheetDataOutput,
+  TransactionSchema,
 } from '@/ai/schemas/get-sheet-data-schema';
+import { z } from 'zod';
+
+const FlowOutputSchema = z.object({
+  data: GetSheetDataOutputSchema.optional(),
+  error: z.string().optional(),
+});
+type FlowOutput = z.infer<typeof FlowOutputSchema>;
 
 export async function getSheetData(
   input: GetSheetDataInput
 ): Promise<GetSheetDataOutput> {
-  return getSheetDataFlow(input);
+  const result = await getSheetDataFlow(input);
+  if (result.error) {
+    throw new Error(result.error);
+  }
+  return result.data || [];
 }
 
 const getSheetDataFlow = ai.defineFlow(
   {
     name: 'getSheetDataFlow',
     inputSchema: GetSheetDataInputSchema,
-    outputSchema: GetSheetDataOutputSchema,
+    outputSchema: FlowOutputSchema,
   },
-  async (input) => {
+  async (input): Promise<FlowOutput> => {
     console.log(`Fetching data from ${input.googleSheetUrl}`);
     try {
       const response = await fetch(input.googleSheetUrl);
@@ -35,9 +47,13 @@ const getSheetDataFlow = ai.defineFlow(
       }
       const data = await response.json();
 
-      // Assuming the Apps Script returns data in the format you described,
-      // we need to transform it to match our Transaction schema.
-      const transformedData = data.map((row: any, index: number) => ({
+      // We use safeParse to handle potential validation errors gracefully
+      const validationResult = z.array(z.any()).safeParse(data);
+       if (!validationResult.success) {
+        throw new Error('Sheet data is not in the expected array format.');
+      }
+
+      const transformedData = validationResult.data.map((row: any, index: number) => ({
         id: String(index + 1), // Or use a unique ID from the sheet if available
         date: new Date(row.Date).toISOString(),
         description: row.Description,
@@ -45,12 +61,23 @@ const getSheetDataFlow = ai.defineFlow(
         amount: Number(row.Amount),
       }));
 
-      return transformedData;
-    } catch (error) {
+       // Final validation against our strict Transaction schema
+      const finalValidation = GetSheetDataOutputSchema.safeParse(transformedData);
+      if (!finalValidation.success) {
+        console.error("Data validation failed", finalValidation.error);
+        throw new Error('One or more rows in the sheet have incorrect data.');
+      }
+
+      return { data: finalValidation.data };
+    } catch (error: any) {
       console.error('Failed to fetch or parse sheet data:', error);
-      // Return an empty array or throw a more specific error
-      // to be handled by the frontend.
-      throw new Error('Could not retrieve data from the provided Google Sheet URL.');
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'An unknown error occurred.';
+      return {
+        error: `Could not retrieve or process data from the provided Google Sheet URL. Reason: ${errorMessage}`,
+      };
     }
   }
 );

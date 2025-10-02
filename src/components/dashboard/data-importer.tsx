@@ -27,12 +27,12 @@ export function DataImporter({ onImport }: DataImporterProps) {
             title: "Success!",
             description: "Your financial data has been loaded.",
           });
-        } catch (err) {
+        } catch (err: any) {
           console.error("Failed to fetch sheet data:", err);
           toast({
             variant: "destructive",
             title: "Load Failed",
-            description: "Could not automatically load data from the Google Sheet.",
+            description: err.message || "Could not automatically load data from the Google Sheet.",
           });
         } finally {
           setIsLoading(false);
