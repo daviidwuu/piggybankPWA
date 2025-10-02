@@ -196,9 +196,10 @@ export default function DashboardPage() {
       <div className="w-full max-w-[428px] border-x border-border">
         <main className="flex-1 p-4 md:p-6 space-y-6">
           <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-3xl font-bold">Welcome, David</h1>
-            </div>
+            <h1 className="text-3xl font-bold">
+              <div>Welcome,</div>
+              <div className="text-primary">David</div>
+            </h1>
             <DateFilter value={dateRange} onValueChange={setDateRange} transactions={transactions}/>
           </div>
           
