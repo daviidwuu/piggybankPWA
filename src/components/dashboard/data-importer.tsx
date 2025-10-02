@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -61,20 +62,7 @@ export function DataImporter({ onImport, isDataLoaded }: DataImporterProps) {
   }
 
   if (isDataLoaded) {
-    return (
-      <Card className="bg-card/50 border-dashed border-primary/50">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="space-y-1.5">
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="text-primary" /> Data Loaded
-            </CardTitle>
-            <CardDescription>
-              Dashboard is now populated with your financial data.
-            </CardDescription>
-          </div>
-        </CardHeader>
-      </Card>
-    );
+    return null;
   }
 
   return (

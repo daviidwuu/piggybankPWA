@@ -1,12 +1,13 @@
+
 "use client";
 
 import {
-  Bar,
-  BarChart,
   ResponsiveContainer,
-  XAxis,
-  YAxis,
   Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
 } from "recharts";
 import {
   Card,
@@ -26,12 +27,15 @@ interface SpendingChartProps {
   data: Transaction[];
 }
 
-const chartConfig = {
-  amount: {
-    label: "Spending",
-    color: "hsl(var(--chart-1))",
-  },
-} satisfies ChartConfig;
+const chartColors = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "#f59e0b", // amber-500
+  "#10b981", // emerald-500
+];
 
 export function SpendingChart({ data }: SpendingChartProps) {
   const aggregatedData = data
@@ -50,46 +54,53 @@ export function SpendingChart({ data }: SpendingChartProps) {
       return acc;
     }, [] as { category: string; amount: number }[])
     .sort((a, b) => b.amount - a.amount);
+  
+  const chartConfig = aggregatedData.reduce((acc, item, index) => {
+    acc[item.category] = {
+      label: item.category,
+      color: chartColors[index % chartColors.length],
+    };
+    return acc;
+  }, {} as ChartConfig);
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Spending by Category</CardTitle>
+        <CardTitle>Categories Budget</CardTitle>
         <CardDescription>
-          An overview of your spending habits across different categories.
+          Current spending for each category.
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ChartContainer config={chartConfig} className="w-full h-[300px]">
+        <ChartContainer config={chartConfig} className="w-full h-[250px]">
           <ResponsiveContainer>
-            <BarChart
-              data={aggregatedData}
-              margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
-            >
-              <XAxis
-                dataKey="category"
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `$${value}`}
-              />
+            <PieChart>
               <Tooltip
                 cursor={{ fill: "hsl(var(--accent))", radius: 4 }}
-                content={<ChartTooltipContent indicator="dot" />}
+                content={<ChartTooltipContent indicator="dot" hideLabel />}
               />
-              <Bar
+              <Pie
+                data={aggregatedData}
                 dataKey="amount"
-                fill="hsl(var(--chart-1))"
-                radius={[4, 4, 0, 0]}
+                nameKey="category"
+                innerRadius={60}
+                strokeWidth={5}
+              >
+                {aggregatedData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={chartColors[index % chartColors.length]}
+                  />
+                ))}
+              </Pie>
+              <Legend
+                layout="vertical"
+                align="right"
+                verticalAlign="middle"
+                iconSize={8}
+                iconType="circle"
               />
-            </BarChart>
+            </PieChart>
           </ResponsiveContainer>
         </ChartContainer>
       </CardContent>
