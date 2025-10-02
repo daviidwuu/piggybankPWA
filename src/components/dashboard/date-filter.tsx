@@ -31,8 +31,15 @@ const options: { label: string; value: DateRange }[] = [
 
 export function DateFilter({ value, onValueChange, transactions }: DateFilterProps) {
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+
     const getDisplayDate = (range: DateRange): string => {
       if (!transactions.length && range !== 'all') return "No data";
       
@@ -70,7 +77,7 @@ export function DateFilter({ value, onValueChange, transactions }: DateFilterPro
       }
     };
     setDisplayDate(getDisplayDate(value));
-  }, [value, transactions]);
+  }, [value, transactions, isClient]);
 
 
   return (
