@@ -8,8 +8,9 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, max, min } from 'date-fns';
-import { Button } from "@/components/ui/button";
+import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay } from 'date-fns';
+
+export type SortOption = 'latest' | 'highest' | 'category';
 
 const chartColors = [
   "hsl(var(--chart-1))",
@@ -28,6 +29,8 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(5);
+  const [sortOption, setSortOption] = useState<SortOption>('latest');
+
 
   useEffect(() => {
     async function fetchData() {
@@ -65,12 +68,12 @@ export default function DashboardPage() {
         endDate = endOfWeek(today, { weekStartsOn: 1 });
         break;
       case 'month':
-        startDate = subMonths(today, 1);
-        endDate = today;
+        startDate = startOfDay(subMonths(today, 1));
+        endDate = endOfDay(today);
         break;
       case 'yearly':
-        startDate = subYears(today, 1);
-        endDate = today;
+        startDate = startOfDay(subYears(today, 1));
+        endDate = endOfDay(today);
         break;
       case 'all':
       default:
@@ -103,12 +106,15 @@ export default function DashboardPage() {
       case 'month':
         return monthlyBudget;
       case 'all':
-        // For 'all time', maybe we want to scale it based on the number of months in the transaction data
         if (transactions.length === 0) return monthlyBudget;
-        const dates = transactions.map(t => new Date(t.Date!)).filter(d => !isNaN(d.getTime()));
+        const dates = transactions
+          .map(t => new Date(t.Date!))
+          .filter(d => !isNaN(d.getTime()));
         if (dates.length === 0) return monthlyBudget;
-        const minDate = new Date(Math.min.apply(null, dates.map(d => d.getTime())));
-        const maxDate = new Date(Math.max.apply(null, dates.map(d => d.getTime())));
+        
+        const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+        const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+
         const monthDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth()) + 1;
         return monthlyBudget * monthDiff;
       default:
@@ -153,11 +159,22 @@ export default function DashboardPage() {
     }
   }, [aggregatedData, chartConfig]);
 
-  const sortedTransactions = useMemo(() => [...expenseTransactions].sort((a, b) => {
-    if (a.Date === null) return 1;
-    if (b.Date === null) return -1;
-    return new Date(b.Date).getTime() - new Date(a.Date).getTime();
-  }), [expenseTransactions]);
+  const sortedTransactions = useMemo(() => {
+    const sorted = [...expenseTransactions];
+    switch (sortOption) {
+      case 'highest':
+        return sorted.sort((a, b) => b.Amount - a.Amount);
+      case 'category':
+        return sorted.sort((a, b) => a.Category.localeCompare(b.Category));
+      case 'latest':
+      default:
+        return sorted.sort((a, b) => {
+          if (a.Date === null) return 1;
+          if (b.Date === null) return -1;
+          return new Date(b.Date).getTime() - new Date(a.Date).getTime();
+        });
+    }
+  }, [expenseTransactions, sortOption]);
 
   const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
@@ -180,8 +197,7 @@ export default function DashboardPage() {
         <main className="flex-1 p-4 md:p-6 space-y-6">
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h1 className="text-3xl font-bold">Welcome</h1>
-              <h1 className="text-3xl font-bold text-primary">David</h1>
+              <h1 className="text-3xl font-bold">Welcome, David</h1>
             </div>
             <DateFilter value={dateRange} onValueChange={setDateRange} transactions={transactions}/>
           </div>
@@ -198,6 +214,8 @@ export default function DashboardPage() {
             chartConfig={chartConfig}
             hasMore={visibleTransactions < sortedTransactions.length}
             onLoadMore={() => setVisibleTransactions(v => v + 5)}
+            sortOption={sortOption}
+            onSortChange={setSortOption}
           />
           <AiAnalysis transactions={expenseTransactions} />
         </main>

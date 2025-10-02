@@ -13,21 +13,31 @@ import {
   CardContent,
   CardDescription,
 } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { Transaction } from "@/lib/data";
 import { ChartConfig } from "../ui/chart";
 import { format } from 'date-fns';
 import { Button } from "../ui/button";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowUpDown } from "lucide-react";
+import { SortOption } from "@/app/page";
 
 interface TransactionsTableProps {
   data: Transaction[];
   chartConfig: ChartConfig;
   hasMore: boolean;
   onLoadMore: () => void;
+  sortOption: SortOption;
+  onSortChange: (option: SortOption) => void;
 }
 
-export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore }: TransactionsTableProps) {
+export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sortOption, onSortChange }: TransactionsTableProps) {
   const formatDate = (dateString: string | null) => {
     if (dateString === null) {
         return { date: 'Invalid', time: 'Date' };
@@ -44,11 +54,27 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore }: Tr
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Recent Transactions</CardTitle>
-        <CardDescription>
-          Your most recent financial activities.
-        </CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>
+            Your most recent financial activities.
+          </CardDescription>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="icon" className="h-8 w-8">
+              <ArrowUpDown className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuRadioGroup value={sortOption} onValueChange={(value) => onSortChange(value as SortOption)}>
+              <DropdownMenuRadioItem value="latest">Latest</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="highest">Highest Amount</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="category">Category</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </CardHeader>
       <CardContent className="p-0">
         <Table>
@@ -93,11 +119,11 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore }: Tr
           </TableBody>
         </Table>
         {hasMore && (
-          <div className="p-4 pt-2">
+          <div className="p-0 pt-1 flex justify-center">
             <Button
               variant="ghost"
               onClick={onLoadMore}
-              className="w-full"
+              className="w-full h-auto p-1 hover:bg-transparent"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>

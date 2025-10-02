@@ -35,12 +35,10 @@ export function Balance({
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle>Spending</CardTitle>
-        </div>
+        <CardTitle>Spending</CardTitle>
         <CardDescription>Your spending vs. budget for this period.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2">
         <div className="flex justify-between items-baseline">
           <div className="text-3xl font-bold text-foreground">
             ${totalSpending.toFixed(2)}
@@ -54,7 +52,7 @@ export function Balance({
           className={cn("h-3", isOverBudget && "[&>div]:bg-destructive")}
         />
         {isExpanded && (
-          <div className="pt-4 space-y-2 animate-in fade-in-0">
+          <div className="pt-2 space-y-2 animate-in fade-in-0">
             {aggregatedData.map((item, index) => (
               <div key={index} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
@@ -72,11 +70,11 @@ export function Balance({
           </div>
         )}
         {aggregatedData.length > 0 && (
-          <div className="p-0 pt-2 flex justify-center">
+          <div className="p-0 pt-1 flex justify-center">
             <Button
               variant="ghost"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full h-auto p-1"
+              className="w-full h-auto p-1 hover:bg-transparent"
             >
               <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
             </Button>
