@@ -40,16 +40,6 @@ export function Balance({
           </div>
         </div>
         <Progress value={spendingPercentage} />
-        <div className="flex justify-between text-sm">
-          <span
-            className={cn(
-              "font-medium",
-              spendingPercentage > 100 ? "text-destructive" : "text-foreground"
-            )}
-          >
-            Spent
-          </span>
-        </div>
       </CardContent>
     </Card>
   );

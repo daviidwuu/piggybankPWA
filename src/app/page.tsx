@@ -11,7 +11,7 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subDays, subMonths, subYears } from 'date-fns';
+import { startOfDay, subDays, subMonths, subYears, startOfWeek, endOfWeek } from 'date-fns';
 import { isEqual } from 'lodash';
 
 
@@ -51,39 +51,47 @@ export default function DashboardPage() {
   const getFilteredTransactions = () => {
     if (!transactions.length) return [];
 
-    // Use the most recent transaction date as the reference point
-    const mostRecentDate = transactions.reduce((max, t) => {
-        if (!t.Date) return max;
-        const current = new Date(t.Date);
-        return current > max ? current : max;
-    }, new Date(0));
-    
+    const today = new Date();
     let startDate: Date;
 
     switch (dateRange) {
-        case 'daily':
-            startDate = startOfDay(mostRecentDate);
-            break;
-        case 'week':
-            startDate = subDays(mostRecentDate, 7);
-            break;
-        case 'month':
-            startDate = subMonths(mostRecentDate, 1);
-            break;
-        case 'yearly':
-            startDate = subYears(mostRecentDate, 1);
-            break;
-        case 'all':
-        default:
-            return transactions;
+      case 'daily':
+        startDate = startOfDay(today);
+        break;
+      case 'week':
+        startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+        break;
+      case 'month':
+        startDate = subMonths(today, 1);
+        break;
+      case 'yearly':
+        startDate = subYears(today, 1);
+        break;
+      case 'all':
+      default:
+        return transactions;
+    }
+
+    let endDate: Date | null = null;
+    if (dateRange === 'week') {
+      endDate = endOfWeek(today, { weekStartsOn: 1 });
     }
 
     return transactions.filter(t => {
-        if (!t.Date) return false;
-        const transactionDate = new Date(t.Date);
-        return !isNaN(transactionDate.getTime()) && transactionDate >= startDate;
+      if (!t.Date) return false;
+      const transactionDate = new Date(t.Date);
+      if (isNaN(transactionDate.getTime())) return false;
+      
+      const isAfterStart = transactionDate >= startDate;
+      const isBeforeEnd = endDate ? transactionDate <= endDate : true;
+      
+      if (dateRange === 'daily') {
+        return transactionDate.toDateString() === today.toDateString();
+      }
+
+      return isAfterStart && isBeforeEnd;
     });
-  }
+  };
 
   const getScaledBudget = () => {
     const monthlyBudget = budgets.reduce((sum, b) => sum + b.Budget, 0);
