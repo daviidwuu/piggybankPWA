@@ -49,14 +49,6 @@ export function Balance({
           >
             Spent
           </span>
-           <span
-            className={cn(
-              "font-medium",
-              spendingPercentage > 100 ? "text-destructive" : "text-foreground"
-            )}
-          >
-            {spendingPercentage.toFixed(0)}%
-          </span>
         </div>
       </CardContent>
     </Card>

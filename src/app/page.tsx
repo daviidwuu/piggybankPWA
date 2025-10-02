@@ -131,7 +131,7 @@ export default function DashboardPage() {
               <h1 className="text-3xl font-bold">Welcome</h1>
               <h1 className="text-3xl font-bold text-primary">David</h1>
             </div>
-            <DateFilter value={dateRange} onValueChange={setDateRange} />
+            <DateFilter value={dateRange} onValueChange={setDateRange} transactions={transactions}/>
           </div>
           
           <Balance
