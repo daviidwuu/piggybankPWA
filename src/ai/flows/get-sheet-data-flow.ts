@@ -20,10 +20,11 @@ export async function getSheetData({
 
   return data.map((row: any) => {
     const date = new Date(row['Date']);
+    // If the date is invalid, pass null. Otherwise, pass the valid ISO string.
+    const dateString = !isNaN(date.getTime()) ? date.toISOString() : null;
     return {
       ID: String(row['ID'] || ''),
-      // Standardize to ISO string for reliable parsing later
-      Date: !isNaN(date.getTime()) ? date.toISOString() : new Date().toISOString(),
+      Date: dateString,
       Amount: Number(row['Amount'] || 0),
       Type: String(row['Type'] || ''),
       Category: String(row['Category'] || 'Uncategorized'),

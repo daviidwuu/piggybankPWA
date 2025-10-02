@@ -26,16 +26,19 @@ interface TransactionsTableProps {
 export function TransactionsTable({ data, chartConfig }: TransactionsTableProps) {
   const sortedData = [...data]
     .sort((a, b) => {
+        // Handle null dates by pushing them to the bottom
+        if (a.Date === null) return 1;
+        if (b.Date === null) return -1;
         const dateA = new Date(a.Date);
         const dateB = new Date(b.Date);
-        // Handle invalid dates by pushing them to the bottom
-        if (isNaN(dateA.getTime())) return 1;
-        if (isNaN(dateB.getTime())) return -1;
         return dateB.getTime() - dateA.getTime();
     })
     .slice(0, 5);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (dateString === null) {
+        return { date: 'Invalid', time: 'Date' };
+    }
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
       return { date: 'Invalid', time: 'Date' };
@@ -58,9 +61,9 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px]">Date</TableHead>
-              <TableHead className="w-[100px] text-right">Amount</TableHead>
-              <TableHead>Description</TableHead>
+              <TableHead className="w-[80px] p-2">Date</TableHead>
+              <TableHead className="w-[100px] text-right p-2">Amount</TableHead>
+              <TableHead className="p-2">Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -68,14 +71,14 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
                 const { date, time } = formatDate(transaction.Date);
                 return (
                   <TableRow key={transaction.ID}>
-                    <TableCell className="font-medium text-xs">
+                    <TableCell className="font-medium text-xs p-2">
                         <div>{date}</div>
                         <div className="text-muted-foreground">{time}</div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-sm">
+                    <TableCell className="text-right font-medium text-sm p-2">
                       ${transaction.Amount.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-sm">
+                    <TableCell className="text-sm p-2">
                       <div className="flex items-center gap-2">
                          <Badge
                           className="whitespace-nowrap px-1.5 py-0 text-[10px] font-semibold"
