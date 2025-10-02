@@ -63,7 +63,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-8 w-8">
+            <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0">
               <ArrowUpDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
@@ -123,7 +123,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
             <Button
               variant="ghost"
               onClick={onLoadMore}
-              className="w-full h-auto p-1 hover:bg-transparent"
+              className="w-full h-auto p-1 hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>

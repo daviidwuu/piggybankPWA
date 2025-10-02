@@ -70,11 +70,11 @@ export function Balance({
           </div>
         )}
         {aggregatedData.length > 0 && (
-          <div className="p-0 pt-1 flex justify-center">
+          <div className="flex justify-center">
             <Button
               variant="ghost"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full h-auto p-1 hover:bg-transparent"
+              className="w-full h-auto p-1 hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
             </Button>

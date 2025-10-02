@@ -72,7 +72,7 @@ export function DateFilter({ value, onValueChange, transactions }: DateFilterPro
     <div className="flex flex-col items-end">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon">
+          <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
             <CalendarIcon className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
