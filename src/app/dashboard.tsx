@@ -30,9 +30,11 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(5);
   const [sortOption, setSortOption] = useState<SortOption>('latest');
-
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+
     async function fetchData(revalidate = false) {
       setLoading(true);
       try {
@@ -53,13 +55,13 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     fetchData(true);
   }, []);
 
-  const getFilteredTransactions = () => {
-    if (!transactions.length) return [];
-  
+  const filteredTransactions = useMemo(() => {
+    if (!isClient || !transactions.length) return [];
+
     const today = new Date();
     let startDate: Date;
     let endDate: Date | null = null;
-  
+
     switch (dateRange) {
       case 'daily':
         startDate = startOfDay(today);
@@ -81,7 +83,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
       default:
         return transactions;
     }
-  
+
     return transactions.filter(t => {
       if (!t.Date) return false;
       const transactionDate = new Date(t.Date);
@@ -92,9 +94,11 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
       
       return isAfterStart && isBeforeEnd;
     });
-  };
+  }, [isClient, transactions, dateRange]);
   
-  const getScaledBudget = () => {
+  const scaledBudget = useMemo(() => {
+    if (!isClient) return 0;
+
     const monthlyBudget = budgets.reduce((sum, b) => sum + b.Budget, 0);
     if (monthlyBudget === 0) return 0;
   
@@ -122,10 +126,8 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
       default:
         return monthlyBudget;
     }
-  };
+  }, [isClient, budgets, dateRange, transactions]);
 
-  const filteredTransactions = getFilteredTransactions();
-  const scaledBudget = getScaledBudget();
   const expenseTransactions = filteredTransactions.filter(t => t.Type === 'Expense');
 
   const totalSpent = expenseTransactions.reduce((sum, t) => sum + t.Amount, 0);
@@ -181,7 +183,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
 
-  if (loading && transactions.length === 0) {
+  if (!isClient || (loading && transactions.length === 0)) {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center">
         <div className="w-full max-w-[428px] border-x border-border p-6">
