@@ -12,7 +12,6 @@ import {
   GetSheetDataOutputSchema,
   type GetSheetDataInput,
   type GetSheetDataOutput,
-  TransactionSchema,
 } from '@/ai/schemas/get-sheet-data-schema';
 import { z } from 'zod';
 
@@ -27,6 +26,8 @@ export async function getSheetData(
 ): Promise<GetSheetDataOutput> {
   const result = await getSheetDataFlow(input);
   if (result.error) {
+    // We are throwing the error here to be caught by the component
+    // which will then display a toast.
     throw new Error(result.error);
   }
   return result.data || [];
@@ -47,34 +48,51 @@ const getSheetDataFlow = ai.defineFlow(
       }
       const data = await response.json();
 
-      // We use safeParse to handle potential validation errors gracefully
       const validationResult = z.array(z.any()).safeParse(data);
-       if (!validationResult.success) {
+      if (!validationResult.success) {
         throw new Error('Sheet data is not in the expected array format.');
       }
 
-      const transformedData = validationResult.data.map((row: any, index: number) => ({
-        id: String(index + 1), // Or use a unique ID from the sheet if available
-        date: new Date(row.Date).toISOString(),
-        description: row.Description,
-        category: row.Category,
-        amount: Number(row.Amount),
-      }));
+      const transformedData = validationResult.data.map(
+        (row: any, index: number) => {
+          const date = new Date(row.Date);
+          if (isNaN(date.getTime())) {
+            console.warn(
+              `Invalid date found at row ${index + 2}:`,
+              row.Date
+            );
+            // Fallback to a valid date to avoid crashing, e.g., now.
+            // Or you could skip the row entirely.
+            return {
+              id: String(index + 1),
+              date: new Date().toISOString(),
+              description: row.Description || 'Invalid Row',
+              category: 'Other',
+              amount: 0,
+            };
+          }
+          return {
+            id: String(index + 1),
+            date: date.toISOString(),
+            description: row.Description,
+            category: row.Category,
+            amount: Number(row.Amount),
+          };
+        }
+      );
 
-       // Final validation against our strict Transaction schema
-      const finalValidation = GetSheetDataOutputSchema.safeParse(transformedData);
+      const finalValidation =
+        GetSheetDataOutputSchema.safeParse(transformedData);
       if (!finalValidation.success) {
-        console.error("Data validation failed", finalValidation.error);
-        throw new Error('One or more rows in the sheet have incorrect data.');
+        console.error('Data validation failed', finalValidation.error.flatten());
+        throw new Error('One or more rows in the sheet have incorrect data types after transformation.');
       }
 
       return { data: finalValidation.data };
     } catch (error: any) {
       console.error('Failed to fetch or parse sheet data:', error);
       const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'An unknown error occurred.';
+        error instanceof Error ? error.message : 'An unknown error occurred.';
       return {
         error: `Could not retrieve or process data from the provided Google Sheet URL. Reason: ${errorMessage}`,
       };
