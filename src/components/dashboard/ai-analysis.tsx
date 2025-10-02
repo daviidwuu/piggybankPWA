@@ -65,7 +65,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <Sparkles className="text-primary" /> AI Analysis
+            <Lightbulb className="text-primary" /> AI Analysis
           </CardTitle>
           <CardDescription className="text-xs">
             {!analysis ? "Get personalized insights" : analysis.summary}
@@ -75,8 +75,9 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
           <Button
             onClick={handleAnalysis}
             disabled={isLoading || transactions.length === 0}
-            variant="ghost"
+            variant="outline"
             size="icon"
+            className="h-8 w-8 rounded-full"
           >
             <Sparkles className="h-4 w-4" />
           </Button>
@@ -88,9 +89,9 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
             <Button
               onClick={handleAnalysis}
               disabled={isLoading}
+              variant="outline"
               size="icon"
-              variant="ghost"
-              className="h-7 w-7"
+              className="h-8 w-8 rounded-full"
             >
               <RefreshCw className="h-4 w-4"/>
             </Button>
