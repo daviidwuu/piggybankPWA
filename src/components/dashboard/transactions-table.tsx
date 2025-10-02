@@ -61,8 +61,8 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[80px] p-2">Date</TableHead>
-              <TableHead className="w-[100px] text-right p-2">Amount</TableHead>
+              <TableHead className="w-[60px] p-2">Date</TableHead>
+              <TableHead className="w-[90px] text-right p-2">Amount</TableHead>
               <TableHead className="p-2">Description</TableHead>
             </TableRow>
           </TableHeader>
