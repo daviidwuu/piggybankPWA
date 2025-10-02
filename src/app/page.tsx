@@ -191,16 +191,12 @@ export default function DashboardPage() {
             budget={scaledBudget}
           />
           <Separator />
-          <TransactionsTable data={transactionsToShow} chartConfig={chartConfig} />
-          {visibleTransactions < sortedTransactions.length && (
-            <Button
-              variant="outline"
-              onClick={() => setVisibleTransactions(v => v + 5)}
-              className="w-full"
-            >
-              Load More
-            </Button>
-          )}
+          <TransactionsTable 
+            data={transactionsToShow} 
+            chartConfig={chartConfig}
+            hasMore={visibleTransactions < sortedTransactions.length}
+            onLoadMore={() => setVisibleTransactions(v => v + 5)}
+          />
           <AiAnalysis transactions={expenseTransactions} />
         </main>
       </div>

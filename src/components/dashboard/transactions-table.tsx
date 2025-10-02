@@ -17,13 +17,17 @@ import { Badge } from "@/components/ui/badge";
 import type { Transaction } from "@/lib/data";
 import { ChartConfig } from "../ui/chart";
 import { format } from 'date-fns';
+import { Button } from "../ui/button";
+import { ChevronDown } from "lucide-react";
 
 interface TransactionsTableProps {
   data: Transaction[];
   chartConfig: ChartConfig;
+  hasMore: boolean;
+  onLoadMore: () => void;
 }
 
-export function TransactionsTable({ data, chartConfig }: TransactionsTableProps) {
+export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore }: TransactionsTableProps) {
   const formatDate = (dateString: string | null) => {
     if (dateString === null) {
         return { date: 'Invalid', time: 'Date' };
@@ -46,13 +50,13 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
           Your most recent financial activities.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px] p-2">Date</TableHead>
+              <TableHead className="w-[60px] p-2 pl-6">Date</TableHead>
               <TableHead className="w-[90px] text-right p-2">Amount</TableHead>
-              <TableHead className="p-2">Description</TableHead>
+              <TableHead className="p-2 pr-6">Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -60,14 +64,14 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
                 const { date, time } = formatDate(transaction.Date);
                 return (
                   <TableRow key={transaction.ID}>
-                    <TableCell className="font-medium text-xs p-2">
+                    <TableCell className="font-medium text-xs p-2 pl-6">
                         <div>{date}</div>
                         <div className="text-muted-foreground">{time}</div>
                     </TableCell>
                     <TableCell className="text-right font-medium text-sm p-2">
                       ${transaction.Amount.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-sm p-2">
+                    <TableCell className="p-2 pr-6">
                       <div className="flex items-center gap-2">
                          <Badge
                           className="whitespace-nowrap px-1.5 py-0 text-[10px] font-semibold"
@@ -88,6 +92,18 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
             })}
           </TableBody>
         </Table>
+        {hasMore && (
+          <div className="p-4 pt-2">
+            <Button
+              variant="outline"
+              onClick={onLoadMore}
+              className="w-full"
+            >
+              <ChevronDown className="mr-2 h-4 w-4" />
+              Load More
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
