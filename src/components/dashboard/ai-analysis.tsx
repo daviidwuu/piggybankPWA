@@ -123,7 +123,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
             <Button
               onClick={handleAnalysis}
               disabled={isLoading || transactions.length === 0}
-              variant="outline"
+              variant="ghost"
               size="sm"
             >
               {isLoading ? (
