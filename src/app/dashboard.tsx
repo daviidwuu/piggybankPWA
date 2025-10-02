@@ -210,14 +210,14 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
               <div>Welcome,</div>
               <div className="text-primary text-3xl">David</div>
             </h1>
-            <div className="flex items-center gap-2">
+            <div className="flex items-start gap-2">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
                     <Sparkles className="h-4 w-4" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-80">
+                <PopoverContent className="w-80" align="end">
                   <AiAnalysis transactions={expenseTransactions} />
                 </PopoverContent>
               </Popover>
