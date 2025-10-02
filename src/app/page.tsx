@@ -71,9 +71,8 @@ export default function DashboardPage() {
               <h1 className="text-3xl font-bold text-primary">David</h1>
             </div>
             <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-[150px] bg-card">
-                <Calendar className="mr-2 h-4 w-4" />
-                <SelectValue placeholder="Select range" />
+              <SelectTrigger className="w-auto bg-card p-2">
+                <Calendar className="h-5 w-5" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="daily">Daily</SelectItem>
