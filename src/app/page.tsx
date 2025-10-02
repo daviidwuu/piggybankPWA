@@ -9,13 +9,17 @@ import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
+import { DateFilter } from "@/components/dashboard/date-filter";
 
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyo_FVmlXpdAw1TTUtySgKMafuDoIhY35dQFvAlxE3OxJ3-gT9XufPNbp32huac8fvEkQ/exec";
+
+export type DateRange = 'all' | 'month' | 'week';
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>('all');
 
   useEffect(() => {
     async function fetchData() {
@@ -35,12 +39,27 @@ export default function DashboardPage() {
     fetchData();
   }, []);
 
+  const getFilteredTransactions = () => {
+    const now = new Date();
+    if (dateRange === 'week') {
+      const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+      return transactions.filter(t => new Date(t.Date) >= oneWeekAgo);
+    }
+    if (dateRange === 'month') {
+      const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+      return transactions.filter(t => new Date(t.Date) >= oneMonthAgo);
+    }
+    return transactions;
+  }
+
+  const filteredTransactions = getFilteredTransactions();
+
   const totalBudget = budgets.reduce((sum, b) => sum + b.Budget, 0);
-  const totalSpent = transactions
+  const totalSpent = filteredTransactions
     .filter(t => t.Type === "Expense")
     .reduce((sum, t) => sum + t.Amount, 0);
 
-  const expenseTransactions = transactions.filter(t => t.Type === 'Expense');
+  const expenseTransactions = filteredTransactions.filter(t => t.Type === 'Expense');
 
   if (loading) {
     return (
@@ -58,9 +77,12 @@ export default function DashboardPage() {
     <div className="flex flex-col min-h-screen bg-background items-center">
       <div className="w-full max-w-[428px] border-x border-border">
         <main className="flex-1 p-4 md:p-6 space-y-6">
-          <div className="mb-4">
-            <h1 className="text-3xl font-bold">Welcome</h1>
-            <h1 className="text-3xl font-bold text-primary">David</h1>
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold">Welcome</h1>
+              <h1 className="text-3xl font-bold text-primary">David</h1>
+            </div>
+            <DateFilter value={dateRange} onValueChange={setDateRange} />
           </div>
           
           <Balance

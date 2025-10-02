@@ -25,6 +25,14 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
     .sort((a, b) => new Date(b.Date).getTime() - new Date(a.Date).getTime())
     .slice(0, 5);
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -46,13 +54,16 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
             {sortedData.map((transaction) => (
               <TableRow key={transaction.ID}>
                 <TableCell>
-                  {new Date(transaction.Date).toLocaleDateString()}
+                  {formatDate(transaction.Date)}
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   ${transaction.Amount.toFixed(2)}
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium">{`(${transaction.Category}) ${transaction.Notes}`}</div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{transaction.Category}</Badge>
+                    <span className="font-medium">{transaction.Notes}</span>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
