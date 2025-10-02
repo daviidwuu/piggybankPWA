@@ -182,8 +182,8 @@ export default function DashboardPage() {
             budget={scaledBudget}
           />
           <Separator />
-          <AiAnalysis transactions={expenseTransactions} />
           <TransactionsTable data={expenseTransactions} chartConfig={chartConfig} />
+          <AiAnalysis transactions={expenseTransactions} />
         </main>
       </div>
     </div>
