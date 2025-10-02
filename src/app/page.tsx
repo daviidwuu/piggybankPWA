@@ -1,16 +1,25 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { type Transaction, type Budget } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
-import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek } from 'date-fns';
+import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay } from 'date-fns';
 import { isEqual } from 'lodash';
+
+const chartColors = [
+  "hsl(var(--chart-1))",
+  "hsl(var(--chart-2))",
+  "hsl(var(--chart-3))",
+  "hsl(var(--chart-4))",
+  "hsl(var(--chart-5))",
+  "#f59e0b",
+  "#10b981",
+];
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -18,12 +27,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
-
-  const handleChartConfigChange = useCallback((config: ChartConfig) => {
-    if (!isEqual(chartConfig, config)) {
-      setChartConfig(config);
-    }
-  }, [chartConfig]);
 
   useEffect(() => {
     async function fetchData() {
@@ -49,28 +52,28 @@ export default function DashboardPage() {
   
     const today = new Date();
     let startDate: Date;
+    let endDate: Date | null = null;
   
     switch (dateRange) {
       case 'daily':
         startDate = startOfDay(today);
+        endDate = endOfDay(today);
         break;
       case 'week':
         startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+        endDate = endOfWeek(today, { weekStartsOn: 1 });
         break;
       case 'month':
         startDate = subMonths(today, 1);
+        endDate = today;
         break;
       case 'yearly':
         startDate = subYears(today, 1);
+        endDate = today;
         break;
       case 'all':
       default:
         return transactions;
-    }
-  
-    let endDate: Date | null = null;
-    if (dateRange === 'week') {
-      endDate = endOfWeek(today, { weekStartsOn: 1 });
     }
   
     return transactions.filter(t => {
@@ -81,16 +84,14 @@ export default function DashboardPage() {
       const isAfterStart = transactionDate >= startDate;
       const isBeforeEnd = endDate ? transactionDate <= endDate : true;
       
-      if (dateRange === 'daily') {
-        return transactionDate.toDateString() === today.toDateString();
-      }
-  
       return isAfterStart && isBeforeEnd;
     });
   };
-
+  
   const getScaledBudget = () => {
     const monthlyBudget = budgets.reduce((sum, b) => sum + b.Budget, 0);
+    if (monthlyBudget === 0) return 0;
+  
     switch (dateRange) {
       case 'daily':
         return monthlyBudget / 30; // Approximation
@@ -99,7 +100,16 @@ export default function DashboardPage() {
       case 'yearly':
         return monthlyBudget * 12;
       case 'month':
-      case 'all': // 'all' will use the monthly budget as default
+        return monthlyBudget;
+      case 'all':
+        // For 'all time', maybe we want to scale it based on the number of months in the transaction data
+        if (transactions.length === 0) return monthlyBudget;
+        const dates = transactions.map(t => new Date(t.Date!)).filter(d => !isNaN(d.getTime()));
+        if (dates.length === 0) return monthlyBudget;
+        const minDate = new Date(Math.min.apply(null, dates.map(d => d.getTime())));
+        const maxDate = new Date(Math.max.apply(null, dates.map(d => d.getTime())));
+        const monthDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth()) + 1;
+        return monthlyBudget * monthDiff;
       default:
         return monthlyBudget;
     }
@@ -107,12 +117,41 @@ export default function DashboardPage() {
 
   const filteredTransactions = getFilteredTransactions();
   const scaledBudget = getScaledBudget();
-
-  const totalSpent = filteredTransactions
-    .filter(t => t.Type === "Expense")
-    .reduce((sum, t) => sum + t.Amount, 0);
-
   const expenseTransactions = filteredTransactions.filter(t => t.Type === 'Expense');
+
+  const totalSpent = expenseTransactions.reduce((sum, t) => sum + t.Amount, 0);
+
+  const aggregatedData = useMemo(() => expenseTransactions
+    .reduce((acc, transaction) => {
+      const existingCategory = acc.find(
+        (item) => item.category === transaction.Category
+      );
+      if (existingCategory) {
+        existingCategory.amount += transaction.Amount;
+      } else {
+        acc.push({
+          category: transaction.Category,
+          amount: transaction.Amount,
+        });
+      }
+      return acc;
+    }, [] as { category: string; amount: number }[])
+    .sort((a, b) => b.amount - a.amount), [expenseTransactions]);
+
+  useEffect(() => {
+    const newChartConfig = aggregatedData.reduce((acc, item, index) => {
+      acc[item.category] = {
+        label: item.category,
+        color: chartColors[index % chartColors.length],
+      };
+      return acc;
+    }, {} as ChartConfig);
+
+    if (JSON.stringify(chartConfig) !== JSON.stringify(newChartConfig)) {
+      setChartConfig(newChartConfig);
+    }
+  }, [aggregatedData, chartConfig]);
+
 
   if (loading) {
     return (
@@ -143,11 +182,6 @@ export default function DashboardPage() {
             budget={scaledBudget}
           />
           <Separator />
-          <SpendingChart 
-            data={expenseTransactions} 
-            chartConfig={chartConfig}
-            onChartConfigChange={handleChartConfigChange}
-          />
           <AiAnalysis transactions={expenseTransactions} />
           <TransactionsTable data={expenseTransactions} chartConfig={chartConfig} />
         </main>
