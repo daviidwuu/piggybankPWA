@@ -9,12 +9,10 @@ import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
-import { DateFilter } from "@/components/dashboard/date-filter";
+import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
 
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyo_FVmlXpdAw1TTUtySgKMafuDoIhY35dQFvAlxE3OxJ3-gT9XufPNbp32huac8fvEkQ/exec";
-
-export type DateRange = 'all' | 'month' | 'week';
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -47,9 +45,18 @@ export default function DashboardPage() {
 
   const getFilteredTransactions = () => {
     const now = new Date();
+    if (dateRange === 'daily') {
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      return transactions.filter(t => {
+        if (!t.Date) return false;
+        const transactionDate = new Date(t.Date);
+        return !isNaN(transactionDate.getTime()) && transactionDate >= today;
+      });
+    }
     if (dateRange === 'week') {
       const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
       return transactions.filter(t => {
+        if (!t.Date) return false;
         const transactionDate = new Date(t.Date);
         return !isNaN(transactionDate.getTime()) && transactionDate >= oneWeekAgo;
       });
@@ -57,9 +64,18 @@ export default function DashboardPage() {
     if (dateRange === 'month') {
       const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
       return transactions.filter(t => {
+        if (!t.Date) return false;
         const transactionDate = new Date(t.Date);
         return !isNaN(transactionDate.getTime()) && transactionDate >= oneMonthAgo;
       });
+    }
+    if (dateRange === 'yearly') {
+        const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+        return transactions.filter(t => {
+            if (!t.Date) return false;
+            const transactionDate = new Date(t.Date);
+            return !isNaN(transactionDate.getTime()) && transactionDate >= oneYearAgo;
+        });
     }
     return transactions;
   }
