@@ -22,7 +22,7 @@ interface TransactionsTableProps {
 
 export function TransactionsTable({ data }: TransactionsTableProps) {
   const sortedData = [...data].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    (a, b) => new Date(b.Date).getTime() - new Date(a.Date).getTime()
   );
 
   return (
@@ -45,18 +45,18 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
           </TableHeader>
           <TableBody>
             {sortedData.map((transaction) => (
-              <TableRow key={transaction.id}>
+              <TableRow key={transaction.ID}>
                 <TableCell className="font-medium">
-                  {transaction.Description}
+                  {transaction.Notes}
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary">{transaction.Category}</Badge>
                 </TableCell>
                 <TableCell>
-                  {new Date(transaction.date).toLocaleDateString()}
+                  {new Date(transaction.Date).toLocaleDateString()}
                 </TableCell>
                 <TableCell className="text-right">
-                  ${transaction.amount.toFixed(2)}
+                  ${transaction.Amount.toFixed(2)}
                 </TableCell>
               </TableRow>
             ))}

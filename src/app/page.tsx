@@ -39,24 +39,25 @@ export default function DashboardPage() {
     range: "daily" | "weekly" | "monthly",
     now: Date
   ) => {
+    const expenses = transactions.filter(t => t.Type === 'Expense');
     if (range === "monthly") {
       // Show all transactions for the current month
-      return transactions.filter(t => {
-        const transactionDate = new Date(t.date);
+      return expenses.filter(t => {
+        const transactionDate = new Date(t.Date);
         return transactionDate.getMonth() === now.getMonth() && transactionDate.getFullYear() === now.getFullYear();
       });
     }
     if (range === "weekly") {
       const oneWeekAgo = new Date(now);
       oneWeekAgo.setDate(now.getDate() - 7);
-      return transactions.filter(t => {
-        const transactionDate = new Date(t.date);
+      return expenses.filter(t => {
+        const transactionDate = new Date(t.Date);
         return transactionDate >= oneWeekAgo && transactionDate <= now;
       });
     }
     if (range === "daily") {
-      return transactions.filter((t) => {
-        const transactionDate = new Date(t.date);
+      return expenses.filter((t) => {
+        const transactionDate = new Date(t.Date);
         return (
           transactionDate.getDate() === now.getDate() &&
           transactionDate.getMonth() === now.getMonth() &&
@@ -64,7 +65,7 @@ export default function DashboardPage() {
         );
       });
     }
-    return transactions;
+    return expenses;
   };
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export default function DashboardPage() {
     setFilteredTransactions(filtered);
   }, [allTransactions, timeRange, isDataLoaded]);
 
-  const totalSpending = filteredTransactions.reduce((sum, t) => sum + t.amount, 0);
+  const totalSpending = filteredTransactions.reduce((sum, t) => sum + t.Amount, 0);
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">

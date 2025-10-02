@@ -44,11 +44,11 @@ export function SpendingChart({ data }: SpendingChartProps) {
         (item) => item.category === transaction.Category
       );
       if (existingCategory) {
-        existingCategory.amount += transaction.amount;
+        existingCategory.amount += transaction.Amount;
       } else {
         acc.push({
           category: transaction.Category,
-          amount: transaction.amount,
+          amount: transaction.Amount,
         });
       }
       return acc;
