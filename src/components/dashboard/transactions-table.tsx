@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Transaction } from "@/lib/data";
 import { ChartConfig } from "../ui/chart";
+import { format } from 'date-fns';
 
 interface TransactionsTableProps {
   data: Transaction[];
@@ -30,9 +31,12 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) {
-      return 'Invalid Date';
+      return { date: 'Invalid', time: 'Date' };
     }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return {
+        date: format(date, 'dd/MM'),
+        time: format(date, 'HH:mm'),
+    };
   };
 
   return (
@@ -53,30 +57,36 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedData.map((transaction) => (
-              <TableRow key={transaction.ID}>
-                <TableCell className="font-medium">
-                  {formatDate(transaction.Date)}
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  ${transaction.Amount.toFixed(2)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      className="whitespace-nowrap px-2 py-0.5 text-xs opacity-80"
-                      style={{ 
-                        backgroundColor: chartConfig[transaction.Category]?.color,
-                        color: 'hsl(var(--primary-foreground))'
-                      }}
-                    >
-                      {transaction.Category}
-                    </Badge>
-                    <span className="font-medium truncate">{transaction.Notes}</span>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
+            {sortedData.map((transaction) => {
+                const { date, time } = formatDate(transaction.Date);
+                return (
+                  <TableRow key={transaction.ID}>
+                    <TableCell className="font-medium text-xs">
+                        <div>{date}</div>
+                        <div className="text-muted-foreground">{time}</div>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-sm">
+                      ${transaction.Amount.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      <div className="flex items-center gap-2">
+                         <Badge
+                          className="whitespace-nowrap px-1.5 py-0 text-[10px] font-semibold"
+                           style={{
+                            backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820', // 12.5% opacity
+                            color: chartConfig[transaction.Category]?.color || '#888888',
+                            borderColor: chartConfig[transaction.Category]?.color || '#888888',
+                            borderWidth: '1px',
+                          }}
+                        >
+                          {transaction.Category}
+                        </Badge>
+                        <span className="font-medium truncate block max-w-[150px]">{transaction.Notes}</span>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+            })}
           </TableBody>
         </Table>
       </CardContent>
