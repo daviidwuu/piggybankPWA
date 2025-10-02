@@ -18,12 +18,16 @@ export async function getSheetData({
 
   const data = await res.json();
 
-  return data.map((row: any) => ({
-    ID: String(row['ID'] || ''),
-    Date: String(row['Date'] || ''),
-    Amount: Number(row['Amount'] || 0),
-    Type: String(row['Type'] || ''),
-    Category: String(row['Category'] || 'Uncategorized'),
-    Notes: String(row['Notes'] || ''),
-  }));
+  return data.map((row: any) => {
+    const date = new Date(row['Date']);
+    return {
+      ID: String(row['ID'] || ''),
+      // Standardize to ISO string for reliable parsing later
+      Date: !isNaN(date.getTime()) ? date.toISOString() : new Date().toISOString(),
+      Amount: Number(row['Amount'] || 0),
+      Type: String(row['Type'] || ''),
+      Category: String(row['Category'] || 'Uncategorized'),
+      Notes: String(row['Notes'] || ''),
+    }
+  });
 }

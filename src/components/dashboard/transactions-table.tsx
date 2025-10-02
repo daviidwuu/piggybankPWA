@@ -15,12 +15,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Transaction } from "@/lib/data";
+import { ChartConfig } from "../ui/chart";
 
 interface TransactionsTableProps {
   data: Transaction[];
+  chartConfig: ChartConfig;
 }
 
-export function TransactionsTable({ data }: TransactionsTableProps) {
+export function TransactionsTable({ data, chartConfig }: TransactionsTableProps) {
   const sortedData = [...data]
     .sort((a, b) => new Date(b.Date).getTime() - new Date(a.Date).getTime())
     .slice(0, 5);
@@ -46,8 +48,8 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
               <TableHead>Description</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -56,14 +58,22 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
                 <TableCell>
                   {formatDate(transaction.Date)}
                 </TableCell>
-                <TableCell className="text-right font-medium">
-                  ${transaction.Amount.toFixed(2)}
-                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline">{transaction.Category}</Badge>
+                    <Badge
+                      className="whitespace-nowrap"
+                      style={{ 
+                        backgroundColor: chartConfig[transaction.Category]?.color,
+                        color: 'hsl(var(--primary-foreground))'
+                      }}
+                    >
+                      {transaction.Category}
+                    </Badge>
                     <span className="font-medium">{transaction.Notes}</span>
                   </div>
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  ${transaction.Amount.toFixed(2)}
                 </TableCell>
               </TableRow>
             ))}

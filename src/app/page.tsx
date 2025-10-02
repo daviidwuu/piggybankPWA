@@ -10,6 +10,7 @@ import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter } from "@/components/dashboard/date-filter";
+import { type ChartConfig } from "@/components/ui/chart";
 
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyo_FVmlXpdAw1TTUtySgKMafuDoIhY35dQFvAlxE3OxJ3-gT9XufPNbp32huac8fvEkQ/exec";
 
@@ -20,6 +21,8 @@ export default function DashboardPage() {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>('all');
+  const [chartConfig, setChartConfig] = useState<ChartConfig>({});
+
 
   useEffect(() => {
     async function fetchData() {
@@ -90,9 +93,13 @@ export default function DashboardPage() {
             budget={totalBudget}
           />
           <Separator />
-          <SpendingChart data={expenseTransactions} />
+          <SpendingChart 
+            data={expenseTransactions} 
+            chartConfig={chartConfig}
+            onChartConfigChange={setChartConfig}
+          />
           <AiAnalysis transactions={expenseTransactions} />
-          <TransactionsTable data={expenseTransactions} />
+          <TransactionsTable data={expenseTransactions} chartConfig={chartConfig} />
         </main>
       </div>
     </div>

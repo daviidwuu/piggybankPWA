@@ -1,6 +1,7 @@
 
 "use client";
 
+import React, { useEffect, useMemo } from "react";
 import {
   ResponsiveContainer,
   Tooltip,
@@ -25,6 +26,8 @@ import type { Transaction } from "@/lib/data";
 
 interface SpendingChartProps {
   data: Transaction[];
+  chartConfig: ChartConfig;
+  onChartConfigChange: (config: ChartConfig) => void;
 }
 
 const chartColors = [
@@ -37,8 +40,8 @@ const chartColors = [
   "#10b981", // emerald-500
 ];
 
-export function SpendingChart({ data }: SpendingChartProps) {
-  const aggregatedData = data
+export function SpendingChart({ data, chartConfig, onChartConfigChange }: SpendingChartProps) {
+  const aggregatedData = useMemo(() => data
     .reduce((acc, transaction) => {
       const existingCategory = acc.find(
         (item) => item.category === transaction.Category
@@ -53,15 +56,18 @@ export function SpendingChart({ data }: SpendingChartProps) {
       }
       return acc;
     }, [] as { category: string; amount: number }[])
-    .sort((a, b) => b.amount - a.amount);
+    .sort((a, b) => b.amount - a.amount), [data]);
   
-  const chartConfig = aggregatedData.reduce((acc, item, index) => {
-    acc[item.category] = {
-      label: item.category,
-      color: chartColors[index % chartColors.length],
-    };
-    return acc;
-  }, {} as ChartConfig);
+  useEffect(() => {
+    const newChartConfig = aggregatedData.reduce((acc, item, index) => {
+      acc[item.category] = {
+        label: item.category,
+        color: chartColors[index % chartColors.length],
+      };
+      return acc;
+    }, {} as ChartConfig);
+    onChartConfigChange(newChartConfig);
+  }, [aggregatedData, onChartConfigChange]);
 
   return (
     <Card>
@@ -86,10 +92,10 @@ export function SpendingChart({ data }: SpendingChartProps) {
                 innerRadius={60}
                 strokeWidth={5}
               >
-                {aggregatedData.map((entry, index) => (
+                {aggregatedData.map((entry) => (
                   <Cell
-                    key={`cell-${index}`}
-                    fill={chartColors[index % chartColors.length]}
+                    key={`cell-${entry.category}`}
+                    fill={chartConfig[entry.category]?.color}
                   />
                 ))}
               </Pie>
