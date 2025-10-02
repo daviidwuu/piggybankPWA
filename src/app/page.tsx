@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { getSheetData } from "@/ai/flows/get-sheet-data-flow";
-import { getBudgetData } from "@/ai/flows/get-budget-data-flow";
 import { type Transaction, type Budget } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
@@ -11,11 +9,8 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subDays, subMonths, subYears, startOfWeek, endOfWeek } from 'date-fns';
+import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek } from 'date-fns';
 import { isEqual } from 'lodash';
-
-
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyo_FVmlXpdAw1TTUtySgKMafuDoIhY35dQFvAlxE3OxJ3-gT9XufPNbp32huac8fvEkQ/exec";
 
 export default function DashboardPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -33,12 +28,13 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [tx, bd] = await Promise.all([
-          getSheetData({ googleSheetUrl: SHEET_API_URL }),
-          getBudgetData({ googleSheetUrl: SHEET_API_URL })
-        ]);
-        setTransactions(tx);
-        setBudgets(bd);
+        const res = await fetch('/api/sheet');
+        if (!res.ok) {
+          throw new Error('Failed to fetch data');
+        }
+        const { transactions, budgets } = await res.json();
+        setTransactions(transactions);
+        setBudgets(budgets);
       } catch (err) {
         console.error("Error loading data:", err);
       } finally {
@@ -50,10 +46,10 @@ export default function DashboardPage() {
 
   const getFilteredTransactions = () => {
     if (!transactions.length) return [];
-
+  
     const today = new Date();
     let startDate: Date;
-
+  
     switch (dateRange) {
       case 'daily':
         startDate = startOfDay(today);
@@ -71,12 +67,12 @@ export default function DashboardPage() {
       default:
         return transactions;
     }
-
+  
     let endDate: Date | null = null;
     if (dateRange === 'week') {
       endDate = endOfWeek(today, { weekStartsOn: 1 });
     }
-
+  
     return transactions.filter(t => {
       if (!t.Date) return false;
       const transactionDate = new Date(t.Date);
@@ -88,7 +84,7 @@ export default function DashboardPage() {
       if (dateRange === 'daily') {
         return transactionDate.toDateString() === today.toDateString();
       }
-
+  
       return isAfterStart && isBeforeEnd;
     });
   };
