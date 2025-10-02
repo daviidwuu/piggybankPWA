@@ -71,6 +71,19 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
             {!analysis ? "Get personalized insights" : analysis.summary}
           </CardDescription>
         </div>
+        {!analysis && !isLoading && (
+          <Button
+            onClick={handleAnalysis}
+            disabled={isLoading || transactions.length === 0}
+            variant="ghost"
+            size="icon"
+          >
+            <Sparkles className="h-4 w-4" />
+          </Button>
+        )}
+        {isLoading && (
+           <Loader2 className="h-4 w-4 animate-spin" />
+        )}
         {analysis && !isLoading && (
             <Button
               onClick={handleAnalysis}
@@ -84,7 +97,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
         )}
       </CardHeader>
       <CardContent className="flex-grow flex flex-col pt-0">
-        {isLoading ? (
+        {isLoading && !analysis ? (
           <div className="space-y-4 pt-6">
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-16 w-full" />
@@ -118,22 +131,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
               </ul>
             </div>
           </div>
-        ) : (
-          <div className="m-auto text-center flex flex-col items-center">
-            <Button
-              onClick={handleAnalysis}
-              disabled={isLoading || transactions.length === 0}
-              variant="ghost"
-              size="icon"
-            >
-              {isLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
