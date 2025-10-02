@@ -24,17 +24,6 @@ interface TransactionsTableProps {
 }
 
 export function TransactionsTable({ data, chartConfig }: TransactionsTableProps) {
-  const sortedData = [...data]
-    .sort((a, b) => {
-        // Handle null dates by pushing them to the bottom
-        if (a.Date === null) return 1;
-        if (b.Date === null) return -1;
-        const dateA = new Date(a.Date);
-        const dateB = new Date(b.Date);
-        return dateB.getTime() - dateA.getTime();
-    })
-    .slice(0, 5);
-
   const formatDate = (dateString: string | null) => {
     if (dateString === null) {
         return { date: 'Invalid', time: 'Date' };
@@ -54,7 +43,7 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
       <CardHeader>
         <CardTitle>Recent Transactions</CardTitle>
         <CardDescription>
-          Your 5 most recent financial activities.
+          Your most recent financial activities.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -67,7 +56,7 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sortedData.map((transaction) => {
+            {data.map((transaction) => {
                 const { date, time } = formatDate(transaction.Date);
                 return (
                   <TableRow key={transaction.ID}>

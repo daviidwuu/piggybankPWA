@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { type Transaction, type Budget } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
@@ -8,8 +8,8 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay } from 'date-fns';
-import { isEqual } from 'lodash';
+import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, max, min } from 'date-fns';
+import { Button } from "@/components/ui/button";
 
 const chartColors = [
   "hsl(var(--chart-1))",
@@ -27,6 +27,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
+  const [visibleTransactions, setVisibleTransactions] = useState(5);
 
   useEffect(() => {
     async function fetchData() {
@@ -152,6 +153,14 @@ export default function DashboardPage() {
     }
   }, [aggregatedData, chartConfig]);
 
+  const sortedTransactions = useMemo(() => [...expenseTransactions].sort((a, b) => {
+    if (a.Date === null) return 1;
+    if (b.Date === null) return -1;
+    return new Date(b.Date).getTime() - new Date(a.Date).getTime();
+  }), [expenseTransactions]);
+
+  const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
+
 
   if (loading) {
     return (
@@ -182,7 +191,16 @@ export default function DashboardPage() {
             budget={scaledBudget}
           />
           <Separator />
-          <TransactionsTable data={expenseTransactions} chartConfig={chartConfig} />
+          <TransactionsTable data={transactionsToShow} chartConfig={chartConfig} />
+          {visibleTransactions < sortedTransactions.length && (
+            <Button
+              variant="outline"
+              onClick={() => setVisibleTransactions(v => v + 5)}
+              className="w-full"
+            >
+              Load More
+            </Button>
+          )}
           <AiAnalysis transactions={expenseTransactions} />
         </main>
       </div>
