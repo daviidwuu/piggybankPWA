@@ -23,16 +23,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, CheckCircle } from "lucide-react";
-
-const FormSchema = z.object({
-  googleSheetUrl: z
-    .string()
-    .url({ message: "Please enter a valid Google Sheet URL." }),
-});
+import { Loader2 } from "lucide-react";
+import { getSheetData } from "@/ai/flows/get-sheet-data-flow";
+import { Transaction } from "@/lib/data";
+import { GetSheetDataInputSchema } from "@/ai/schemas/get-sheet-data-schema";
 
 interface DataImporterProps {
-  onImport: (url: string) => void;
+  onImport: (transactions: Transaction[]) => void;
   isDataLoaded: boolean;
 }
 
@@ -40,25 +37,34 @@ export function DataImporter({ onImport, isDataLoaded }: DataImporterProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const form = useForm<z.infer<typeof FormSchema>>({
-    resolver: zodResolver(FormSchema),
+  const form = useForm<z.infer<typeof GetSheetDataInputSchema>>({
+    resolver: zodResolver(GetSheetDataInputSchema),
     defaultValues: {
       googleSheetUrl: "",
     },
   });
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
+  async function onSubmit(data: z.infer<typeof GetSheetDataInputSchema>) {
     setIsLoading(true);
-    
-    // We'll simulate the import for now
-    setTimeout(() => {
-      onImport(data.googleSheetUrl);
-      setIsLoading(false);
+    try {
+      const transactions = await getSheetData({
+        googleSheetUrl: data.googleSheetUrl,
+      });
+      onImport(transactions);
       toast({
         title: "Success!",
         description: "Your financial data has been imported.",
       });
-    }, 1000);
+    } catch (error) {
+      console.error("Data import failed:", error);
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: "Could not import data from the Google Sheet.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   if (isDataLoaded) {

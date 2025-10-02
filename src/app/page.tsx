@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { mockTransactions, type Transaction } from "@/lib/data";
+import { type Transaction } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
@@ -28,10 +28,8 @@ export default function DashboardPage() {
   
   const budget = 2000; // Mock budget
 
-  const handleImport = () => {
-    // In a real app, you'd fetch and parse the Google Sheet here.
-    // For now, we'll just use the mock data.
-    setAllTransactions(mockTransactions);
+  const handleImport = (transactions: Transaction[]) => {
+    setAllTransactions(transactions);
     setIsDataLoaded(true);
   };
 
