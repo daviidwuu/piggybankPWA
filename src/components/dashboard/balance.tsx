@@ -9,27 +9,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 interface BalanceProps {
   totalSpending: number;
   budget: number;
-  timeRange: "daily" | "weekly" | "monthly";
-  setTimeRange: (value: "daily" | "weekly" | "monthly") => void;
 }
 
 export function Balance({
   totalSpending,
   budget,
-  timeRange,
-  setTimeRange,
 }: BalanceProps) {
   const balance = budget - totalSpending;
   const spendingPercentage = (totalSpending / budget) * 100;
@@ -39,16 +28,6 @@ export function Balance({
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle>Balance</CardTitle>
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="Select range" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-              <SelectItem value="monthly">Monthly</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
         <CardDescription>Your spending vs. budget for this period.</CardDescription>
       </CardHeader>

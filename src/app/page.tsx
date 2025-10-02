@@ -3,12 +3,19 @@
 
 import { useState, useEffect } from "react";
 import { mockTransactions, type Transaction } from "@/lib/data";
-import { Header } from "@/components/dashboard/header";
 import { Balance } from "@/components/dashboard/balance";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar } from "lucide-react";
 
 export default function DashboardPage() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
@@ -25,7 +32,7 @@ export default function DashboardPage() {
     setTimeout(() => {
       setAllTransactions(mockTransactions);
       setIsDataLoaded(true);
-    }, 1000);
+    }, 0); // Load immediately
   }, []);
 
   useEffect(() => {
@@ -56,14 +63,28 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
-      <div className="w-full max-w-[428px] bg-card border-x border-border">
-        <Header />
-        <main className="flex-1 p-4 space-y-6">
+      <div className="w-full max-w-[428px] border-x border-border">
+        <main className="flex-1 p-4 md:p-6 space-y-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold">Welcome</h1>
+              <h1 className="text-3xl font-bold text-primary">David</h1>
+            </div>
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-[150px] bg-card">
+                <Calendar className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Select range" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="daily">Daily</SelectItem>
+                <SelectItem value="weekly">Weekly</SelectItem>
+                <SelectItem value="monthly">Monthly</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Balance
             totalSpending={totalSpending}
             budget={budget}
-            timeRange={timeRange}
-            setTimeRange={setTimeRange}
           />
           <Separator />
           <SpendingChart data={filteredTransactions} />
