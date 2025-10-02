@@ -23,6 +23,7 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import type { Transaction } from "@/lib/data";
+import { isEqual } from 'lodash';
 
 interface SpendingChartProps {
   data: Transaction[];
@@ -66,8 +67,12 @@ export function SpendingChart({ data, chartConfig, onChartConfigChange }: Spendi
       };
       return acc;
     }, {} as ChartConfig);
-    onChartConfigChange(newChartConfig);
-  }, [aggregatedData, onChartConfigChange]);
+
+    // Deep compare to prevent infinite loops
+    if (JSON.stringify(chartConfig) !== JSON.stringify(newChartConfig)) {
+      onChartConfigChange(newChartConfig);
+    }
+  }, [aggregatedData, onChartConfigChange, chartConfig]);
 
   return (
     <Card>
