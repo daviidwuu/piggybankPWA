@@ -11,7 +11,7 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subDays, subMonths, subYears, differenceInDays } from 'date-fns';
+import { startOfDay, subDays, subMonths, subYears } from 'date-fns';
 
 
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyo_FVmlXpdAw1TTUtySgKMafuDoIhY35dQFvAlxE3OxJ3-gT9XufPNbp32huac8fvEkQ/exec";
@@ -126,7 +126,7 @@ export default function DashboardPage() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-3xl font-bold">Welcome</h1>
-              <h1 className="text-3xl font-bold text-primary">David</h1>
+              <h1 className="text-3xl font-bold text-primary tracking-widest">David</h1>
             </div>
             <DateFilter value={dateRange} onValueChange={setDateRange} />
           </div>
