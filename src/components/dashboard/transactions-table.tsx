@@ -132,7 +132,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
             <Button
               variant="ghost"
               onClick={onLoadMore}
-              className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
