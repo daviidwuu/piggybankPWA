@@ -16,8 +16,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +51,12 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
     };
   };
 
+  const sortOptions: { label: string; value: SortOption }[] = [
+    { label: "Latest", value: "latest" },
+    { label: "Highest Amount", value: "highest" },
+    { label: "Category", value: "category" },
+  ];
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
@@ -68,11 +73,15 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuRadioGroup value={sortOption} onValueChange={(value) => onSortChange(value as SortOption)}>
-              <DropdownMenuRadioItem value="latest">Latest</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="highest">Highest Amount</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="category">Category</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
+            {sortOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onSelect={() => onSortChange(option.value)}
+                  className={sortOption === option.value ? "bg-accent" : ""}
+                >
+                  {option.label}
+                </DropdownMenuItem>
+              ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -123,7 +132,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
             <Button
               variant="ghost"
               onClick={onLoadMore}
-              className="w-full h-auto p-1 hover:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               <ChevronDown className="h-4 w-4" />
             </Button>
