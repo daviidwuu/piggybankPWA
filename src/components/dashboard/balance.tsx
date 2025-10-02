@@ -21,6 +21,7 @@ export function Balance({
   budget,
 }: BalanceProps) {
   const spendingPercentage = budget > 0 ? (totalSpending / budget) * 100 : 0;
+  const isOverBudget = spendingPercentage >= 100;
 
   return (
     <Card>
@@ -39,7 +40,10 @@ export function Balance({
             of ${budget.toFixed(2)}
           </div>
         </div>
-        <Progress value={spendingPercentage} />
+        <Progress 
+          value={isOverBudget ? 100 : spendingPercentage} 
+          className={cn(isOverBudget && "[&>div]:bg-destructive")}
+        />
       </CardContent>
     </Card>
   );
