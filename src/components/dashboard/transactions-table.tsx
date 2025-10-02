@@ -95,12 +95,11 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore }: Tr
         {hasMore && (
           <div className="p-4 pt-2">
             <Button
-              variant="outline"
+              variant="ghost"
               onClick={onLoadMore}
               className="w-full"
             >
-              <ChevronDown className="mr-2 h-4 w-4" />
-              Load More
+              <ChevronDown className="h-4 w-4" />
             </Button>
           </div>
         )}
