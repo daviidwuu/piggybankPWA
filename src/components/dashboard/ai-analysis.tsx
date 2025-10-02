@@ -124,14 +124,13 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
               onClick={handleAnalysis}
               disabled={isLoading || transactions.length === 0}
               variant="ghost"
-              size="sm"
+              size="icon"
             >
               {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
+                <Sparkles className="h-4 w-4" />
               )}
-              Generate Insights
             </Button>
           </div>
         )}
