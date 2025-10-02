@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getSheetData } from "@/ai/flows/get-sheet-data-flow";
 import { getBudgetData } from "@/ai/flows/get-budget-data-flow";
 import { type Transaction, type Budget } from "@/lib/data";
@@ -23,6 +23,9 @@ export default function DashboardPage() {
   const [dateRange, setDateRange] = useState<DateRange>('all');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
 
+  const handleChartConfigChange = useCallback((config: ChartConfig) => {
+    setChartConfig(config);
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
@@ -46,11 +49,17 @@ export default function DashboardPage() {
     const now = new Date();
     if (dateRange === 'week') {
       const oneWeekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
-      return transactions.filter(t => new Date(t.Date) >= oneWeekAgo);
+      return transactions.filter(t => {
+        const transactionDate = new Date(t.Date);
+        return !isNaN(transactionDate.getTime()) && transactionDate >= oneWeekAgo;
+      });
     }
     if (dateRange === 'month') {
       const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
-      return transactions.filter(t => new Date(t.Date) >= oneMonthAgo);
+      return transactions.filter(t => {
+        const transactionDate = new Date(t.Date);
+        return !isNaN(transactionDate.getTime()) && transactionDate >= oneMonthAgo;
+      });
     }
     return transactions;
   }
@@ -96,7 +105,7 @@ export default function DashboardPage() {
           <SpendingChart 
             data={expenseTransactions} 
             chartConfig={chartConfig}
-            onChartConfigChange={setChartConfig}
+            onChartConfigChange={handleChartConfigChange}
           />
           <AiAnalysis transactions={expenseTransactions} />
           <TransactionsTable data={expenseTransactions} chartConfig={chartConfig} />
