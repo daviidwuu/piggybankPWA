@@ -6,3 +6,8 @@ export interface Transaction {
   Category: string; // Column E
   Notes: string; // Column F
 }
+
+export interface Budget {
+  Category: string;
+  Budget: number;
+}

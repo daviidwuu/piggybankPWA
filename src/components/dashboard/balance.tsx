@@ -21,7 +21,7 @@ export function Balance({
   budget,
 }: BalanceProps) {
   const balance = budget - totalSpending;
-  const spendingPercentage = (totalSpending / budget) * 100;
+  const spendingPercentage = budget > 0 ? (totalSpending / budget) * 100 : 0;
 
   return (
     <Card>
