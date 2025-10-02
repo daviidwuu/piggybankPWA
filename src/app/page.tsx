@@ -189,6 +189,8 @@ export default function DashboardPage() {
           <Balance
             totalSpending={totalSpent}
             budget={scaledBudget}
+            aggregatedData={aggregatedData}
+            chartConfig={chartConfig}
           />
           <Separator />
           <TransactionsTable 
