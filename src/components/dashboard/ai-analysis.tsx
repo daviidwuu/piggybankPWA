@@ -65,23 +65,12 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="text-primary" /> AI Analysis
+            <Sparkles className="text-primary" /> AI Analysis
           </CardTitle>
           <CardDescription className="text-xs">
-            {!analysis ? "Get personalized insights" : analysis.summary}
+            {analysis ? analysis.summary : "Get personalized insights"}
           </CardDescription>
         </div>
-        {!analysis && !isLoading && (
-          <Button
-            onClick={handleAnalysis}
-            disabled={isLoading || transactions.length === 0}
-            variant="outline"
-            size="icon"
-            className="h-8 w-8 rounded-full"
-          >
-            <Sparkles className="h-4 w-4" />
-          </Button>
-        )}
         {isLoading && (
            <Loader2 className="h-4 w-4 animate-spin" />
         )}
@@ -98,7 +87,25 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
         )}
       </CardHeader>
       <CardContent className="flex-grow flex flex-col pt-0">
-        {isLoading && !analysis ? (
+        {!analysis && !isLoading ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
+            <div className="bg-secondary p-3 rounded-full">
+              <Lightbulb className="h-6 w-6 text-primary" />
+            </div>
+            <p className="text-sm text-muted-foreground max-w-[200px]">
+              Click the button to get personalized insights on your spending.
+            </p>
+            <Button
+              onClick={handleAnalysis}
+              disabled={isLoading || transactions.length === 0}
+              variant="default"
+              size="sm"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              Generate Insights
+            </Button>
+          </div>
+        ) : isLoading && !analysis ? (
           <div className="space-y-4 pt-6">
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-16 w-full" />
@@ -120,7 +127,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
             <Separator />
             <div>
               <h4 className="font-semibold flex items-center gap-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-primary" /> Recommendations
+                <CheckCircle2 className="h-4 w-4 text-primary" /> Recommendations
               </h4>
               <ul className="space-y-1.5 text-muted-foreground">
                 {analysis.recommendations.map((rec, index) => (
