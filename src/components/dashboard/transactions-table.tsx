@@ -47,21 +47,24 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead className="w-[80px]">Date</TableHead>
+              <TableHead className="w-[100px] text-right">Amount</TableHead>
               <TableHead>Description</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedData.map((transaction) => (
               <TableRow key={transaction.ID}>
-                <TableCell>
+                <TableCell className="font-medium">
                   {formatDate(transaction.Date)}
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  ${transaction.Amount.toFixed(2)}
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <Badge
-                      className="whitespace-nowrap"
+                      className="whitespace-nowrap px-2 py-0.5 text-xs opacity-80"
                       style={{ 
                         backgroundColor: chartConfig[transaction.Category]?.color,
                         color: 'hsl(var(--primary-foreground))'
@@ -69,11 +72,8 @@ export function TransactionsTable({ data, chartConfig }: TransactionsTableProps)
                     >
                       {transaction.Category}
                     </Badge>
-                    <span className="font-medium">{transaction.Notes}</span>
+                    <span className="font-medium truncate">{transaction.Notes}</span>
                   </div>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  ${transaction.Amount.toFixed(2)}
                 </TableCell>
               </TableRow>
             ))}
