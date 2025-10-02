@@ -11,7 +11,7 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subDays, subMonths, subYears } from 'date-fns';
+import { startOfDay, subDays, subMonths, subYears, differenceInDays } from 'date-fns';
 
 
 const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyo_FVmlXpdAw1TTUtySgKMafuDoIhY35dQFvAlxE3OxJ3-gT9XufPNbp32huac8fvEkQ/exec";
@@ -46,21 +46,29 @@ export default function DashboardPage() {
   }, []);
 
   const getFilteredTransactions = () => {
-    const now = new Date();
+    if (!transactions.length) return [];
+
+    // Use the most recent transaction date as the reference point
+    const mostRecentDate = transactions.reduce((max, t) => {
+        if (!t.Date) return max;
+        const current = new Date(t.Date);
+        return current > max ? current : max;
+    }, new Date(0));
+    
     let startDate: Date;
 
     switch (dateRange) {
         case 'daily':
-            startDate = startOfDay(now);
+            startDate = startOfDay(mostRecentDate);
             break;
         case 'week':
-            startDate = subDays(now, 7);
+            startDate = subDays(mostRecentDate, 7);
             break;
         case 'month':
-            startDate = subMonths(now, 1);
+            startDate = subMonths(mostRecentDate, 1);
             break;
         case 'yearly':
-            startDate = subYears(now, 1);
+            startDate = subYears(mostRecentDate, 1);
             break;
         case 'all':
         default:
@@ -74,9 +82,25 @@ export default function DashboardPage() {
     });
   }
 
-  const filteredTransactions = getFilteredTransactions();
+  const getScaledBudget = () => {
+    const monthlyBudget = budgets.reduce((sum, b) => sum + b.Budget, 0);
+    switch (dateRange) {
+      case 'daily':
+        return monthlyBudget / 30; // Approximation
+      case 'week':
+        return monthlyBudget / 4; // Approximation
+      case 'yearly':
+        return monthlyBudget * 12;
+      case 'month':
+      case 'all': // 'all' will use the monthly budget as default
+      default:
+        return monthlyBudget;
+    }
+  };
 
-  const totalBudget = budgets.reduce((sum, b) => sum + b.Budget, 0);
+  const filteredTransactions = getFilteredTransactions();
+  const scaledBudget = getScaledBudget();
+
   const totalSpent = filteredTransactions
     .filter(t => t.Type === "Expense")
     .reduce((sum, t) => sum + t.Amount, 0);
@@ -109,7 +133,7 @@ export default function DashboardPage() {
           
           <Balance
             totalSpending={totalSpent}
-            budget={totalBudget}
+            budget={scaledBudget}
           />
           <Separator />
           <SpendingChart 
