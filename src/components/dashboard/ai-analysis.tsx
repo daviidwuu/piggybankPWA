@@ -6,16 +6,9 @@ import {
   type SpendingInsightsOutput,
 } from "@/ai/flows/spending-insights-from-data";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Lightbulb, TrendingUp, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
+import { Sparkles, Lightbulb, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
 import type { Transaction } from "@/lib/data";
 import { Separator } from "@/components/ui/separator";
 
@@ -61,32 +54,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="text-primary" /> AI Analysis
-          </CardTitle>
-          <CardDescription className="text-xs">
-            {analysis ? analysis.summary : "Get personalized insights"}
-          </CardDescription>
-        </div>
-        {isLoading && (
-           <Loader2 className="h-4 w-4 animate-spin" />
-        )}
-        {analysis && !isLoading && (
-            <Button
-              onClick={handleAnalysis}
-              disabled={isLoading}
-              variant="outline"
-              size="icon"
-              className="h-8 w-8 rounded-full"
-            >
-              <RefreshCw className="h-4 w-4"/>
-            </Button>
-        )}
-      </CardHeader>
-      <CardContent className="flex-grow flex flex-col pt-0">
+    <div className="h-full flex flex-col">
         {!analysis && !isLoading ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
             <div className="bg-secondary p-3 rounded-full">
@@ -113,7 +81,20 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
             <Skeleton className="h-16 w-full" />
           </div>
         ) : analysis ? (
-          <div className="space-y-4 text-sm animate-in fade-in-0 pt-6 border-t">
+          <div className="space-y-4 text-sm animate-in fade-in-0">
+             <div className="flex justify-between items-center">
+              <p className="text-xs text-muted-foreground">{analysis.summary}</p>
+              <Button
+                onClick={handleAnalysis}
+                disabled={isLoading}
+                variant="outline"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              </Button>
+            </div>
+            <Separator/>
             <div>
               <h4 className="font-semibold flex items-center gap-2 mb-2">
                 <Lightbulb className="h-4 w-4 text-primary" /> Key Insights
@@ -140,7 +121,6 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
             </div>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+    </div>
   );
 }

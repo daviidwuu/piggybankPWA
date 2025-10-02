@@ -9,6 +9,16 @@ import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay } from 'date-fns';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Sparkles } from "lucide-react";
 
 export type SortOption = 'latest' | 'highest' | 'category';
 
@@ -204,7 +214,27 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
               <div>Welcome,</div>
               <div className="text-primary text-3xl">David</div>
             </h1>
-            <DateFilter value={dateRange} onValueChange={setDateRange} transactions={transactions}/>
+            <div className="flex items-center gap-2">
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+                    <Sparkles className="h-4 w-4" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2">
+                      <Sparkles className="text-primary" /> AI Analysis
+                    </DialogTitle>
+                    <DialogDescription>
+                      Get personalized insights on your spending.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <AiAnalysis transactions={expenseTransactions} />
+                </DialogContent>
+              </Dialog>
+              <DateFilter value={dateRange} onValueChange={setDateRange} transactions={transactions}/>
+            </div>
           </div>
           
           <Balance
@@ -222,7 +252,6 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
             sortOption={sortOption}
             onSortChange={setSortOption}
           />
-          <AiAnalysis transactions={expenseTransactions} />
         </main>
       </div>
     </div>
