@@ -11,8 +11,8 @@ export type GetSheetDataInput = z.infer<typeof GetSheetDataInputSchema>;
 const TransactionSchema = z.object({
   id: z.string(),
   date: z.string(),
-  description: z.string(),
-  category: z.enum([
+  Description: z.string(),
+  Category: z.enum([
     'Food',
     'Transport',
     'Shopping',

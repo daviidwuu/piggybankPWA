@@ -38,7 +38,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
     const financialDataString = transactions
       .map(
         (t) =>
-          `${t.date}: ${t.description} (${t.category}) - $${t.amount.toFixed(
+          `${t.date}: ${t.Description} (${t.Category}) - $${t.amount.toFixed(
             2
           )}`
       )

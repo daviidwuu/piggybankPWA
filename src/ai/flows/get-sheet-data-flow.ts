@@ -66,16 +66,16 @@ const getSheetDataFlow = ai.defineFlow(
             return {
               id: String(index + 1),
               date: new Date().toISOString(),
-              description: row.Description || 'Invalid Row',
-              category: 'Other',
+              Description: row.Description || 'Invalid Row',
+              Category: 'Other',
               amount: 0,
             };
           }
           return {
             id: String(index + 1),
             date: date.toISOString(),
-            description: row.Description,
-            category: row.Category,
+            Description: row.Description,
+            Category: row.Category,
             amount: Number(row.Amount),
           };
         }

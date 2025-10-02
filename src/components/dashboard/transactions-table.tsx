@@ -47,10 +47,10 @@ export function TransactionsTable({ data }: TransactionsTableProps) {
             {sortedData.map((transaction) => (
               <TableRow key={transaction.id}>
                 <TableCell className="font-medium">
-                  {transaction.description}
+                  {transaction.Description}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="secondary">{transaction.category}</Badge>
+                  <Badge variant="secondary">{transaction.Category}</Badge>
                 </TableCell>
                 <TableCell>
                   {new Date(transaction.date).toLocaleDateString()}

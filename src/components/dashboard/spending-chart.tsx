@@ -41,13 +41,13 @@ export function SpendingChart({ data }: SpendingChartProps) {
   const aggregatedData = data
     .reduce((acc, transaction) => {
       const existingCategory = acc.find(
-        (item) => item.category === transaction.category
+        (item) => item.category === transaction.Category
       );
       if (existingCategory) {
         existingCategory.amount += transaction.amount;
       } else {
         acc.push({
-          category: transaction.category,
+          category: transaction.Category,
           amount: transaction.amount,
         });
       }
