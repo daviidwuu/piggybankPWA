@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { type Transaction } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { SpendingChart } from "@/components/dashboard/spending-chart";
@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   Select,
   SelectTrigger,
+  SelectValue,
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
@@ -29,39 +30,44 @@ export default function DashboardPage() {
 
   const handleImport = (transactions: Transaction[]) => {
     setAllTransactions(transactions);
-    setFilteredTransactions(transactions); // Initially, show all imported data
-    setIsDataLoaded(true);
-    setTimeRange("monthly"); // Default to monthly to show all data
-  };
-  
-  // Auto-fetch data when component mounts
-  useEffect(() => {
-    // This is where you could trigger an automatic fetch if the URL is known
-    // For now, we rely on the user to input the URL
-  }, []);
-
-
-  useEffect(() => {
-    if (!isDataLoaded) return;
-
+    // When new data is imported, filter it based on the current time range
     const now = new Date();
-    const filtered = allTransactions.filter((t) => {
+    const filtered = filterTransactions(transactions, timeRange, now);
+    setFilteredTransactions(filtered);
+    setIsDataLoaded(true);
+  };
+
+  const filterTransactions = (
+    transactions: Transaction[],
+    range: "daily" | "weekly" | "monthly",
+    now: Date
+  ) => {
+    return transactions.filter((t) => {
       const transactionDate = new Date(t.date);
-      if (timeRange === "daily") {
+      if (range === "daily") {
         return (
           transactionDate.getDate() === now.getDate() &&
           transactionDate.getMonth() === now.getMonth() &&
           transactionDate.getFullYear() === now.getFullYear()
         );
       }
-      if (timeRange === "weekly") {
+      if (range === "weekly") {
         const oneWeekAgo = new Date(now);
         oneWeekAgo.setDate(now.getDate() - 7);
         return transactionDate >= oneWeekAgo;
       }
-      // Monthly shows all transactions from the imported data
+      // "monthly" or any other case will show all transactions
       return true;
     });
+  };
+
+  // This effect re-filters transactions when the time range changes
+  // without needing to re-fetch the data.
+  useState(() => {
+    if (!isDataLoaded) return;
+
+    const now = new Date();
+    const filtered = filterTransactions(allTransactions, timeRange, now);
     setFilteredTransactions(filtered);
   }, [allTransactions, timeRange, isDataLoaded]);
 
@@ -77,7 +83,7 @@ export default function DashboardPage() {
               <h1 className="text-3xl font-bold text-primary">David</h1>
             </div>
             <Select value={timeRange} onValueChange={(value: "daily" | "weekly" | "monthly") => setTimeRange(value)}>
-              <SelectTrigger className="w-auto bg-card p-2">
+               <SelectTrigger className="w-auto bg-card p-2">
                 <Calendar className="h-5 w-5" />
               </SelectTrigger>
               <SelectContent>
@@ -87,8 +93,10 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
           </div>
-          <DataImporter onImport={handleImport} isDataLoaded={isDataLoaded} />
-          {isDataLoaded && (
+          
+          <DataImporter onImport={handleImport} />
+
+          {isDataLoaded ? (
             <>
               <Balance
                 totalSpending={totalSpending}
@@ -99,6 +107,10 @@ export default function DashboardPage() {
               <AiAnalysis transactions={filteredTransactions} />
               <TransactionsTable data={filteredTransactions} />
             </>
+          ) : (
+            <div className="flex justify-center items-center h-64">
+                <p>Loading transactions...</p>
+            </div>
           )}
         </main>
       </div>
