@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   getSpendingInsights,
   type SpendingInsightsOutput,
@@ -21,6 +21,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
   const [analysis, setAnalysis] = useState<SpendingInsightsOutput | null>(
     null
   );
+  const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const { toast } = useToast();
 
   const handleAnalysis = async () => {
@@ -41,6 +42,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
         financialData: financialDataString,
       });
       setAnalysis(result);
+      setHasAnalyzed(true);
     } catch (error) {
       console.error("AI analysis failed:", error);
       toast({
@@ -53,27 +55,16 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
     }
   };
 
+  useEffect(() => {
+    if (!hasAnalyzed) {
+      handleAnalysis();
+    }
+  }, [hasAnalyzed]);
+
+
   return (
     <div className="h-full flex flex-col">
-        {!analysis && !isLoading ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 space-y-4">
-            <div className="bg-secondary p-3 rounded-full">
-              <Lightbulb className="h-6 w-6 text-primary" />
-            </div>
-            <p className="text-sm text-muted-foreground max-w-[200px]">
-              Click the button to get personalized insights on your spending.
-            </p>
-            <Button
-              onClick={handleAnalysis}
-              disabled={isLoading || transactions.length === 0}
-              variant="default"
-              size="sm"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Generate Insights
-            </Button>
-          </div>
-        ) : isLoading && !analysis ? (
+        {!analysis && isLoading ? (
           <div className="space-y-4 pt-6">
             <Skeleton className="h-6 w-3/4" />
             <Skeleton className="h-16 w-full" />
