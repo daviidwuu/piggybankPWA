@@ -7,7 +7,7 @@ import { type Transaction } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 
 // IMPORTANT: Replace this with your actual Google Apps Script URL.
-const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/YOUR_APPS_SCRIPT_ID/exec"; 
+const DEFAULT_SHEET_URL = "https://script.google.com/macros/s/AKfycbyo_FVmlXpdAw1TTUtySgKMafuDoIhY35dQFvAlxE3OxJ3-gT9XufPNbp32huac8fvEkQ/exec"; 
 
 interface DataImporterProps {
   onImport: (transactions: Transaction[]) => void;
