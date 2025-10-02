@@ -21,10 +21,11 @@ const SpendingInsightsInputSchema = z.object({
 export type SpendingInsightsInput = z.infer<typeof SpendingInsightsInputSchema>;
 
 const SpendingInsightsOutputSchema = z.object({
-  insights: z.string().describe('AI-driven insights into spending habits.'),
+  summary: z.string().describe('A one-sentence summary of the spending habits.'),
+  insights: z.array(z.string()).describe('A list of 2-3 key insights into spending habits.'),
   recommendations: z
-    .string()
-    .describe('Personalized recommendations for potential savings.'),
+    .array(z.string())
+    .describe('A list of 2-3 personalized recommendations for potential savings.'),
 });
 export type SpendingInsightsOutput = z.infer<typeof SpendingInsightsOutputSchema>;
 
@@ -36,13 +37,15 @@ const prompt = ai.definePrompt({
   name: 'spendingInsightsPrompt',
   input: {schema: SpendingInsightsInputSchema},
   output: {schema: SpendingInsightsOutputSchema},
-  prompt: `You are a personal finance advisor. Analyze the following financial data and provide insights and recommendations to help the user understand their spending habits and identify potential savings.
+  prompt: `You are a personal finance advisor. Analyze the following financial data and provide a concise summary, key insights, and actionable recommendations.
 
 Financial Data:
 {{financialData}}
 
-Provide clear and actionable insights into the user's spending habits, identifying areas where they are spending the most money.
-Offer personalized recommendations on how the user can save money based on their spending patterns.`,
+Your response should be structured with:
+1. A one-sentence summary of the user's spending.
+2. A list of 2-3 key insights, focusing on the most significant spending categories or trends.
+3. A list of 2-3 personalized, actionable recommendations for saving money based on the data.`,
 });
 
 const spendingInsightsFlow = ai.defineFlow(

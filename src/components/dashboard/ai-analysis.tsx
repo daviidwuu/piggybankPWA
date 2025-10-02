@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Lightbulb, TrendingUp, Loader2 } from "lucide-react";
+import { Sparkles, Lightbulb, TrendingUp, Loader2, CheckCircle2 } from "lucide-react";
 import type { Transaction } from "@/lib/data";
 import { Separator } from "@/components/ui/separator";
 
@@ -68,7 +68,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
           <Sparkles className="text-primary" /> AI-Powered Spending Analysis
         </CardTitle>
         <CardDescription>
-          Get personalized insights and savings recommendations from our AI.
+          {!analysis ? "Get personalized insights and savings recommendations from our AI." : analysis.summary}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow flex flex-col">
@@ -83,16 +83,27 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
           <div className="space-y-4 text-sm animate-in fade-in-0">
             <div>
               <h4 className="font-semibold flex items-center gap-2 mb-2">
-                <Lightbulb className="h-4 w-4 text-primary" /> Insights
+                <Lightbulb className="h-4 w-4 text-primary" /> Key Insights
               </h4>
-              <p className="text-muted-foreground">{analysis.insights}</p>
+              <ul className="space-y-2 text-muted-foreground list-disc pl-5">
+                {analysis.insights.map((insight, index) => (
+                  <li key={index}>{insight}</li>
+                ))}
+              </ul>
             </div>
             <Separator />
             <div>
               <h4 className="font-semibold flex items-center gap-2 mb-2">
                 <TrendingUp className="h-4 w-4 text-primary" /> Recommendations
               </h4>
-              <p className="text-muted-foreground">{analysis.recommendations}</p>
+              <ul className="space-y-2 text-muted-foreground">
+                {analysis.recommendations.map((rec, index) => (
+                  <li key={index} className="flex items-start gap-2">
+                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                     <span>{rec}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           </div>
         ) : (
