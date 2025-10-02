@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "lucide-react";
+import { DataImporter } from "@/components/dashboard/data-importer";
 
 export default function DashboardPage() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([]);
@@ -27,13 +28,12 @@ export default function DashboardPage() {
   
   const budget = 2000; // Mock budget
 
-  useEffect(() => {
-    // Simulate fetching data from a Google Sheet on load
-    setTimeout(() => {
-      setAllTransactions(mockTransactions);
-      setIsDataLoaded(true);
-    }, 0); // Load immediately
-  }, []);
+  const handleImport = () => {
+    // In a real app, you'd fetch and parse the Google Sheet here.
+    // For now, we'll just use the mock data.
+    setAllTransactions(mockTransactions);
+    setIsDataLoaded(true);
+  };
 
   useEffect(() => {
     if (!isDataLoaded) return;
@@ -70,7 +70,7 @@ export default function DashboardPage() {
               <h1 className="text-3xl font-bold">Welcome</h1>
               <h1 className="text-3xl font-bold text-primary">David</h1>
             </div>
-            <Select value={timeRange} onValueChange={setTimeRange}>
+            <Select value={timeRange} onValueChange={(value: "daily" | "weekly" | "monthly") => setTimeRange(value)}>
               <SelectTrigger className="w-auto bg-card p-2">
                 <Calendar className="h-5 w-5" />
               </SelectTrigger>
@@ -81,14 +81,19 @@ export default function DashboardPage() {
               </SelectContent>
             </Select>
           </div>
-          <Balance
-            totalSpending={totalSpending}
-            budget={budget}
-          />
-          <Separator />
-          <SpendingChart data={filteredTransactions} />
-          <AiAnalysis transactions={filteredTransactions} />
-          <TransactionsTable data={filteredTransactions} />
+          <DataImporter onImport={handleImport} isDataLoaded={isDataLoaded} />
+          {isDataLoaded && (
+            <>
+              <Balance
+                totalSpending={totalSpending}
+                budget={budget}
+              />
+              <Separator />
+              <SpendingChart data={filteredTransactions} />
+              <AiAnalysis transactions={filteredTransactions} />
+              <TransactionsTable data={filteredTransactions} />
+            </>
+          )}
         </main>
       </div>
     </div>

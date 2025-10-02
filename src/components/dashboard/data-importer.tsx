@@ -32,7 +32,7 @@ const FormSchema = z.object({
 });
 
 interface DataImporterProps {
-  onImport: () => void;
+  onImport: (url: string) => void;
   isDataLoaded: boolean;
 }
 
@@ -43,16 +43,16 @@ export function DataImporter({ onImport, isDataLoaded }: DataImporterProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      googleSheetUrl: "https://docs.google.com/spreadsheets/d/example",
+      googleSheetUrl: "",
     },
   });
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsLoading(true);
-    onImport(); // Trigger the parent component's import logic
-
-    // Simulate import delay
+    
+    // We'll simulate the import for now
     setTimeout(() => {
+      onImport(data.googleSheetUrl);
       setIsLoading(false);
       toast({
         title: "Success!",
