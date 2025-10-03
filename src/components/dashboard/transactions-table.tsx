@@ -85,13 +85,13 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="px-6 pt-0">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px] p-2 pl-4">Date</TableHead>
+              <TableHead className="w-[60px] p-2 pl-0">Date</TableHead>
               <TableHead className="w-[90px] text-right p-2">Amount</TableHead>
-              <TableHead className="p-2 pr-4">Description</TableHead>
+              <TableHead className="p-2 pr-0">Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -99,14 +99,14 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                 const { date, time } = formatDate(transaction.Date);
                 return (
                   <TableRow key={transaction.ID}>
-                    <TableCell className="font-medium text-xs p-2 pl-4">
+                    <TableCell className="font-medium text-xs p-2 pl-0">
                         <div>{date}</div>
                         <div className="text-muted-foreground">{time}</div>
                     </TableCell>
                     <TableCell className="text-right font-medium text-sm p-2">
                       ${transaction.Amount.toFixed(2)}
                     </TableCell>
-                    <TableCell className="p-2 pr-4">
+                    <TableCell className="p-2 pr-0">
                       <div className="flex items-center gap-2">
                          <Badge
                           className="whitespace-nowrap px-1.5 py-0 text-[10px] font-semibold"
