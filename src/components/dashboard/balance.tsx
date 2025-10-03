@@ -49,7 +49,7 @@ export function Balance({
         </div>
         <Progress
           value={isOverBudget ? 100 : spendingPercentage}
-          className={cn("h-3", isOverBudget && "[&>div]:bg-destructive")}
+          className={cn("h-4", isOverBudget && "[&>div]:bg-destructive")}
         />
         {isExpanded && (
           <div className="pt-2 space-y-2 animate-in fade-in-0">
