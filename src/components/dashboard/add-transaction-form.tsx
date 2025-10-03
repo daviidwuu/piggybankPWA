@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -103,8 +104,17 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || errorData.error || "Failed to add transaction");
+        let errorMessage = "Failed to add transaction";
+        try {
+          // Try to parse the error as JSON
+          const errorData = await response.json();
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch (e) {
+          // If JSON parsing fails, read as text
+          const errorText = await response.text();
+          errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
       toast({
@@ -259,3 +269,5 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
     </Form>
   );
 }
+
+    
