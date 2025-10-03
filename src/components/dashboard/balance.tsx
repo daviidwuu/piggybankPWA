@@ -33,11 +33,11 @@ export function Balance({
 
   return (
     <Card>
-      <CardHeader className="p-4 pt-6 pb-2">
+      <CardHeader className="pb-2">
         <CardTitle>Balance</CardTitle>
         <CardDescription>Your spending vs. budget for this period.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-2 p-4 pt-0">
+      <CardContent className="space-y-2 pt-0">
         <div className="flex justify-between items-baseline">
           <div className="text-3xl font-bold text-foreground">
             ${totalSpending.toFixed(2)}
