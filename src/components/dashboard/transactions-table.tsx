@@ -89,8 +89,8 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[50px] p-1 pl-0">Date</TableHead>
-              <TableHead className="w-[70px] text-right p-1">Amount</TableHead>
+              <TableHead className="p-1 pl-0">Date</TableHead>
+              <TableHead className="text-right p-1">Amount</TableHead>
               <TableHead className="p-1 pr-0">Description</TableHead>
             </TableRow>
           </TableHeader>
