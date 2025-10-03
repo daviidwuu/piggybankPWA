@@ -222,7 +222,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-semibold">Type</FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); handleNext(); }} defaultValue={field.value}>
+                  <Select onValueChange={(value) => { field.onChange(value); setTimeout(() => handleNext(), 100); }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
                         <SelectValue placeholder="Select a type" />
@@ -256,11 +256,12 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
           )}
         </div>
 
-        {step < totalSteps - 1 && step !== 2 && step !== 3 ? (
+        {step < totalSteps && step !== 2 && step !== 3 && (
           <Button type="button" onClick={handleNext} className="w-full h-12 text-lg" disabled={isNextDisabled()}>
             Next
           </Button>
-        ) : ( step === totalSteps - 1 &&
+        )}
+        {step === 4 && (
           <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading || !formState.isValid}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Transaction
