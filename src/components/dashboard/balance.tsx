@@ -33,7 +33,7 @@ export function Balance({
 
   return (
     <Card>
-      <CardHeader className="p-4 pb-2">
+      <CardHeader className="p-4 pt-6 pb-2">
         <CardTitle>Balance</CardTitle>
         <CardDescription>Your spending vs. budget for this period.</CardDescription>
       </CardHeader>
