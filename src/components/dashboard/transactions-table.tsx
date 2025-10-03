@@ -59,7 +59,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between p-4">
+      <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Recent Transactions</CardTitle>
           <CardDescription>
