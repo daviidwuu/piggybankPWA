@@ -25,7 +25,7 @@ import { ChartConfig } from "../ui/chart";
 import { format } from 'date-fns';
 import { Button } from "../ui/button";
 import { ChevronDown, ArrowUpDown } from "lucide-react";
-import { SortOption } from "@/app/page";
+import { SortOption } from "@/app/dashboard";
 
 interface TransactionsTableProps {
   data: Transaction[];
@@ -68,7 +68,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0">
+            <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
               <ArrowUpDown className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

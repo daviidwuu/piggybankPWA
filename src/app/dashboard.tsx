@@ -257,7 +257,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
                 <div className="flex items-center gap-2">
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                         <Sparkles className="h-4 w-4" />
                       </Button>
                     </PopoverTrigger>

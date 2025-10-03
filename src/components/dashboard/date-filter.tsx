@@ -28,7 +28,7 @@ export function DateFilter({ value, onValueChange }: DateFilterProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+        <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
           <CalendarIcon className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
