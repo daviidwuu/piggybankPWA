@@ -59,7 +59,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between p-4">
         <div>
           <CardTitle>Recent Transactions</CardTitle>
           <CardDescription>
@@ -89,9 +89,9 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[60px] p-2 pl-6">Date</TableHead>
+              <TableHead className="w-[60px] p-2 pl-4">Date</TableHead>
               <TableHead className="w-[90px] text-right p-2">Amount</TableHead>
-              <TableHead className="p-2 pr-6">Description</TableHead>
+              <TableHead className="p-2 pr-4">Description</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -99,14 +99,14 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                 const { date, time } = formatDate(transaction.Date);
                 return (
                   <TableRow key={transaction.ID}>
-                    <TableCell className="font-medium text-xs p-2 pl-6">
+                    <TableCell className="font-medium text-xs p-2 pl-4">
                         <div>{date}</div>
                         <div className="text-muted-foreground">{time}</div>
                     </TableCell>
                     <TableCell className="text-right font-medium text-sm p-2">
                       ${transaction.Amount.toFixed(2)}
                     </TableCell>
-                    <TableCell className="p-2 pr-6">
+                    <TableCell className="p-2 pr-4">
                       <div className="flex items-center gap-2">
                          <Badge
                           className="whitespace-nowrap px-1.5 py-0 text-[10px] font-semibold"
