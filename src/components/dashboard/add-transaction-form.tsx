@@ -74,25 +74,15 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
 
   const handleNext = async () => {
     let isValid = false;
-    switch (step) {
-      case 0:
-        isValid = await trigger("Amount");
-        break;
-      case 1:
-        isValid = await trigger("Notes");
-        break;
-      case 2:
-        isValid = await trigger("Category");
-        break;
-      case 3:
-        isValid = await trigger("Type");
-        break;
-      case 4:
-        isValid = await trigger("Date");
-        break;
-      default:
-        isValid = true;
-    }
+    const currentStepField = [
+      "Amount",
+      "Notes",
+      "Category",
+      "Type",
+      "Date"
+    ][step] as keyof z.infer<typeof formSchema>;
+    
+    isValid = await trigger(currentStepField);
 
     if (isValid) {
       setStep((prev) => Math.min(prev + 1, totalSteps));
@@ -137,11 +127,11 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
 
   const isNextDisabled = () => {
     switch (step) {
-      case 0: return !!formState.errors.Amount;
-      case 1: return !!formState.errors.Notes;
-      case 2: return !!formState.errors.Category;
-      case 3: return !!formState.errors.Type;
-      case 4: return !!formState.errors.Date;
+      case 0: return !!formState.errors.Amount || !form.getValues("Amount");
+      case 1: return !!formState.errors.Notes || !form.getValues("Notes");
+      case 2: return !!formState.errors.Category || !form.getValues("Category");
+      case 3: return !!formState.errors.Type || !form.getValues("Type");
+      case 4: return !!formState.errors.Date || !form.getValues("Date");
       default: return true;
     }
   }
@@ -197,7 +187,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-semibold">Category</FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); handleNext(); }} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
                         <SelectValue placeholder="Select one" />
@@ -222,7 +212,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-semibold">Type</FormLabel>
-                  <Select onValueChange={(value) => { field.onChange(value); setTimeout(() => handleNext(), 100); }} defaultValue={field.value}>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
                         <SelectValue placeholder="Select a type" />
@@ -256,7 +246,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
           )}
         </div>
 
-        {step < totalSteps && step !== 2 && step !== 3 && (
+        {step < 4 && (
           <Button type="button" onClick={handleNext} className="w-full h-12 text-lg" disabled={isNextDisabled()}>
             Next
           </Button>
