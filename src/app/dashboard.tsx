@@ -4,12 +4,10 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { type Transaction, type Budget } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
-import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, format } from 'date-fns';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw, Plus } from "lucide-react";
+import { RefreshCw, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -282,16 +280,6 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
                       />
                     </DialogContent>
                   </Dialog>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                        <Sparkles className="h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80" align="end">
-                      <AiAnalysis transactions={expenseTransactions} />
-                    </PopoverContent>
-                  </Popover>
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
                   <Button variant="outline" size="icon" onClick={() => fetchData(true)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
