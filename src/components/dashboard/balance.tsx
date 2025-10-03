@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -35,7 +34,7 @@ export function Balance({
   return (
     <Card>
       <CardHeader className="px-6 pb-2 pt-6">
-        <CardTitle>Spending</CardTitle>
+        <CardTitle>Balance</CardTitle>
         <CardDescription>Your spending vs. budget for this period.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2 px-6 pb-2">
