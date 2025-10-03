@@ -22,7 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { Progress } from "../ui/progress";
 
 const formSchema = z.object({
   Date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -34,6 +35,20 @@ const formSchema = z.object({
   Notes: z.string().min(1, { message: "Notes are required" }),
 });
 
+const categories = [
+  "Food & Drinks",
+  "Gambling",
+  "Drinks",
+  "Girlfriend",
+  "Entertainment",
+  "Shopping",
+  "Transport",
+  "Dad",
+  "Others",
+];
+
+const totalSteps = 5;
+
 interface AddTransactionFormProps {
   onSuccess: () => void;
   setOpen: (open: boolean) => void;
@@ -41,18 +56,53 @@ interface AddTransactionFormProps {
 
 export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(0);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       Date: new Date().toISOString().split("T")[0],
-      Amount: 0,
+      Amount: undefined,
       Type: "Expense",
       Category: "",
       Notes: "",
     },
   });
+
+  const { trigger } = form;
+
+  const handleNext = async () => {
+    let isValid = false;
+    switch (step) {
+      case 0:
+        isValid = await trigger("Amount");
+        break;
+      case 1:
+        isValid = await trigger("Notes");
+        break;
+      case 2:
+        isValid = await trigger("Category");
+        break;
+      case 3:
+        isValid = await trigger("Type");
+        break;
+      case 4:
+        isValid = await trigger("Date");
+        break;
+      default:
+        isValid = true;
+    }
+
+    if (isValid) {
+      setStep((prev) => Math.min(prev + 1, totalSteps));
+    }
+  };
+
+  const handleBack = () => {
+    setStep((prev) => Math.max(prev - 1, 0));
+  };
+
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -87,84 +137,125 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="Amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Amount</FormLabel>
-              <FormControl>
-                <Input type="number" step="0.01" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex items-center gap-4">
+          {step > 0 && (
+            <Button variant="ghost" size="icon" onClick={handleBack} type="button">
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
           )}
-        />
-        <FormField
-          control={form.control}
-          name="Notes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Notes</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+          <Progress value={(step / totalSteps) * 100} className="h-2 flex-1" />
+        </div>
+        
+        <div className="min-h-[120px]">
+          {step === 0 && (
+            <FormField
+              control={form.control}
+              name="Amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <Input type="number" step="0.01" {...field} placeholder="0.00" autoFocus/>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
-        />
-        <FormField
-          control={form.control}
-          name="Category"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Category</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+
+          {step === 1 && (
+            <FormField
+              control={form.control}
+              name="Notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>What was this for?</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="e.g., Coffee with a friend" autoFocus/>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
-        />
-        <FormField
-          control={form.control}
-          name="Type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a type" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="Expense">Expense</SelectItem>
-                  <SelectItem value="Income">Income</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
+
+          {step === 2 && (
+             <FormField
+              control={form.control}
+              name="Category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
-        />
-        <FormField
-          control={form.control}
-          name="Date"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Date</FormLabel>
-              <FormControl>
-                <Input type="date" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
+
+          {step === 3 && (
+            <FormField
+              control={form.control}
+              name="Type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Expense">Expense</SelectItem>
+                      <SelectItem value="Income">Income</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           )}
-        />
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Add Transaction
-        </Button>
+
+          {step === 4 && (
+            <FormField
+              control={form.control}
+              name="Date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <Input type="date" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
+        </div>
+
+        {step < totalSteps -1  ? (
+          <Button type="button" onClick={handleNext} className="w-full">
+            Next
+          </Button>
+        ) : (
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Add Transaction
+          </Button>
+        )}
       </form>
     </Form>
   );
