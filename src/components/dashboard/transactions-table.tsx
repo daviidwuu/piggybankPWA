@@ -99,7 +99,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                 const { date, time } = formatDate(transaction.Date);
                 return (
                   <TableRow key={transaction.ID}>
-                    <TableCell className="font-medium text-xs p-1 pl-0">
+                    <TableCell className="font-medium text-sm p-1 pl-0">
                         <div>{date}</div>
                         <div className="text-muted-foreground">{time}</div>
                     </TableCell>
@@ -109,7 +109,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                     <TableCell className="p-1 pr-0">
                       <div className="flex items-center gap-2">
                          <Badge
-                          className="whitespace-nowrap px-1.5 py-0 text-[10px] font-semibold"
+                          className="whitespace-nowrap px-1.5 py-0 font-semibold"
                            style={{
                             backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820', // 12.5% opacity
                             color: chartConfig[transaction.Category]?.color || '#888888',
@@ -119,7 +119,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                         >
                           {transaction.Category}
                         </Badge>
-                        <span className="font-medium truncate block max-w-[150px]">{transaction.Notes}</span>
+                        <span className="font-medium truncate block max-w-[150px] text-sm">{transaction.Notes}</span>
                       </div>
                     </TableCell>
                   </TableRow>
