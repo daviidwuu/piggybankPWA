@@ -63,7 +63,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
     resolver: zodResolver(formSchema),
     defaultValues: {
       Date: new Date().toISOString().split("T")[0],
-      Amount: undefined,
+      Amount: '' as any,
       Type: "Expense",
       Category: "",
       Notes: "",
