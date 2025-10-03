@@ -73,19 +73,13 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
   const { trigger, formState } = form;
 
   const handleNext = async () => {
-    let isValid = false;
-    const currentStepField = [
-      "Amount",
-      "Notes",
-      "Category",
-      "Type",
-      "Date"
-    ][step] as keyof z.infer<typeof formSchema>;
+    const fields: (keyof z.infer<typeof formSchema>)[] = ["Amount", "Notes", "Category", "Type", "Date"];
+    const currentStepField = fields[step];
     
-    isValid = await trigger(currentStepField);
+    const isValid = await trigger(currentStepField);
 
     if (isValid) {
-      if (step < 4) {
+      if (step < fields.length - 1) {
          setStep((prev) => prev + 1);
       }
     }
@@ -107,7 +101,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to add transaction");
+        throw new Error(errorData.details || errorData.error || "Failed to add transaction");
       }
 
       toast({
@@ -130,14 +124,8 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
   }
 
   const isNextDisabled = () => {
-    switch (step) {
-      case 0: return !!formState.errors.Amount || !form.getValues("Amount");
-      case 1: return !!formState.errors.Notes || !form.getValues("Notes");
-      case 2: return !!formState.errors.Category || !form.getValues("Category");
-      case 3: return !!formState.errors.Type || !form.getValues("Type");
-      case 4: return !!formState.errors.Date || !form.getValues("Date");
-      default: return true;
-    }
+    const field = ["Amount", "Notes", "Category", "Type", "Date"][step] as keyof z.infer<typeof formSchema>;
+    return !!formState.errors[field] || !form.getValues(field);
   }
 
   return (
@@ -191,7 +179,10 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-semibold">Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => {
+                    field.onChange(value);
+                    trigger("Category");
+                  }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
                         <SelectValue placeholder="Select one" />
@@ -216,7 +207,10 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-lg font-semibold">Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => {
+                    field.onChange(value);
+                    trigger("Type");
+                  }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
                         <SelectValue placeholder="Select a type" />
@@ -249,13 +243,12 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
             />
           )}
         </div>
-
-        {step < 4 && (
-          <Button type="button" onClick={handleNext} className="w-full h-12 text-lg" disabled={isNextDisabled()}>
-            Next
-          </Button>
-        )}
-        {step === 4 && (
+        
+        {step < totalSteps - 1 ? (
+            <Button type="button" onClick={handleNext} className="w-full h-12 text-lg" disabled={isNextDisabled()}>
+              Next
+            </Button>
+        ) : (
           <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading || !formState.isValid}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Transaction

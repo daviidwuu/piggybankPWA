@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         console.error("Google Apps Script Error:", errorText);
         // Propagate the actual error from the script
         return NextResponse.json(
-            { error: `Google Apps Script failed: ${errorText}` },
+            { error: "Google Apps Script failed.", details: errorText },
             { status: response.status }
         );
     }
