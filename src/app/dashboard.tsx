@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { type Transaction, type Budget } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
@@ -10,7 +10,8 @@ import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { Sparkles } from "lucide-react";
+import { Sparkles, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type SortOption = 'latest' | 'highest' | 'category';
 
@@ -28,6 +29,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const [transactions, setTransactions] = useState<Transaction[]>(initialData.transactions);
   const [budgets, setBudgets] = useState<Budget[]>(initialData.budgets);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(5);
@@ -35,71 +37,72 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const [isClient, setIsClient] = useState(false);
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
 
-  useEffect(() => {
-    setIsClient(true);
-    setLoading(false); // Initial server data is already loaded
-
-    async function fetchData(revalidate = false) {
-      if (!revalidate) return;
-      
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/sheet?revalidate=true`);
-        if (!res.ok) {
-          throw new Error('Failed to fetch data');
-        }
-        const { transactions, budgets } = await res.json();
-        setTransactions(transactions);
-        setBudgets(budgets);
-      } catch (err) {
-        console.error("Error loading data:", err);
-      } finally {
-        setLoading(false);
+  const fetchData = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(`/api/sheet?revalidate=true`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch data');
       }
+      const { transactions: newTransactions, budgets: newBudgets } = await res.json();
+      setTransactions(newTransactions);
+      setBudgets(newBudgets);
+    } catch (err) {
+      console.error("Error loading data:", err);
+    } finally {
+      setIsRefreshing(false);
+      setLoading(false);
     }
-    // Fetch fresh data in the background after initial load
-    fetchData(true);
   }, []);
 
   useEffect(() => {
-    if (!isClient) return;
+    setIsClient(true);
+    // Data is loaded initially from the server, so we can set loading to false.
+    // A background refresh happens next.
+    setLoading(false);
+    
+    // Fetch fresh data in the background after initial load
+    fetchData();
+  }, [fetchData]);
 
-    const getDisplayDate = (range: DateRange): string => {
-      if (!transactions.length && range !== 'all') return "No data";
-      
-      const today = new Date();
-      let startDate: Date;
-      let endDate: Date = today;
-  
-      switch (range) {
-        case 'daily':
-          return format(today, 'd MMM');
-        case 'week':
-          startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-          endDate = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
-          return `${format(startDate, 'd MMM')} - ${format(endDate, 'd MMM')}`;
-        case 'month':
-          // Show current month name
-          return format(today, 'MMMM yyyy');
-        case 'yearly':
-          startDate = subYears(today, 1);
-          return `${format(startDate, 'MMM yyyy')} - ${format(endDate, 'MMM yyyy')}`;
-        case 'all':
-        default:
-          if (!transactions.length) return "All Time";
-          const oldestDate = transactions.reduce((min, t) => {
-              if (!t.Date) return min;
-              const current = new Date(t.Date);
-              return current < min ? current : min;
-          }, new Date());
-          const mostRecentDate = transactions.reduce((max, t) => {
-              if (!t.Date) return max;
-              const current = new Date(t.Date);
-              return current > max ? current : max;
-          }, new Date(0));
-          return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
-      }
-    };
+  const getDisplayDate = (range: DateRange): string => {
+    if (!transactions.length && range !== 'all') return "No data";
+    
+    const today = new Date();
+    let startDate: Date;
+    let endDate: Date = today;
+
+    switch (range) {
+      case 'daily':
+        return format(today, 'd MMM');
+      case 'week':
+        startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+        endDate = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+        return `${format(startDate, 'd MMM')} - ${format(endDate, 'd MMM')}`;
+      case 'month':
+        return format(today, 'MMMM yyyy');
+      case 'yearly':
+        startDate = subYears(today, 1);
+        return `${format(startDate, 'MMM yyyy')} - ${format(endDate, 'MMM yyyy')}`;
+      case 'all':
+      default:
+        if (!transactions.length) return "All Time";
+        const oldestDate = transactions.reduce((min, t) => {
+            if (!t.Date) return min;
+            const current = new Date(t.Date);
+            return current < min ? current : min;
+        }, new Date());
+        const mostRecentDate = transactions.reduce((max, t) => {
+            if (!t.Date) return max;
+            const current = new Date(t.Date);
+            return current > max ? current : max;
+        }, new Date(0));
+        return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
+    }
+  };
+
+  useEffect(() => {
+    if (!isClient) return;
     setDisplayDate(getDisplayDate(dateRange));
   }, [dateRange, transactions, isClient]);
 
@@ -265,6 +268,9 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
                     </PopoverContent>
                   </Popover>
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
+                  <Button variant="outline" size="icon" onClick={fetchData} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                  </Button>
                 </div>
                  <span className="text-xs text-muted-foreground mt-1 min-w-max">
                   {displayDate}
@@ -291,3 +297,5 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     </div>
   );
 }
+
+    
