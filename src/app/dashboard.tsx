@@ -6,11 +6,19 @@ import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
+import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw } from "lucide-react";
+import { Sparkles, RefreshCw, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -36,11 +44,14 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const [isClient, setIsClient] = useState(false);
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
+  const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
 
-  const fetchData = useCallback(async () => {
-    setIsRefreshing(true);
+  const fetchData = useCallback(async (revalidate = false) => {
+    if (revalidate) {
+      setIsRefreshing(true);
+    }
     try {
-      const res = await fetch(`/api/sheet?revalidate=true`);
+      const res = await fetch(`/api/sheet?revalidate=${revalidate}`);
       if (!res.ok) {
         throw new Error('Failed to fetch data');
       }
@@ -50,19 +61,17 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
-      setIsRefreshing(false);
+      if (revalidate) {
+        setIsRefreshing(false);
+      }
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     setIsClient(true);
-    // Data is loaded initially from the server, so we can set loading to false.
-    // A background refresh happens next.
     setLoading(false);
-    
-    // Fetch fresh data in the background after initial load
-    fetchData();
+    fetchData(true); // Initial fresh data fetch
   }, [fetchData]);
 
   const getDisplayDate = (range: DateRange): string => {
@@ -257,6 +266,22 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
             </h1>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
+                   <Dialog open={isAddTransactionOpen} onOpenChange={setAddTransactionOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Add New Transaction</DialogTitle>
+                      </DialogHeader>
+                      <AddTransactionForm 
+                        setOpen={setAddTransactionOpen} 
+                        onSuccess={() => fetchData(true)}
+                      />
+                    </DialogContent>
+                  </Dialog>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -268,7 +293,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
                     </PopoverContent>
                   </Popover>
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
-                  <Button variant="outline" size="icon" onClick={fetchData} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                  <Button variant="outline" size="icon" onClick={() => fetchData(true)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                   </Button>
                 </div>
@@ -297,5 +322,3 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     </div>
   );
 }
-
-    
