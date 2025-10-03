@@ -8,7 +8,7 @@ import { AiAnalysis } from "@/components/dashboard/ai-analysis";
 import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay } from 'date-fns';
+import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
@@ -34,6 +34,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const [visibleTransactions, setVisibleTransactions] = useState(5);
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const [isClient, setIsClient] = useState(false);
+  const [displayDate, setDisplayDate] = useState<string>("Loading...");
 
   useEffect(() => {
     setIsClient(true);
@@ -60,6 +61,48 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     // Fetch fresh data in the background after initial load
     fetchData(true);
   }, []);
+
+  useEffect(() => {
+    if (!isClient) return;
+
+    const getDisplayDate = (range: DateRange): string => {
+      if (!transactions.length && range !== 'all') return "No data";
+      
+      const today = new Date();
+      let startDate: Date;
+      let endDate: Date = today;
+  
+      switch (range) {
+        case 'daily':
+          return format(today, 'd MMM');
+        case 'week':
+          startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+          endDate = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
+          return `${format(startDate, 'd MMM')} - ${format(endDate, 'd MMM')}`;
+        case 'month':
+          // Show current month name
+          return format(today, 'MMMM yyyy');
+        case 'yearly':
+          startDate = subYears(today, 1);
+          return `${format(startDate, 'MMM yyyy')} - ${format(endDate, 'MMM yyyy')}`;
+        case 'all':
+        default:
+          if (!transactions.length) return "All Time";
+          const oldestDate = transactions.reduce((min, t) => {
+              if (!t.Date) return min;
+              const current = new Date(t.Date);
+              return current < min ? current : min;
+          }, new Date());
+          const mostRecentDate = transactions.reduce((max, t) => {
+              if (!t.Date) return max;
+              const current = new Date(t.Date);
+              return current > max ? current : max;
+          }, new Date(0));
+          return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
+      }
+    };
+    setDisplayDate(getDisplayDate(dateRange));
+  }, [dateRange, transactions, isClient]);
 
   const filteredTransactions = useMemo(() => {
     if (!isClient || !transactions.length) return [];
@@ -210,21 +253,24 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
               <div>Welcome,</div>
               <div className="text-primary text-3xl">David</div>
             </h1>
-            <div className="flex items-end flex-col">
-              <div className="flex items-start gap-2">
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
-                      <Sparkles className="h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80" align="end">
-                    <AiAnalysis transactions={expenseTransactions} />
-                  </PopoverContent>
-                </Popover>
-                <DateFilter value={dateRange} onValueChange={setDateRange} transactions={transactions} />
+            <div className="flex flex-col items-end">
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0">
+                        <Sparkles className="h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80" align="end">
+                      <AiAnalysis transactions={expenseTransactions} />
+                    </PopoverContent>
+                  </Popover>
+                  <DateFilter value={dateRange} onValueChange={setDateRange} />
+                </div>
+                 <span className="text-xs text-muted-foreground mt-1 min-w-max">
+                  {displayDate}
+                </span>
               </div>
-            </div>
           </div>
           
           <Balance
