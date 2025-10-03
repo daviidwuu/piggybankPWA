@@ -18,12 +18,12 @@ export async function getSheetData({
 
   const data = await res.json();
 
-  return data.map((row: any) => {
+  return data.map((row: any, index: number) => {
     const date = new Date(row['Date']);
     // If the date is invalid, pass null. Otherwise, pass the valid ISO string.
     const dateString = !isNaN(date.getTime()) ? date.toISOString() : null;
     return {
-      ID: '',
+      ID: `tx-${index}-${dateString}-${row['Amount']}`,
       Date: dateString,
       Amount: Number(row['Amount'] || 0),
       Type: String(row['Type'] || ''),

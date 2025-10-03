@@ -98,7 +98,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sheetName: "Transactions",
-          data: { ...values, ID: null },
+          data: { ...values, ID: "" },
         }),
       });
 
@@ -184,9 +184,6 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
                   <FormLabel className="text-lg font-semibold">Category</FormLabel>
                   <Select onValueChange={(value) => {
                     field.onChange(value);
-                    if (value) {
-                       setTimeout(() => handleNext(), 100);
-                    }
                   }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
@@ -214,9 +211,6 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
                   <FormLabel className="text-lg font-semibold">Type</FormLabel>
                   <Select onValueChange={(value) => {
                     field.onChange(value);
-                    if (value) {
-                       setTimeout(() => handleNext(), 100);
-                    }
                   }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
