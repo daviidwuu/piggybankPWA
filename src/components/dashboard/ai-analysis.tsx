@@ -5,10 +5,9 @@ import {
   getSpendingInsights,
   type SpendingInsightsOutput,
 } from "@/ai/flows/spending-insights-from-data";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
-import { Lightbulb, Loader2, CheckCircle2, RefreshCw } from "lucide-react";
+import { Lightbulb, CheckCircle2 } from "lucide-react";
 import type { Transaction } from "@/lib/data";
 import { Separator } from "@/components/ui/separator";
 
@@ -25,8 +24,8 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
   const { toast } = useToast();
 
   const handleAnalysis = async () => {
+    if (analysis) return; // Don't re-run if we have analysis
     setIsLoading(true);
-    setAnalysis(null);
 
     const financialDataString = transactions
       .map(
@@ -56,6 +55,7 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
   };
 
   useEffect(() => {
+    // Automatically trigger analysis if it hasn't been done yet.
     if (!hasAnalyzed) {
       handleAnalysis();
     }
@@ -73,19 +73,8 @@ export function AiAnalysis({ transactions }: AiAnalysisProps) {
             <Skeleton className="h-16 w-full" />
           </div>
         ) : analysis ? (
-          <div className="space-y-4 text-sm animate-in fade-in-0">
-             <div className="flex justify-between items-center">
-              <p className="text-xs text-muted-foreground">{analysis.summary}</p>
-              <Button
-                onClick={handleAnalysis}
-                disabled={isLoading}
-                variant="outline"
-                size="icon"
-                className="h-8 w-8 rounded-full"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              </Button>
-            </div>
+          <div className="space-y-4 text-base animate-in fade-in-0">
+             <p className="text-sm text-muted-foreground">{analysis.summary}</p>
             <Separator/>
             <div>
               <h4 className="font-semibold flex items-center gap-2 mb-2">

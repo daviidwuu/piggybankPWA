@@ -21,11 +21,11 @@ const SpendingInsightsInputSchema = z.object({
 export type SpendingInsightsInput = z.infer<typeof SpendingInsightsInputSchema>;
 
 const SpendingInsightsOutputSchema = z.object({
-  summary: z.string().describe('A one-sentence summary of the spending habits.'),
-  insights: z.array(z.string()).describe('A list of 2-3 key insights into spending habits.'),
+  summary: z.string().describe('A brief, one-sentence summary of the spending habits.'),
+  insights: z.array(z.string()).describe('A list of 1-2 key insights into spending habits.'),
   recommendations: z
     .array(z.string())
-    .describe('A list of 2-3 personalized recommendations for potential savings.'),
+    .describe('A list of 1-2 personalized, actionable recommendations for potential savings.'),
 });
 export type SpendingInsightsOutput = z.infer<typeof SpendingInsightsOutputSchema>;
 
@@ -37,15 +37,15 @@ const prompt = ai.definePrompt({
   name: 'spendingInsightsPrompt',
   input: {schema: SpendingInsightsInputSchema},
   output: {schema: SpendingInsightsOutputSchema},
-  prompt: `You are a personal finance advisor. Analyze the following financial data and provide a concise summary, key insights, and actionable recommendations.
+  prompt: `You are a personal finance advisor. Analyze the following financial data and provide a brief summary, 1-2 key insights, and 1-2 actionable recommendations. Keep all points very concise.
 
 Financial Data:
 {{financialData}}
 
 Your response should be structured with:
-1. A one-sentence summary of the user's spending.
-2. A list of 2-3 key insights, focusing on the most significant spending categories or trends.
-3. A list of 2-3 personalized, actionable recommendations for saving money based on the data.`,
+1. A brief one-sentence summary of the user's spending.
+2. A list of 1-2 key insights, focusing on the most significant spending categories or trends.
+3. A list of 1-2 personalized, actionable recommendations for saving money based on the data.`,
 });
 
 const spendingInsightsFlow = ai.defineFlow(
