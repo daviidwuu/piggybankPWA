@@ -85,7 +85,9 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
     isValid = await trigger(currentStepField);
 
     if (isValid) {
-      setStep((prev) => Math.min(prev + 1, totalSteps));
+      if (step < 4) {
+         setStep((prev) => prev + 1);
+      }
     }
   };
 
@@ -104,7 +106,8 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
       });
 
       if (!response.ok) {
-        throw new Error("Failed to add transaction");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to add transaction");
       }
 
       toast({
@@ -115,10 +118,11 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
       setOpen(false);
     } catch (error) {
       console.error(error);
+      const errorMessage = error instanceof Error ? error.message : "There was a problem with your request.";
       toast({
         variant: "destructive",
         title: "Uh oh! Something went wrong.",
-        description: "There was a problem with your request.",
+        description: errorMessage,
       });
     } finally {
       setIsLoading(false);
