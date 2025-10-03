@@ -5,7 +5,6 @@ import { type Transaction, type Budget } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { AiAnalysis } from "@/components/dashboard/ai-analysis";
-import { Separator } from "@/components/ui/separator";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, format } from 'date-fns';
@@ -279,7 +278,6 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
             aggregatedData={aggregatedData}
             chartConfig={chartConfig}
           />
-          <Separator />
           <TransactionsTable 
             data={transactionsToShow} 
             chartConfig={chartConfig}
