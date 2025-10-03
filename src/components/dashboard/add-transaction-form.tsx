@@ -23,7 +23,6 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { Progress } from "../ui/progress";
 
 const formSchema = z.object({
   Date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -149,17 +148,16 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="flex items-center gap-4">
-          {step > 0 && (
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {step > 0 && (
+          <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={handleBack} type="button">
               <ArrowLeft className="h-4 w-4" />
             </Button>
-          )}
-          <Progress value={(step / (totalSteps-1)) * 100} className="h-2 flex-1" />
-        </div>
+          </div>
+        )}
         
-        <div className="min-h-[150px]">
+        <div>
           {step === 0 && (
             <FormField
               control={form.control}
