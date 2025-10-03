@@ -23,7 +23,7 @@ export async function getSheetData({
     // If the date is invalid, pass null. Otherwise, pass the valid ISO string.
     const dateString = !isNaN(date.getTime()) ? date.toISOString() : null;
     return {
-      ID: String(row['ID'] || ''),
+      ID: '',
       Date: dateString,
       Amount: Number(row['Amount'] || 0),
       Type: String(row['Type'] || ''),

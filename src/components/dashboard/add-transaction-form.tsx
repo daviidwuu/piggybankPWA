@@ -96,7 +96,10 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
       const response = await fetch("/api/add-entry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          sheetName: "Transactions",
+          data: { ...values, ID: null },
+        }),
       });
 
       if (!response.ok) {
@@ -181,7 +184,9 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
                   <FormLabel className="text-lg font-semibold">Category</FormLabel>
                   <Select onValueChange={(value) => {
                     field.onChange(value);
-                    trigger("Category");
+                    if (value) {
+                       setTimeout(() => handleNext(), 100);
+                    }
                   }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
@@ -209,7 +214,9 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
                   <FormLabel className="text-lg font-semibold">Type</FormLabel>
                   <Select onValueChange={(value) => {
                     field.onChange(value);
-                    trigger("Type");
+                    if (value) {
+                       setTimeout(() => handleNext(), 100);
+                    }
                   }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="h-14 text-2xl">
