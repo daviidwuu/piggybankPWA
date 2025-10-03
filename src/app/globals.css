@@ -85,17 +85,17 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
 
-  /* Hide number input spinners */
-  /* For Chrome, Safari, Edge, Opera */
-  input[type=number]::-webkit-outer-spin-button,
-  input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
+/* Hide number input spinners */
+/* For Chrome, Safari, Edge, Opera */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
 
-  /* For Firefox */
-  input[type=number] {
-    -moz-appearance: textfield;
-  }
+/* For Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
 }
