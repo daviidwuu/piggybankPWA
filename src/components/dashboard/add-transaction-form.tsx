@@ -68,9 +68,10 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
       Category: "",
       Notes: "",
     },
+    mode: "onChange",
   });
 
-  const { trigger } = form;
+  const { trigger, formState } = form;
 
   const handleNext = async () => {
     let isValid = false;
@@ -135,28 +136,39 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
     }
   }
 
+  const isNextDisabled = () => {
+    switch (step) {
+      case 0: return !!formState.errors.Amount;
+      case 1: return !!formState.errors.Notes;
+      case 2: return !!formState.errors.Category;
+      case 3: return !!formState.errors.Type;
+      case 4: return !!formState.errors.Date;
+      default: return true;
+    }
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex items-center gap-4">
           {step > 0 && (
             <Button variant="ghost" size="icon" onClick={handleBack} type="button">
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
-          <Progress value={(step / totalSteps) * 100} className="h-2 flex-1" />
+          <Progress value={(step / (totalSteps-1)) * 100} className="h-2 flex-1" />
         </div>
         
-        <div className="min-h-[120px]">
+        <div className="min-h-[150px]">
           {step === 0 && (
             <FormField
               control={form.control}
               name="Amount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Amount</FormLabel>
+                  <FormLabel className="text-lg font-semibold">Amount</FormLabel>
                   <FormControl>
-                    <Input type="number" step="0.01" {...field} placeholder="0.00" autoFocus/>
+                    <Input className="h-14 text-2xl" type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -170,9 +182,9 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               name="Notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>What was this for?</FormLabel>
+                  <FormLabel className="text-lg font-semibold">What was this for?</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="e.g., Coffee with a friend" autoFocus/>
+                    <Input className="h-14 text-2xl" {...field} placeholder="e.g., Coffee" autoFocus/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -186,16 +198,16 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               name="Category"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel className="text-lg font-semibold">Category</FormLabel>
+                  <Select onValueChange={(value) => { field.onChange(value); handleNext(); }} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
+                      <SelectTrigger className="h-14 text-2xl">
+                        <SelectValue placeholder="Select one" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
                       {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        <SelectItem key={cat} value={cat} className="text-lg">{cat}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -211,16 +223,16 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               name="Type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormLabel className="text-lg font-semibold">Type</FormLabel>
+                  <Select onValueChange={(value) => { field.onChange(value); handleNext(); }} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="h-14 text-2xl">
                         <SelectValue placeholder="Select a type" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="Expense">Expense</SelectItem>
-                      <SelectItem value="Income">Income</SelectItem>
+                      <SelectItem value="Expense" className="text-lg">Expense</SelectItem>
+                      <SelectItem value="Income" className="text-lg">Income</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -235,9 +247,9 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
               name="Date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Date</FormLabel>
+                  <FormLabel className="text-lg font-semibold">Date</FormLabel>
                   <FormControl>
-                    <Input type="date" {...field} />
+                    <Input className="h-14 text-2xl" type="date" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -246,12 +258,12 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
           )}
         </div>
 
-        {step < totalSteps -1  ? (
-          <Button type="button" onClick={handleNext} className="w-full">
+        {step < totalSteps - 1 && step !== 2 && step !== 3 ? (
+          <Button type="button" onClick={handleNext} className="w-full h-12 text-lg" disabled={isNextDisabled()}>
             Next
           </Button>
-        ) : (
-          <Button type="submit" className="w-full" disabled={isLoading}>
+        ) : ( step === totalSteps - 1 &&
+          <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading || !formState.isValid}>
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Add Transaction
           </Button>
