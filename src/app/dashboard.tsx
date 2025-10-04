@@ -338,8 +338,7 @@ export function Dashboard() {
         <main className="flex-1 p-4 space-y-4">
           <div className="flex justify-between items-start mb-4">
             <h1 className="text-2xl font-bold">
-              <div>Welcome,</div>
-              <div className="text-primary text-3xl">{userName}</div>
+              Welcome, <span className="text-primary text-3xl">{userName}</span>
             </h1>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
@@ -390,3 +389,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
