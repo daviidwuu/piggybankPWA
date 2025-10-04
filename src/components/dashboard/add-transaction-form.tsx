@@ -53,9 +53,10 @@ interface AddTransactionFormProps {
   onSuccess: () => void;
   setOpen: (open: boolean) => void;
   googleSheetUrl: string;
+  userId?: string;
 }
 
-export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl }: AddTransactionFormProps) {
+export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl, userId }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(0);
   const { toast } = useToast();
@@ -100,6 +101,7 @@ export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl }: AddTr
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           googleSheetUrl,
+          userId,
           sheetName: "Transactions",
           data: { ...values, ID: "" },
         }),

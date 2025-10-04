@@ -1,8 +1,9 @@
+
 import { type NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { googleSheetUrl, ...newEntry } = await request.json();
+    const { googleSheetUrl, userId, ...newEntry } = await request.json();
 
     if (!googleSheetUrl) {
       return NextResponse.json(
@@ -11,13 +12,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const payload = {
+        ...newEntry,
+        data: {
+            ...newEntry.data,
+            userId: userId
+        }
+    };
+
     // Forward the POST request to the Google Apps Script
     const response = await fetch(googleSheetUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(newEntry),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {

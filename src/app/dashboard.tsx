@@ -418,6 +418,7 @@ export function Dashboard() {
                       </DialogHeader>
                       <AddTransactionForm 
                         googleSheetUrl={userData.googleSheetUrl}
+                        userId={user?.uid}
                         setOpen={setAddTransactionOpen} 
                         onSuccess={() => fetchData(true, userData.googleSheetUrl)}
                       />
@@ -453,5 +454,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
