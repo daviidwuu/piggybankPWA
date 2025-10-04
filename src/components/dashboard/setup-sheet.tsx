@@ -19,10 +19,11 @@ import {
     Card,
     CardContent,
     CardDescription,
+    CardFooter,
     CardHeader,
     CardTitle,
   } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, Copy } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Please enter your name." }),
@@ -30,9 +31,11 @@ const formSchema = z.object({
 
 interface SetupSheetProps {
   onSave: (data: { name: string; }) => void;
+  onCopyUserId: () => void;
+  userId?: string;
 }
 
-export function SetupSheet({ onSave }: SetupSheetProps) {
+export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -52,7 +55,7 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
         <CardHeader>
             <CardTitle>Welcome to piggybank</CardTitle>
             <CardDescription>
-                To get started, please enter your name.
+                To get started, please enter your name. Then, copy your unique User ID to use in your Apple Shortcut for adding transactions.
             </CardDescription>
         </CardHeader>
         <CardContent className="pb-2">
@@ -81,6 +84,19 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
             </form>
             </Form>
         </CardContent>
+        {userId && (
+          <CardFooter className="flex-col items-start gap-2 pt-4">
+              <p className="text-sm text-muted-foreground">Your unique User ID:</p>
+              <div className="flex items-center w-full gap-2">
+                  <Input readOnly value={userId} className="text-xs" />
+                  <Button variant="outline" size="icon" onClick={onCopyUserId}>
+                      <Copy className="h-4 w-4" />
+                  </Button>
+              </div>
+          </CardFooter>
+        )}
     </Card>
   );
 }
+
+    

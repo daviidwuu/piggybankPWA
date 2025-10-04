@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -23,9 +23,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ArrowLeft } from "lucide-react";
-import { addDocumentNonBlocking, useFirestore } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { Loader2 } from "lucide-react";
+import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from "firebase/firestore";
+import { categories } from "@/app/dashboard";
+import { type Transaction } from "@/lib/data";
+import { format, toDate } from "date-fns";
 
 const formSchema = z.object({
   Date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -37,28 +40,14 @@ const formSchema = z.object({
   Notes: z.string().min(1, { message: "Notes are required" }),
 });
 
-const categories = [
-  "Food & Drinks",
-  "Gambling",
-  "Drinks",
-  "Girlfriend",
-  "Entertainment",
-  "Shopping",
-  "Transport",
-  "Dad",
-  "Others",
-];
-
-const totalSteps = 5;
-
 interface AddTransactionFormProps {
   setOpen: (open: boolean) => void;
   userId?: string;
+  transactionToEdit?: Transaction | null;
 }
 
-export function AddTransactionForm({ setOpen, userId }: AddTransactionFormProps) {
+export function AddTransactionForm({ setOpen, userId, transactionToEdit }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(0);
   const { toast } = useToast();
   const firestore = useFirestore();
 
@@ -74,25 +63,22 @@ export function AddTransactionForm({ setOpen, userId }: AddTransactionFormProps)
     mode: "onChange",
   });
 
-  const { trigger, formState } = form;
-
-  const handleNext = async () => {
-    const fields: (keyof z.infer<typeof formSchema>)[] = ["Amount", "Notes", "Category", "Type", "Date"];
-    const currentStepField = fields[step];
-    
-    const isValid = await trigger(currentStepField);
-
-    if (isValid) {
-      if (step < fields.length - 1) {
-         setStep((prev) => prev + 1);
-      }
+  useEffect(() => {
+    if (transactionToEdit) {
+      form.reset({
+        ...transactionToEdit,
+        Date: transactionToEdit.Date ? format(toDate(transactionToEdit.Date.seconds * 1000), 'yyyy-MM-dd') : new Date().toISOString().split("T")[0],
+      });
+    } else {
+      form.reset({
+        Date: new Date().toISOString().split("T")[0],
+        Amount: '' as any,
+        Type: "Expense",
+        Category: "",
+        Notes: "",
+      });
     }
-  };
-
-  const handleBack = () => {
-    setStep((prev) => Math.max(prev - 1, 0));
-  };
-
+  }, [transactionToEdit, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!userId || !firestore) {
@@ -111,149 +97,126 @@ export function AddTransactionForm({ setOpen, userId }: AddTransactionFormProps)
         userId,
     };
     
-    const transactionsCollection = collection(firestore, `users/${userId}/transactions`);
-    
-    addDocumentNonBlocking(transactionsCollection, transactionData);
+    if (transactionToEdit) {
+        const transactionRef = doc(firestore, `users/${userId}/transactions`, transactionToEdit.id);
+        updateDocumentNonBlocking(transactionRef, transactionData);
+        toast({
+            title: "Success",
+            description: "Transaction updated.",
+        });
+    } else {
+        const transactionsCollection = collection(firestore, `users/${userId}/transactions`);
+        addDocumentNonBlocking(transactionsCollection, transactionData);
+        toast({
+            title: "Success",
+            description: "New transaction added.",
+        });
+    }
 
-    toast({
-        title: "Success",
-        description: "New transaction added.",
-    });
 
     setIsLoading(false);
     setOpen(false);
   }
 
-  const isNextDisabled = () => {
-    const field = ["Amount", "Notes", "Category", "Type", "Date"][step] as keyof z.infer<typeof formSchema>;
-    return !!formState.errors[field] || !form.getValues(field);
-  }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        {step > 0 && (
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={handleBack} type="button">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
-        
-        <div>
-          {step === 0 && (
-            <FormField
-              control={form.control}
-              name="Amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold">Amount</FormLabel>
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="Amount"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Amount</FormLabel>
+                <FormControl>
+                  <Input type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="Notes"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Notes</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="e.g., Coffee" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+           <FormField
+            control={form.control}
+            name="Category"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <Input className="h-14 text-2xl" type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select one" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+                  <SelectContent>
+                    {categories.map((cat) => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          {step === 1 && (
-            <FormField
-              control={form.control}
-              name="Notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold">What was this for?</FormLabel>
+          <FormField
+            control={form.control}
+            name="Type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <Input className="h-14 text-2xl" {...field} placeholder="e.g., Coffee" autoFocus/>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a type" />
+                    </SelectTrigger>
                   </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+                  <SelectContent>
+                    <SelectItem value="Expense">Expense</SelectItem>
+                    <SelectItem value="Income">Income</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-          {step === 2 && (
-             <FormField
-              control={form.control}
-              name="Category"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold">Category</FormLabel>
-                  <Select onValueChange={(value) => {
-                    field.onChange(value);
-                  }} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="h-14 text-2xl">
-                        <SelectValue placeholder="Select one" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat} className="text-lg">{cat}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {step === 3 && (
-            <FormField
-              control={form.control}
-              name="Type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold">Type</FormLabel>
-                  <Select onValueChange={(value) => {
-                    field.onChange(value);
-                  }} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger className="h-14 text-2xl">
-                        <SelectValue placeholder="Select a type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Expense" className="text-lg">Expense</SelectItem>
-                      <SelectItem value="Income" className="text-lg">Income</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
-
-          {step === 4 && (
-            <FormField
-              control={form.control}
-              name="Date"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-lg font-semibold">Date</FormLabel>
-                  <FormControl>
-                    <Input className="h-14 text-2xl" type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          <FormField
+            control={form.control}
+            name="Date"
+            render={({ field }) => (
+              <FormItem className="col-span-2">
+                <FormLabel>Date</FormLabel>
+                <FormControl>
+                  <Input type="date" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
         
-        {step < totalSteps - 1 ? (
-            <Button type="button" onClick={handleNext} className="w-full h-12 text-lg" disabled={isNextDisabled()}>
-              Next
-            </Button>
-        ) : (
-          <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading || !formState.isValid}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Add Transaction
-          </Button>
-        )}
+        <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading || !form.formState.isValid}>
+          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          {transactionToEdit ? 'Update Transaction' : 'Add Transaction'}
+        </Button>
       </form>
     </Form>
   );
 }
+
+    

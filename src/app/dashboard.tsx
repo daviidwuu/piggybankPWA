@@ -1,14 +1,16 @@
 
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { type Transaction, type Budget } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
+import { BudgetPage } from "@/components/dashboard/budget-page";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
+import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth } from 'date-fns';
 import {
@@ -19,14 +21,14 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, Settings } from "lucide-react";
+import { RefreshCw, Plus, Settings, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
-import { doc, setDoc, getDoc, collection, query, orderBy } from "firebase/firestore";
+import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection } from "@/firebase";
+import { doc, collection, query, orderBy, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
-import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 
@@ -38,7 +40,7 @@ const chartColors = [
   "#78350f", "#ec4899", "#64748b", "#f59e0b"
 ];
 
-const categories = [
+export const categories = [
   "Food & Drinks", "Gambling", "Drinks", "Girlfriend",
   "Entertainment", "Shopping", "Transport", "Dad", "Others",
 ];
@@ -49,6 +51,7 @@ const categoryColors: { [key: string]: string } = categories.reduce((acc, catego
 }, {} as { [key: string]: string });
 
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
+const USER_ID_COPIED_KEY = 'userIdCopied';
 
 interface UserData {
     name: string;
@@ -61,7 +64,13 @@ export function Dashboard() {
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const [isClient, setIsClient] = useState(false);
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
+  
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
+  const [isBudgetOpen, setBudgetOpen] = useState(false);
+
+  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+  
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   
   const { toast } = useToast();
@@ -75,7 +84,7 @@ export function Dashboard() {
     [firestore, user]
   );
   
-  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserData>(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading } = useCollection<UserData>(userDocRef);
 
   const transactionsQuery = useMemoFirebase(
     () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc')) : null),
@@ -129,6 +138,37 @@ export function Dashboard() {
     }
   };
 
+  const handleEditClick = (transaction: Transaction) => {
+    setTransactionToEdit(transaction);
+    setAddTransactionOpen(true);
+  };
+  
+  const handleDeleteClick = (transaction: Transaction) => {
+    setTransactionToDelete(transaction);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!transactionToDelete || !user || !firestore) return;
+    const docRef = doc(firestore, `users/${user.uid}/transactions`, transactionToDelete.id);
+    deleteDocumentNonBlocking(docRef);
+    setTransactionToDelete(null);
+    toast({
+      title: "Transaction Deleted",
+      description: "The transaction has been successfully removed.",
+    });
+  };
+
+  const handleUpdateBudget = (category: string, newBudget: number) => {
+    if (!user || !firestore) return;
+    const budgetRef = doc(firestore, `users/${user.uid}/budgets`, category);
+    const budgetData = { Category: category, MonthlyBudget: newBudget };
+    setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
+    toast({
+        title: "Budget Updated",
+        description: `Budget for ${category} has been set to $${newBudget.toFixed(2)}.`,
+    });
+  };
+
   const handleResetSettings = () => {
     if (userDocRef) {
         setDocumentNonBlocking(userDocRef, { name: null }, { merge: true });
@@ -151,6 +191,16 @@ export function Dashboard() {
     setShowNotificationDialog(false);
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
   }
+
+  const handleCopyUserId = () => {
+    if (!user) return;
+    navigator.clipboard.writeText(user.uid);
+    toast({
+        title: "User ID Copied!",
+        description: "You can now paste this into your Apple Shortcut.",
+    });
+    localStorage.setItem(USER_ID_COPIED_KEY, 'true');
+  };
 
   const dateFilterRange = useMemo(() => {
     const today = new Date();
@@ -322,15 +372,28 @@ export function Dashboard() {
 
   const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
-  if (isUserLoading || isUserDataLoading || (userData && (isTransactionsLoading || isBudgetsLoading))) {
+  useEffect(() => {
+    // When the dialog closes, reset the transaction to edit
+    if (!isAddTransactionOpen) {
+      setTransactionToEdit(null);
+    }
+  }, [isAddTransactionOpen]);
+
+  const mainContentUser = userData?.[0];
+
+  if (isUserLoading || isUserDataLoading || (mainContentUser && (isTransactionsLoading || isBudgetsLoading))) {
     return <SkeletonLoader />;
   }
   
-  if (!userData?.name) {
+  if (!mainContentUser?.name) {
     return (
         <div className="flex flex-col min-h-screen bg-background items-center">
             <div className="w-full max-w-[428px] border-x border-border p-6">
-                <SetupSheet onSave={handleSetupSave} />
+                <SetupSheet 
+                  onSave={handleSetupSave} 
+                  onCopyUserId={handleCopyUserId}
+                  userId={user?.uid}
+                />
             </div>
         </div>
     );
@@ -345,10 +408,16 @@ export function Dashboard() {
               onAllow={handlePermissionRequest}
               onDeny={handlePermissionDenial}
            />
+           <DeleteTransactionDialog
+              open={!!transactionToDelete}
+              onOpenChange={() => setTransactionToDelete(null)}
+              onConfirm={handleConfirmDelete}
+              transaction={transactionToDelete}
+           />
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold">Welcome,</h1>
-              <h1 className="text-primary text-3xl font-bold">{userData.name}</h1>
+              <h1 className="text-primary text-3xl font-bold">{mainContentUser.name}</h1>
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
@@ -360,12 +429,26 @@ export function Dashboard() {
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Add New Transaction</DialogTitle>
+                        <DialogTitle>{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DialogTitle>
                       </DialogHeader>
                       <AddTransactionForm 
                         userId={user?.uid}
-                        setOpen={setAddTransactionOpen} 
+                        setOpen={setAddTransactionOpen}
+                        transactionToEdit={transactionToEdit}
                       />
+                    </DialogContent>
+                  </Dialog>
+                  <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                        <Wallet className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                       <DialogHeader>
+                        <DialogTitle>Manage Budgets</DialogTitle>
+                      </DialogHeader>
+                      <BudgetPage budgets={budgets || []} onUpdateBudget={handleUpdateBudget} />
                     </DialogContent>
                   </Dialog>
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
@@ -395,9 +478,13 @@ export function Dashboard() {
             onLoadMore={() => setVisibleTransactions(v => v + 5)}
             sortOption={sortOption}
             onSortChange={setSortOption}
+            onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
           />
         </main>
       </div>
     </div>
   );
 }
+
+    

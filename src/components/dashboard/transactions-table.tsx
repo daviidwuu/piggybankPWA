@@ -24,7 +24,7 @@ import type { Transaction } from "@/lib/data";
 import { ChartConfig } from "../ui/chart";
 import { format, toDate } from 'date-fns';
 import { Button } from "../ui/button";
-import { ChevronDown, ArrowUpDown } from "lucide-react";
+import { ChevronDown, ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { SortOption } from "@/app/dashboard";
 
 interface TransactionsTableProps {
@@ -34,9 +34,20 @@ interface TransactionsTableProps {
   onLoadMore: () => void;
   sortOption: SortOption;
   onSortChange: (option: SortOption) => void;
+  onEdit: (transaction: Transaction) => void;
+  onDelete: (transaction: Transaction) => void;
 }
 
-export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sortOption, onSortChange }: TransactionsTableProps) {
+export function TransactionsTable({ 
+  data, 
+  chartConfig, 
+  hasMore, 
+  onLoadMore, 
+  sortOption, 
+  onSortChange,
+  onEdit,
+  onDelete 
+}: TransactionsTableProps) {
   const formatDate = (dateValue: { seconds: number; nanoseconds: number; } | null) => {
     if (dateValue === null) {
         return { date: 'Invalid', time: 'Date' };
@@ -91,7 +102,8 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
             <TableRow>
               <TableHead className="p-1 pl-0">Date</TableHead>
               <TableHead className="p-1">Description</TableHead>
-              <TableHead className="p-1 pr-0 text-right">Amount</TableHead>
+              <TableHead className="p-1 text-right">Amount</TableHead>
+              <TableHead className="p-1 pr-0 text-right"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -116,7 +128,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                         >
                           {transaction.Category}
                         </Badge>
-                        <span className="font-medium truncate block max-w-[150px] text-sm">{transaction.Notes}</span>
+                        <span className="font-medium truncate block max-w-[100px] text-sm">{transaction.Notes}</span>
                       </div>
                     </TableCell>
                      <TableCell className="font-medium text-sm p-1 pr-0 text-right">
@@ -124,6 +136,23 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                         <span>$</span>
                         <span>{transaction.Amount.toFixed(2)}</span>
                       </div>
+                    </TableCell>
+                    <TableCell className="p-1 pr-0 text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-6 w-6">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onSelect={() => onEdit(transaction)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onSelect={() => onDelete(transaction)} className="text-destructive">
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 )
@@ -145,3 +174,5 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
     </Card>
   );
 }
+
+    
