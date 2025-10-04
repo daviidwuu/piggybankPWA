@@ -8,6 +8,7 @@ import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { BudgetPage } from "@/components/dashboard/budget-page";
+import { ReportsPage } from "@/components/dashboard/reports-page";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
@@ -40,7 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, Settings, Wallet, User as UserIcon, LogOut } from "lucide-react";
+import { RefreshCw, Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
@@ -78,6 +79,7 @@ export function Dashboard() {
   
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
   const [isBudgetOpen, setBudgetOpen] = useState(false);
+  const [isReportsOpen, setReportsOpen] = useState(false);
 
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
@@ -495,10 +497,7 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
-                   <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
-                  </Button>
-                  <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
+                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                         <Wallet className="h-4 w-4" />
@@ -519,6 +518,9 @@ export function Dashboard() {
                       />
                     </DialogContent>
                   </Dialog>
+                   <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
+                  </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -531,6 +533,10 @@ export function Dashboard() {
                       <DropdownMenuItem onSelect={() => setUserSettingsOpen(true)}>
                         <UserIcon className="mr-2 h-4 w-4" />
                         <span>User Profile</span>
+                      </DropdownMenuItem>
+                       <DropdownMenuItem onSelect={() => setReportsOpen(true)}>
+                        <FileText className="mr-2 h-4 w-4" />
+                        <span>Reports</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem onSelect={() => setShowLogoutConfirm(true)} className="text-destructive">
                         <LogOut className="mr-2 h-4 w-4" />
@@ -584,6 +590,15 @@ export function Dashboard() {
                   categories={categories}
                 />
             </DialogContent>
+        </Dialog>
+        
+        <Dialog open={isReportsOpen} onOpenChange={setReportsOpen}>
+          <DialogContent className="max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>Generate Report</DialogTitle>
+            </DialogHeader>
+            <ReportsPage allTransactions={transactions || []} categories={categories} />
+          </DialogContent>
         </Dialog>
 
       </div>
