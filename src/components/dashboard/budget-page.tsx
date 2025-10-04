@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pencil, Trash2, Plus, DollarSign } from "lucide-react";
-import { Separator } from "../ui/separator";
 
 interface BudgetPageProps {
   user: User;
@@ -85,14 +84,14 @@ export function BudgetPage({
 
 
   return (
-    <ScrollArea className="w-full max-h-[70vh]">
-        <div className="px-1 space-y-6">
-            <Card>
-                <CardHeader>
+    <ScrollArea className="w-full max-h-[70vh] pr-2">
+        <div className="space-y-6">
+            <Card className="border-none shadow-none">
+                <CardHeader className="px-1">
                     <CardTitle>Income & Savings</CardTitle>
                     <CardDescription>Set your monthly income and savings goal.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-4 px-1 pb-2">
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Monthly Income</label>
                         <div className="flex items-center gap-2">
@@ -124,8 +123,8 @@ export function BudgetPage({
                 </CardContent>
             </Card>
 
-            <Card>
-                <CardHeader className="flex-row items-center justify-between">
+            <Card className="border-none shadow-none">
+                <CardHeader className="flex-row items-center justify-between px-1">
                     <div className="space-y-1.5">
                         <CardTitle>Category Budgets</CardTitle>
                         <CardDescription>Allocate your spending limits.</CardDescription>
@@ -171,14 +170,14 @@ export function BudgetPage({
                         </DialogContent>
                     </Dialog>
                 </CardHeader>
-                <CardContent className="space-y-4 pr-2">
-                    <div className="w-full flex justify-between items-center p-3 rounded-lg bg-muted">
+                <CardContent className="space-y-4 px-1 pb-2">
+                    <div className="w-full flex justify-between items-center py-4 border-b">
                         <span className="font-medium text-muted-foreground">Left to Budget:</span>
                         <span className={`font-bold text-lg ${leftToBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
                             ${leftToBudget.toFixed(2)}
                         </span>
                     </div>
-                    <div className="space-y-3">
+                    <div className="space-y-3 pt-2">
                         {categories.map((category) => (
                             <div key={category} className="flex items-center justify-between gap-4">
                                 <span className="font-medium truncate pr-2">{category}</span>
