@@ -26,9 +26,9 @@ export default function Icon() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          color: '#4ade80', // A bright green color for the icon
+          color: '#FFFFFF', // White for dollar sign
           borderRadius: '24px',
-          fontWeight: 'bold',
+          fontWeight: '900', // Extra bold
         }}
       >
         $
