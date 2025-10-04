@@ -90,7 +90,7 @@ export function ReportsPage({ allTransactions, categories }: ReportsPageProps) {
 
   return (
     <>
-      <DrawerHeader className="text-left">
+      <DrawerHeader>
         <DrawerTitle>Generate Report</DrawerTitle>
       </DrawerHeader>
       <div className="p-4 space-y-6">
