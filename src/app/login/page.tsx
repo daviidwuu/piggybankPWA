@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,12 +29,13 @@ export default function LoginPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  if (isUserLoading) {
-    return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
-  
-  if (user) {
-    router.replace('/');
+  useEffect(() => {
+    if (!isUserLoading && user) {
+      router.replace('/');
+    }
+  }, [isUserLoading, user, router]);
+
+  if (isUserLoading || user) {
     return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
 
