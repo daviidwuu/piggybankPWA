@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { type Transaction, type Budget, type Income, type Savings } from "@/lib/data";
+import { type Transaction, type Budget, type User as UserData } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { type DateRange } from "@/components/dashboard/date-filter";
@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
-import { doc, collection, query, orderBy, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
+import { doc, collection, query, orderBy } from "firebase/firestore";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
@@ -47,11 +47,6 @@ const defaultCategories = [
 
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 const USER_ID_COPIED_KEY = 'userIdCopied';
-
-interface UserData {
-    name: string;
-    categories?: string[];
-}
 
 export function Dashboard() {
   const [dateRange, setDateRange] = useState<DateRange>('month');
@@ -94,18 +89,6 @@ export function Dashboard() {
   );
   const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
   
-  const incomeDocRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, "users", user.uid, "financials", "income") : null),
-    [firestore, user]
-  );
-  const { data: income, isLoading: isIncomeLoading } = useDoc<Income>(incomeDocRef);
-
-  const savingsDocRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, "users", user.uid, "financials", "savings") : null),
-    [firestore, user]
-  );
-  const { data: savings, isLoading: isSavingsLoading } = useDoc<Savings>(savingsDocRef);
-
   const categories = userData?.categories || defaultCategories;
 
   const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
@@ -122,9 +105,9 @@ export function Dashboard() {
   
   useEffect(() => {
     setIsClient(true);
-    if (userData && typeof window !== 'undefined' && 'Notification' in window) {
+    if (userData && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
       const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
-      if (!alreadyPrompted && Notification.permission === 'default') {
+      if (!alreadyPrompted) {
           setTimeout(() => setShowNotificationDialog(true), 2000);
       }
     }
@@ -132,14 +115,15 @@ export function Dashboard() {
 
 
   const handleSetupSave = (data: { name: string; }) => {
-    if (!userDocRef || !incomeDocRef || !savingsDocRef) return;
-    const newUserData = { name: data.name, categories: defaultCategories };
+    if (!userDocRef) return;
+    const newUserData = { 
+      name: data.name, 
+      categories: defaultCategories,
+      income: 0,
+      savings: 0,
+    };
     setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
     
-    // Set default income and savings
-    setDocumentNonBlocking(incomeDocRef, { amount: 0 }, { merge: true });
-    setDocumentNonBlocking(savingsDocRef, { amount: 0 }, { merge: true });
-
     // Add default budgets
     if (firestore && user) {
         const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
@@ -177,8 +161,8 @@ export function Dashboard() {
   };
 
   const handleUpdateIncome = (newIncome: number) => {
-    if (!incomeDocRef) return;
-    setDocumentNonBlocking(incomeDocRef, { amount: newIncome }, { merge: true });
+    if (!userDocRef) return;
+    updateDocumentNonBlocking(userDocRef, { income: newIncome });
     toast({
         title: "Income Updated",
         description: `Your monthly income has been set to $${newIncome.toFixed(2)}.`,
@@ -186,8 +170,8 @@ export function Dashboard() {
   };
 
   const handleUpdateSavings = (newSavings: number) => {
-    if (!savingsDocRef) return;
-    setDocumentNonBlocking(savingsDocRef, { amount: newSavings }, { merge: true });
+    if (!userDocRef) return;
+    updateDocumentNonBlocking(userDocRef, { savings: newSavings });
      toast({
         title: "Savings Goal Updated",
         description: `Your monthly savings goal has been set to $${newSavings.toFixed(2)}.`,
@@ -433,15 +417,13 @@ export function Dashboard() {
     }
   }, [isAddTransactionOpen]);
 
-  const mainContentUser = userData;
-  const isLoading = isUserLoading || isUserDataLoading || (mainContentUser && (isTransactionsLoading || isBudgetsLoading || isIncomeLoading || isSavingsLoading));
-
+  const isLoading = isUserLoading || isUserDataLoading;
 
   if (isLoading) {
     return <SkeletonLoader />;
   }
   
-  if (!mainContentUser?.name) {
+  if (!userData?.name) {
     return (
         <div className="flex flex-col min-h-screen bg-background items-center">
             <div className="w-full max-w-[428px] p-6">
@@ -473,7 +455,7 @@ export function Dashboard() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold">Welcome,</h1>
-              <h1 className="text-primary text-3xl font-bold">{mainContentUser.name}</h1>
+              <h1 className="text-primary text-3xl font-bold">{userData.name}</h1>
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
@@ -488,10 +470,8 @@ export function Dashboard() {
                         <DialogTitle>Wallet</DialogTitle>
                       </DialogHeader>
                       <BudgetPage 
-                        income={income}
-                        savings={savings}
+                        user={userData}
                         budgets={budgets || []} 
-                        categories={categories}
                         onUpdateIncome={handleUpdateIncome}
                         onUpdateSavings={handleUpdateSavings}
                         onUpdateBudget={handleUpdateBudget} 
@@ -500,7 +480,7 @@ export function Dashboard() {
                       />
                     </DialogContent>
                   </Dialog>
-                  <Button variant="ghost" size="icon" onClick={() => {}} disabled={true} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
+                  <Button variant="ghost" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
                     <RefreshCw className={cn("h-4 w-4 text-primary", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
                   </Button>
                   <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -558,5 +538,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    

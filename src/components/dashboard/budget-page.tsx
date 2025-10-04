@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { type Budget, type Income, type Savings } from "@/lib/data";
+import { type Budget, type User } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,10 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pencil, Trash2, Plus, DollarSign } from "lucide-react";
 
 interface BudgetPageProps {
-  income: Income | null;
-  savings: Savings | null;
+  user: User;
   budgets: Budget[];
-  categories: string[];
   onUpdateIncome: (newIncome: number) => void;
   onUpdateSavings: (newSavings: number) => void;
   onUpdateBudget: (category: string, newBudget: number) => void;
@@ -29,10 +27,8 @@ interface BudgetPageProps {
 }
 
 export function BudgetPage({ 
-  income, 
-  savings, 
+  user,
   budgets, 
-  categories, 
   onUpdateIncome, 
   onUpdateSavings, 
   onUpdateBudget, 
@@ -43,11 +39,15 @@ export function BudgetPage({
   const [newBudgetValue, setNewBudgetValue] = useState<number | string>("");
   const [newCategory, setNewCategory] = useState("");
   
-  const [currentIncome, setCurrentIncome] = useState(income?.amount ?? 0);
-  const [currentSavings, setCurrentSavings] = useState(savings?.amount ?? 0);
+  const [currentIncome, setCurrentIncome] = useState(user?.income ?? 0);
+  const [currentSavings, setCurrentSavings] = useState(user?.savings ?? 0);
+
+  const categories = user?.categories || [];
+  const income = user?.income ?? 0;
+  const savings = user?.savings ?? 0;
 
   const totalBudgeted = useMemo(() => budgets.reduce((sum, b) => sum + b.MonthlyBudget, 0), [budgets]);
-  const leftToBudget = useMemo(() => (income?.amount ?? 0) - (savings?.amount ?? 0) - totalBudgeted, [income, savings, totalBudgeted]);
+  const leftToBudget = useMemo(() => income - savings - totalBudgeted, [income, savings, totalBudgeted]);
 
   const handleEditClick = (budget: Budget) => {
     setEditingCategory(budget.Category);
@@ -211,5 +211,3 @@ export function BudgetPage({
     </Tabs>
   );
 }
-
-    

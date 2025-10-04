@@ -19,6 +19,14 @@
             "type": "array",
             "items": { "type": "string" },
             "description": "User-defined spending categories."
+        },
+        "income": {
+          "type": "number",
+          "description": "The user's monthly income."
+        },
+        "savings": {
+          "type": "number",
+          "description": "The user's monthly savings goal."
         }
       },
       "required": [
@@ -51,26 +59,6 @@
             "MonthlyBudget": { "type": "number" }
         },
         "required": ["Category", "MonthlyBudget"]
-    },
-    "Income": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Income",
-      "type": "object",
-      "description": "Represents the user's monthly income.",
-      "properties": {
-        "amount": { "type": "number" }
-      },
-      "required": ["amount"]
-    },
-    "Savings": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Savings",
-      "type": "object",
-      "description": "Represents the user's monthly savings goal.",
-      "properties": {
-        "amount": { "type": "number" }
-      },
-      "required": ["amount"]
     }
   },
   "auth": {
@@ -91,14 +79,6 @@
     "/users/{userId}/budgets/{budgetId}": {
       "schema": { "$ref": "#/entities/Budget" },
       "description": "Stores budget configurations for a user. Only the user can access their own budgets."
-    },
-    "/users/{userId}/financials/income": {
-      "schema": { "$ref": "#/entities/Income" },
-      "description": "Stores the user's income. Only the user can access their own income data."
-    },
-    "/users/{userId}/financials/savings": {
-      "schema": { "$ref": "#/entities/Savings" },
-      "description": "Stores the user's savings goal. Only the user can access their own savings data."
     }
   }
 }
