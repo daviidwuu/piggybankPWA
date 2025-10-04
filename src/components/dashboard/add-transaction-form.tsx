@@ -27,11 +27,10 @@ import { Loader2 } from "lucide-react";
 import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { type Transaction } from "@/lib/data";
-import { format, toDate } from "date-fns";
 
 const formSchema = z.object({
   Date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: "Please enter a valid date",
+    message: "Please enter a valid date and time",
   }),
   Amount: z.coerce.number().positive({ message: "Amount must be positive" }),
   Type: z.enum(["Expense", "Income"]),
@@ -46,6 +45,19 @@ interface AddTransactionFormProps {
   categories: string[];
 }
 
+// Helper function to format a Date object into a 'yyyy-MM-ddTHH:mm' string for datetime-local input
+const formatForDateTimeLocal = (date: Date): string => {
+    const pad = (num: number) => num.toString().padStart(2, '0');
+    
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hours = pad(date.getHours());
+    const minutes = pad(date.getMinutes());
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 export function AddTransactionForm({ setOpen, userId, transactionToEdit, categories }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -54,7 +66,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      Date: new Date().toISOString().split("T")[0],
+      Date: formatForDateTimeLocal(new Date()),
       Amount: '' as any,
       Type: "Expense",
       Category: "",
@@ -65,13 +77,16 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
 
   useEffect(() => {
     if (transactionToEdit) {
+      const transactionDate = transactionToEdit.Date 
+        ? new Date(transactionToEdit.Date.seconds * 1000)
+        : new Date();
       form.reset({
         ...transactionToEdit,
-        Date: transactionToEdit.Date ? format(toDate(transactionToEdit.Date.seconds * 1000), 'yyyy-MM-dd') : new Date().toISOString().split("T")[0],
+        Date: formatForDateTimeLocal(transactionDate),
       });
     } else {
       form.reset({
-        Date: new Date().toISOString().split("T")[0],
+        Date: formatForDateTimeLocal(new Date()),
         Amount: '' as any,
         Type: "Expense",
         Category: "",
@@ -200,9 +215,9 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
             name="Date"
             render={({ field }) => (
               <FormItem className="col-span-2">
-                <FormLabel>Date</FormLabel>
+                <FormLabel>Date & Time</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="datetime-local" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
