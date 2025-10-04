@@ -224,9 +224,15 @@ export function Dashboard() {
     }
   }, [isClient, budgets, dateRange, transactions]);
 
-  const expenseTransactions = filteredTransactions.filter(t => t.Type === 'Expense');
+  const expenseTransactions = useMemo(() => 
+    filteredTransactions.filter(t => t.Type === 'Expense'),
+    [filteredTransactions]
+  );
 
-  const totalSpent = expenseTransactions.reduce((sum, t) => sum + t.Amount, 0);
+  const totalSpent = useMemo(() => 
+    expenseTransactions.reduce((sum, t) => sum + t.Amount, 0),
+    [expenseTransactions]
+  );
 
   const aggregatedData = useMemo(() => expenseTransactions
     .reduce((acc, transaction) => {
