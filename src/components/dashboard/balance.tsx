@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -68,17 +69,15 @@ export function Balance({
             ))}
           </div>
         )}
-        {aggregatedData.length > 0 && (
-          <div className="flex justify-center pt-1">
-            <Button
-              variant="ghost"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent"
-            >
-              <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-center pt-1">
+          <Button
+            variant="ghost"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent"
+          >
+            <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
