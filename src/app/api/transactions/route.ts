@@ -13,6 +13,58 @@ if (admin.apps.length === 0) {
 }
 
 const firestore = admin.firestore();
+const messaging = admin.messaging();
+
+async function sendPushNotification(userId: string, message: string) {
+    // 1. Get push tokens from Firestore
+    const tokens: string[] = [];
+    const subscriptionsSnapshot = await firestore
+      .collection('users')
+      .doc(userId)
+      .collection('pushSubscriptions')
+      .get();
+      
+    if (subscriptionsSnapshot.empty) {
+      console.log("No push subscription tokens found for user:", userId);
+      return { success: false, error: "No push subscription tokens found for user." };
+    }
+      
+    subscriptionsSnapshot.forEach(doc => {
+      tokens.push(doc.data().token);
+    });
+
+    if (tokens.length === 0) {
+      console.log("No valid tokens found for user:", userId);
+      return { success: false, error: "No valid tokens found." };
+    }
+
+    // 2. Construct the push message payload
+    const payload: admin.messaging.MessagingPayload = {
+      notification: {
+        title: 'piggybank',
+        body: message,
+        icon: '/icon.png',
+      },
+    };
+
+    // 3. Send the message to all tokens
+    const response = await messaging.sendToDevice(tokens, payload);
+
+    const errors = response.results
+      .map((r, i) => r.error ? `Token ${i}: ${r.error.message}`: null)
+      .filter((e): e is string => e !== null);
+      
+    if (errors.length > 0) {
+        console.error("Push notification failures:", errors);
+    }
+
+    return {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      errors: errors,
+    };
+}
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,14 +122,8 @@ export async function POST(request: NextRequest) {
 
     // Send a push notification
     try {
-        await fetch(`${request.nextUrl.origin}/api/send-push-notification`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                userId,
-                message: `New transaction added: ${transactionData.Notes} for $${transactionData.Amount.toFixed(2)}`
-            })
-        });
+        const message = `New transaction added: ${transactionData.Notes} for $${transactionData.Amount.toFixed(2)}`;
+        await sendPushNotification(userId, message);
     } catch (pushError) {
         // Log the error but don't fail the transaction request
         console.error("Failed to send push notification:", pushError);
