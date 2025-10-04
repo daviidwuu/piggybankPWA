@@ -421,6 +421,9 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
+                  </Button>
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -434,9 +437,6 @@ export function Dashboard() {
                       <BudgetPage budgets={budgets || []} onUpdateBudget={handleUpdateBudget} />
                     </DialogContent>
                   </Dialog>
-                  <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
-                  </Button>
                   <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <Settings className="h-4 w-4" />
                   </Button>
@@ -491,6 +491,8 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
 
     
 
