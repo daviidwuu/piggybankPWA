@@ -11,6 +11,7 @@ import { BudgetPage } from "@/components/dashboard/budget-page";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
+import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import {
@@ -20,13 +21,32 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, Settings, Wallet } from "lucide-react";
+import { RefreshCw, Plus, Settings, Wallet, User as UserIcon, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
@@ -63,6 +83,8 @@ export function Dashboard() {
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isUserSettingsOpen, setUserSettingsOpen] = useState(false);
   
   const { toast } = useToast();
   const auth = useAuth();
@@ -207,14 +229,33 @@ export function Dashboard() {
   };
 
 
-  const handleResetSettings = () => {
+  const handleUpdateUser = (name: string) => {
     if (userDocRef) {
-        setDocumentNonBlocking(userDocRef, { name: null }, { merge: true });
+      updateDocumentNonBlocking(userDocRef, { name });
+      toast({
+        title: "User Updated",
+        description: "Your name has been updated.",
+      });
+      setUserSettingsOpen(false);
     }
-    toast({
-        title: "Settings Reset",
-        description: "Please enter your new configuration.",
-    });
+  };
+
+  const handleLogout = async () => {
+    setShowLogoutConfirm(false);
+    try {
+      await signOut(auth);
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      console.error("Logout Error: ", error);
+      toast({
+        variant: "destructive",
+        title: "Logout Failed",
+        description: "Could not log you out. Please try again.",
+      });
+    }
   };
   
   const handlePermissionRequest = async () => {
@@ -423,6 +464,30 @@ export function Dashboard() {
               onConfirm={handleConfirmDelete}
               transaction={transactionToDelete}
            />
+           <UserSettingsDialog
+              open={isUserSettingsOpen}
+              onOpenChange={setUserSettingsOpen}
+              user={userData}
+              userId={user?.uid}
+              onSave={handleUpdateUser}
+              onCopyUserId={handleCopyUserId}
+            />
+            <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    You will be signed out of your account. You can sign back in at any time.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    Log Out
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold">Welcome,</h1>
@@ -454,9 +519,25 @@ export function Dashboard() {
                       />
                     </DialogContent>
                   </Dialog>
-                  <Button variant="outline" size="icon" onClick={handleResetSettings} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <Settings className="h-4 w-4" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                        <Settings className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Settings</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => setUserSettingsOpen(true)}>
+                        <UserIcon className="mr-2 h-4 w-4" />
+                        <span>User Profile</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => setShowLogoutConfirm(true)} className="text-destructive">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log Out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
           </div>
