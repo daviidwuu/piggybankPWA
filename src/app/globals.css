@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -19,7 +20,7 @@ body {
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 210 40% 9%;
     --muted: 210 40% 96.1%;
-    --muted-foreground: 210 40% 45.1%;
+    --muted-foreground: 210 40% 35%;
     --accent: 142.1 76% 36%;
     --accent-foreground: 210 40% 9%;
     --destructive: 0 84.2% 60.2%;
@@ -32,7 +33,7 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --radius: 2rem;
+    --radius: 2.0rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -54,7 +55,7 @@ body {
     --secondary: 240 4% 15%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 4% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted-foreground: 0 0% 70%;
     --accent: 142.1 76% 46%; /* Brighter Green */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
@@ -81,6 +82,7 @@ body {
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
@@ -99,5 +101,3 @@ input[type=number]::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
-
-    

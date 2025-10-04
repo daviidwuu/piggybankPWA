@@ -1,615 +1,256 @@
 
-
 "use client";
-
-import { useEffect, useState, useMemo } from "react";
-import { type Transaction, type Budget, type User as UserData } from "@/lib/data";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/firebase/provider";
+import { useDoc as useDocument, useCollection } from "@/firebase";
+import { doc } from "firebase/firestore";
+import { Sidebar } from "@/components/ui/sidebar";
 import { Balance } from "@/components/dashboard/balance";
-import { TransactionsTable } from "@/components/dashboard/transactions-table";
-import { type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
+import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { BudgetPage } from "@/components/dashboard/budget-page";
 import { ReportsPage } from "@/components/dashboard/reports-page";
-import { SetupSheet } from "@/components/dashboard/setup-sheet";
-import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
+import { DateFilter, DateRange } from "@/components/dashboard/date-filter";
+import { useToast } from "@/hooks/use-toast";
+import { UserData, Transaction } from "@/lib/data";
+import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking, addDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
 import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog";
-import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth, differenceInMonths, addMonths } from 'date-fns';
-import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
-import { doc, collection, query, orderBy } from "firebase/firestore";
-import { signOut } from "firebase/auth";
-import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
 import { requestNotificationPermission } from "@/firebase/messaging";
-import { toDate } from "date-fns";
-import { useRouter } from "next/navigation";
+import { SetupSheet } from "@/components/dashboard/setup-sheet";
+import { Button } from "./ui/button";
+import { LayoutGrid, List, Settings, LogOut, BellRing } from "lucide-react";
 
 
-export type SortOption = 'latest' | 'highest' | 'category';
+type View = 'dashboard' | 'budget' | 'reports';
 
-const chartColors = [
-  "#2563eb", "#f97316", "#22c55e", "#ef4444", "#8b5cf6",
-  "#78350f", "#ec4899", "#64748b", "#f59e0b"
-];
-
-const defaultCategories = [
-  "F&B", "Shopping", "Transport", "Bills",
-];
-
-const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
-const USER_ID_COPIED_KEY = 'userIdCopied';
-
-export function Dashboard() {
-  const [dateRange, setDateRange] = useState<DateRange>('month');
-  const [chartConfig, setChartConfig] = useState<ChartConfig>({});
-  const [visibleTransactions, setVisibleTransactions] = useState(5);
-  const [sortOption, setSortOption] = useState<SortOption>('latest');
-  const [isClient, setIsClient] = useState(false);
-  const [displayDate, setDisplayDate] = useState<string>("Loading...");
-  
-  const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
-  const [isBudgetOpen, setBudgetOpen] = useState(false);
-  const [isReportsOpen, setReportsOpen] = useState(false);
-
-  const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
-  const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
-  
-  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [isUserSettingsOpen, setUserSettingsOpen] = useState(false);
-  
-  const { toast } = useToast();
-  const auth = useAuth();
-  const { user, isUserLoading } = useUser();
-  const firestore = useFirestore();
-  const firebaseApp = useFirebaseApp();
-  const router = useRouter();
-
-  const userDocRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, "users", user.uid) : null),
-    [firestore, user]
-  );
-  
-  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserData>(userDocRef);
-
-  const transactionsQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc')) : null),
-    [firestore, user]
-  );
-  const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsQuery);
-
-  const budgetsQuery = useMemoFirebase(
-    () => (firestore && user ? collection(firestore, `users/${user.uid}/budgets`) : null),
-    [firestore, user]
-  );
-  const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
-  
-  const categories = userData?.categories || defaultCategories;
-
-  const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
-    acc[category] = chartColors[index % chartColors.length];
-    return acc;
-  }, {} as { [key: string]: string });
-  
-  
-  useEffect(() => {
-    setIsClient(true);
-    if (userData && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-      const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
-      if (!alreadyPrompted) {
-          setTimeout(() => setShowNotificationDialog(true), 2000);
-      }
-    }
-  }, [userData]);
+export default function Dashboard() {
+    const { user, firestore, signOut } = useAuth();
+    const { toast } = useToast();
+    const [view, setView] = useState<View>('dashboard');
+    const [dateRange, setDateRange] = useState<DateRange>('month');
+    const [isDeleteModalOpen, setDeleteModalOpen] = useState(false);
+    const [isSettingsModalOpen, setSettingsModalOpen] = useState(false);
+    const [isNotificationModalOpen, setNotificationModalOpen] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
+    const [isSetupSheetOpen, setSetupSheetOpen] = useState(false);
 
 
-  const handleSetupSave = (data: { name: string; }) => {
-    if (!userDocRef) return;
-    const newUserData = { 
-      name: data.name, 
-      categories: defaultCategories,
-      income: 0,
-      savings: 0,
+    const userDocRef = user ? doc(firestore, `users/${user.uid}`) : null;
+    const { data: userData, loading: userLoading } = useDocument<UserData>(userDocRef);
+
+    const { data: transactions, loading: transactionsLoading } = useCollection<Transaction>(
+        user ? `users/${user.uid}/transactions` : null,
+        {
+            orderBy: ["Date", "desc"],
+        }
+    );
+    
+    useEffect(() => {
+        if (!userLoading && userData) {
+            // Check if income is 0 or not set, and if there are no transactions
+            const isNewUser = (!userData.income || userData.income === 0) && transactions?.length === 0;
+            setSetupSheetOpen(isNewUser);
+        }
+    }, [userLoading, userData, transactions]);
+
+    const handleAddTransaction = async (data: Omit<Transaction, 'id' | 'Date'>) => {
+        if (!user || !firestore) return;
+        
+        const newTransaction = {
+            ...data,
+            Date: new Date(),
+            userId: user.uid,
+        };
+
+        const { id, error } = await addDocumentNonBlocking(
+            `users/${user.uid}/transactions`,
+            newTransaction
+        );
+
+        if (error) {
+            toast({
+                title: "Error",
+                description: "Failed to add transaction.",
+                variant: "destructive",
+            });
+        } else {
+            toast({
+                title: "Transaction Added",
+                description: "Your transaction has been successfully recorded.",
+            });
+
+             // Check for notification permission after first transaction
+            const permission = typeof window !== 'undefined' ? Notification.permission : 'default';
+            if (permission === 'default') {
+                setNotificationModalOpen(true);
+            }
+        }
     };
-    setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
-    
-    // Add default budgets
-    if (firestore && user) {
-        const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
-        defaultCategories.forEach(category => {
-            setDocumentNonBlocking(doc(budgetsCollection, category), { Category: category, MonthlyBudget: 0 }, { merge: true });
-        })
-    }
-    // Open the budget page for new users
-    setBudgetOpen(true);
-  };
 
-  const handleEditClick = (transaction: Transaction) => {
-    setTransactionToEdit(transaction);
-    setAddTransactionOpen(true);
-  };
-  
-  const handleDeleteClick = (transaction: Transaction) => {
-    setTransactionToDelete(transaction);
-  };
+    const handleDeleteRequest = (transaction: Transaction) => {
+        setTransactionToDelete(transaction);
+        setDeleteModalOpen(true);
+    };
 
-  const handleConfirmDelete = () => {
-    if (!transactionToDelete || !user || !firestore) return;
-    const docRef = doc(firestore, `users/${user.uid}/transactions`, transactionToDelete.id);
-    deleteDocumentNonBlocking(docRef);
-    setTransactionToDelete(null);
-    toast({
-      title: "Transaction Deleted",
-      description: "The transaction has been successfully removed.",
-    });
-  };
-
-  const handleUpdateIncome = (newIncome: number) => {
-    if (!userDocRef) return;
-    updateDocumentNonBlocking(userDocRef, { income: newIncome });
-    toast({
-        title: "Income Updated",
-        description: `Your monthly income has been set to $${newIncome.toFixed(2)}.`,
-    });
-  };
-
-  const handleUpdateSavings = (newSavings: number) => {
-    if (!userDocRef) return;
-    updateDocumentNonBlocking(userDocRef, { savings: newSavings });
-     toast({
-        title: "Savings Goal Updated",
-        description: `Your monthly savings goal has been set to $${newSavings.toFixed(2)}.`,
-    });
-  };
-
-  const handleUpdateBudget = (category: string, newBudget: number) => {
-    if (!user || !firestore) return;
-    const budgetRef = doc(firestore, `users/${user.uid}/budgets`, category);
-    const budgetData = { Category: category, MonthlyBudget: newBudget };
-    setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
-    toast({
-        title: "Budget Updated",
-        description: `Budget for ${category} has been set to $${newBudget.toFixed(2)}.`,
-    });
-  };
-
-  const handleAddCategory = (category: string) => {
-    if (!userDocRef) return;
-    const updatedCategories = [...categories, category];
-    updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
-    handleUpdateBudget(category, 0); // Initialize with 0 budget
-  };
-
-  const handleDeleteCategory = (category: string) => {
-    if (!userDocRef || !user || !firestore) return;
-    const updatedCategories = categories.filter(c => c !== category);
-    updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
-
-    // Also delete the budget associated with the category
-    const budgetRef = doc(firestore, `users/${user.uid}/budgets`, category);
-    deleteDocumentNonBlocking(budgetRef);
-  };
-
-
-  const handleUpdateUser = (name: string) => {
-    if (userDocRef) {
-      updateDocumentNonBlocking(userDocRef, { name });
-      toast({
-        title: "User Updated",
-        description: "Your name has been updated.",
-      });
-      setUserSettingsOpen(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    setShowLogoutConfirm(false);
-    try {
-      await signOut(auth);
-      router.push('/login');
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully signed out.",
-      });
-    } catch (error) {
-      console.error("Logout Error: ", error);
-      toast({
-        variant: "destructive",
-        title: "Logout Failed",
-        description: "Could not log you out. Please try again.",
-      });
-    }
-  };
-  
-  const handlePermissionRequest = async () => {
-    if (user && firestore && firebaseApp) {
-      await requestNotificationPermission(user.uid, firestore, firebaseApp);
-    }
-    setShowNotificationDialog(false);
-    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
-  };
-
-  const handlePermissionDenial = () => {
-    setShowNotificationDialog(false);
-    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
-  }
-
-  const handleCopyUserId = () => {
-    if (!user) return;
-    navigator.clipboard.writeText(user.uid);
-    toast({
-        title: "User ID Copied!",
-        description: "You can now paste this into your Apple Shortcut.",
-    });
-    localStorage.setItem(USER_ID_COPIED_KEY, 'true');
-  };
-
-  const dateFilterRange = useMemo(() => {
-    const today = new Date();
-    switch (dateRange) {
-      case 'daily':
-        return { start: startOfDay(today), end: endOfDay(today) };
-      case 'week':
-        return { start: startOfWeek(today, { weekStartsOn: 1 }), end: endOfWeek(today, { weekStartsOn: 1 }) };
-      case 'month':
-        return { start: startOfMonth(today), end: endOfMonth(today) };
-      case 'yearly':
-        return { start: startOfYear(today), end: endOfYear(today) };
-      case 'all':
-      default:
-        return { start: null, end: null };
-    }
-  }, [dateRange]);
-
-  const getDisplayDate = (range: DateRange): string => {
-    if (!transactions?.length && range !== 'all') return "No data";
-    
-    const { start, end } = dateFilterRange;
-
-    switch (range) {
-      case 'daily':
-        return start ? format(start, 'd MMM yyyy') : "Today";
-      case 'week':
-        return (start && end) ? `${format(start, 'd MMM')} - ${format(end, 'd MMM yyyy')}` : "This Week";
-      case 'month':
-        return start ? format(start, 'MMMM yyyy') : "This Month";
-      case 'yearly':
-        return start ? format(start, 'yyyy') : "This Year";
-      case 'all':
-      default:
-        if (!transactions?.length) return "All Time";
-        const oldestDate = transactions.reduce((min, t) => {
-            if (!t.Date) return min;
-            const current = toDate(t.Date.seconds * 1000);
-            return current < min ? current : min;
-        }, new Date());
-        const mostRecentDate = transactions.reduce((max, t) => {
-            if (!t.Date) return max;
-            const current = toDate(t.Date.seconds * 1000);
-            return current > max ? current : max;
-        }, new Date(0));
-        if (isNaN(oldestDate.getTime()) || isNaN(mostRecentDate.getTime())) return "All Time";
-        return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
-    }
-  };
-
-  useEffect(() => {
-    if (!isClient) return;
-    setDisplayDate(getDisplayDate(dateRange));
-  }, [dateRange, transactions, isClient, dateFilterRange]);
-
-  const filteredTransactions = useMemo(() => {
-    if (!isClient || !transactions) return [];
-    
-    const { start, end } = dateFilterRange;
-
-    if (dateRange === 'all' || !start || !end) {
-      return transactions;
-    }
-
-    return transactions.filter(t => {
-      if (!t.Date) return false;
-      const transactionDate = toDate(t.Date.seconds * 1000);
-      if (isNaN(transactionDate.getTime())) return false;
-      
-      const isAfterStart = transactionDate >= start;
-      const isBeforeEnd = transactionDate <= end;
-      
-      return isAfterStart && isBeforeEnd;
-    });
-  }, [isClient, transactions, dateRange, dateFilterRange]);
-  
-  const totalBudget = useMemo(() => {
-    if (!userData) return 0;
-    const monthlyBudget = (userData.income || 0) - (userData.savings || 0);
-    const now = new Date();
-
-    switch (dateRange) {
-      case 'daily':
-        return monthlyBudget / getDaysInMonth(now);
-      case 'week':
-        return (monthlyBudget / getDaysInMonth(now)) * 7;
-      case 'month':
-        return monthlyBudget;
-      case 'yearly':
-        return monthlyBudget * 12;
-      case 'all':
-        if (!transactions || transactions.length === 0) return monthlyBudget;
-        const oldestDate = transactions.reduce((min, t) => {
-          if (!t.Date) return min;
-          const current = toDate(t.Date.seconds * 1000);
-          return current < min ? current : min;
-        }, new Date());
-        const monthSpan = differenceInMonths(now, oldestDate) + 1;
-        return monthlyBudget * Math.max(1, monthSpan);
-      default:
-        return monthlyBudget;
-    }
-  }, [userData, dateRange, transactions]);
-
-  const expenseTransactions = useMemo(() => 
-    filteredTransactions.filter(t => t.Type === 'Expense'),
-    [filteredTransactions]
-  );
-
-  const totalSpent = useMemo(() => 
-    expenseTransactions.reduce((sum, t) => sum + t.Amount, 0),
-    [expenseTransactions]
-  );
-
-  const aggregatedData = useMemo(() => expenseTransactions
-    .reduce((acc, transaction) => {
-      const existingCategory = acc.find(
-        (item) => item.category === transaction.Category
-      );
-      if (existingCategory) {
-        existingCategory.amount += transaction.Amount;
-      } else {
-        acc.push({
-          category: transaction.Category,
-          amount: transaction.Amount,
+    const handleConfirmDelete = () => {
+        if (!transactionToDelete || !user || !firestore) return;
+        const docRef = doc(firestore, `users/${user.uid}/transactions`, transactionToDelete.id);
+        deleteDocumentNonBlocking(docRef);
+        setTransactionToDelete(null);
+        toast({
+          title: "Transaction Deleted",
+          description: "The transaction has been successfully removed.",
         });
-      }
-      return acc;
-    }, [] as { category: string; amount: number }[])
-    .sort((a, b) => b.amount - a.amount), [expenseTransactions]);
-
-  useEffect(() => {
-    const newChartConfig: ChartConfig = Object.keys(categoryColors).reduce((acc, category) => {
-      acc[category] = {
-        label: category,
-        color: categoryColors[category],
       };
-      return acc;
-    }, {} as ChartConfig);
-
-    if (JSON.stringify(chartConfig) !== JSON.stringify(newChartConfig)) {
-        setChartConfig(newChartConfig);
-    }
-  }, [chartConfig, categoryColors]);
-
-  const sortedTransactions = useMemo(() => {
-    if (!expenseTransactions) return [];
-    const sorted = [...expenseTransactions];
-    switch (sortOption) {
-      case 'highest':
-        return sorted.sort((a, b) => b.Amount - a.Amount);
-      case 'category':
-        return sorted.sort((a, b) => a.Category.localeCompare(b.Category));
-      case 'latest':
-      default:
-        return sorted.sort((a, b) => {
-          if (a.Date === null) return 1;
-          if (b.Date === null) return -1;
-          return b.Date.seconds - a.Date.seconds;
+    
+      const handleUpdateIncome = (newIncome: number) => {
+        if (!userDocRef) return;
+        updateDocumentNonBlocking(userDocRef, { income: newIncome });
+        toast({
+            title: "Income Updated",
+            description: `Your monthly income has been set to $${newIncome.toFixed(2)}.`
         });
+      };
+    
+      const handleUpdateSavings = (newSavings: number) => {
+        if (!userDocRef) return;
+        updateDocumentNonBlocking(userDocRef, { savings: newSavings });
+         toast({
+            title: "Savings Goal Updated",
+            description: `Your monthly savings goal has been set to $${newSavings.toFixed(2)}.`
+        });
+      };
+
+      const handleUpdatePushoverKey = (newPushoverKey: string | undefined) => {
+        if (!userDocRef) return;
+        updateDocumentNonBlocking(userDocRef, { pushoverKey: newPushoverKey || "" });
+         toast({
+            title: "Pushover Key Updated",
+            description: `Your Pushover key has been saved.`
+        });
+    };
+
+      const handleAllowNotifications = async () => {
+        setNotificationModalOpen(false);
+        if (!user) return;
+        try {
+            await requestNotificationPermission(user.uid);
+            toast({
+                title: "Notifications Enabled",
+                description: "You'll now receive push notifications for new transactions."
+            });
+        } catch (error) {
+            toast({
+                title: "Notification Error",
+                description: "Could not enable notifications. Please check your browser settings.",
+                variant: "destructive"
+            });
+        }
+      };
+    
+    if (userLoading || !userData || !transactions) {
+        return <SkeletonLoader />;
     }
-  }, [expenseTransactions, sortOption]);
 
-  const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
+    const filteredTransactions = transactions.filter(t => {
+        if (dateRange === 'all') return true;
+        const now = new Date();
+        const transactionDate = t.Date.toDate();
+        if (dateRange === 'daily') {
+            return transactionDate.toDateString() === now.toDateString();
+        }
+        if (dateRange === 'week') {
+            const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+            startOfWeek.setHours(0, 0, 0, 0);
+            return transactionDate >= startOfWeek;
+        }
+        if (dateRange === 'month') {
+            return transactionDate.getMonth() === now.getMonth() && transactionDate.getFullYear() === now.getFullYear();
+        }
+        if (dateRange === 'yearly') {
+            return transactionDate.getFullYear() === now.getFullYear();
+        }
+        return true;
+    });
 
-  useEffect(() => {
-    // When the dialog closes, reset the transaction to edit
-    if (!isAddTransactionOpen) {
-      setTransactionToEdit(null);
-    }
-  }, [isAddTransactionOpen]);
+    const sidebarItems = [
+        { icon: LayoutGrid, label: "Dashboard", onClick: () => setView('dashboard'), active: view === 'dashboard' },
+        { icon: List, label: "Budget", onClick: () => setView('budget'), active: view === 'budget' },
+        { icon: BellRing, label: "Notifications", onClick: () => setNotificationModalOpen(true) },
+        { icon: Settings, label: "Settings", onClick: () => setSettingsModalOpen(true) },
+        { icon: LogOut, label: "Sign Out", onClick: signOut },
+    ];
 
-  const isLoading = isUserLoading || isUserDataLoading;
-
-  if (isLoading) {
-    return <SkeletonLoader />;
-  }
-  
-  if (!userData?.name) {
     return (
-        <div className="flex flex-col min-h-screen bg-background items-center">
-            <div className="w-full max-w-[428px] p-6">
-                <SetupSheet 
-                  onSave={handleSetupSave} 
-                  onCopyUserId={handleCopyUserId}
-                  userId={user?.uid}
-                />
-            </div>
+        <div className="flex h-screen bg-background">
+            <Sidebar items={sidebarItems} user={user} />
+            
+            <main className="flex-1 overflow-y-auto p-4 md:p-8">
+                <div className="flex justify-between items-center mb-6">
+                    <h1 className="text-2xl font-bold">
+                        {view === 'dashboard' ? 'Dashboard' : view === 'budget' ? 'Budget' : 'Reports'}
+                    </h1>
+                    <DateFilter value={dateRange} onValueChange={setDateRange} />
+                </div>
+
+                {view === 'dashboard' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                           <Balance transactions={filteredTransactions} income={userData?.income || 0} />
+                           <TransactionsTable transactions={filteredTransactions} onDelete={handleDeleteRequest} />
+                        </div>
+                        <div className="lg:col-span-1">
+                           <AddTransactionForm 
+                                onSubmit={handleAddTransaction} 
+                                savingsGoal={userData?.savings} 
+                                transactions={filteredTransactions} 
+                            />
+                        </div>
+                    </div>
+                )}
+                 {view === 'budget' && (
+                    <BudgetPage 
+                        transactions={filteredTransactions} 
+                        savingsGoal={userData.savings || 0} 
+                        income={userData.income || 0} 
+                    />
+                 )}
+
+                {view === 'reports' && <ReportsPage transactions={transactions} />}
+            </main>
+            
+            <DeleteTransactionDialog
+                open={isDeleteModalOpen}
+                onOpenChange={setDeleteModalOpen}
+                onConfirm={handleConfirmDelete}
+            />
+
+            <UserSettingsDialog
+                open={isSettingsModalOpen}
+                onOpenChange={setSettingsModalOpen}
+                user={userData}
+                onUpdateIncome={handleUpdateIncome}
+                onUpdateSavings={handleUpdateSavings}
+                onUpdatePushoverKey={handleUpdatePushoverKey}
+            />
+
+            <NotificationPermissionDialog
+                open={isNotificationModalOpen}
+                onOpenChange={setNotificationModalOpen}
+                onAllow={handleAllowNotifications}
+            />
+             <SetupSheet 
+                open={isSetupSheetOpen}
+                onOpenChange={setSetupSheetOpen}
+                onSave={(income, savings) => {
+                    handleUpdateIncome(income);
+                    handleUpdateSavings(savings);
+                    setSetupSheetOpen(false);
+                }}
+            />
         </div>
     );
-  }
-
-  return (
-    <div className="flex flex-col min-h-screen bg-background items-center">
-      <div className="w-full max-w-[428px] pt-[env(safe-area-inset-top)]">
-        <main className="flex-1 p-4 space-y-4 pb-[calc(env(safe-area-inset-bottom)+4rem)]">
-           <NotificationPermissionDialog
-              open={showNotificationDialog}
-              onAllow={handlePermissionRequest}
-              onDeny={handlePermissionDenial}
-           />
-           <DeleteTransactionDialog
-              open={!!transactionToDelete}
-              onOpenChange={() => setTransactionToDelete(null)}
-              onConfirm={handleConfirmDelete}
-              transaction={transactionToDelete}
-           />
-           <UserSettingsDialog
-              open={isUserSettingsOpen}
-              onOpenChange={setUserSettingsOpen}
-              user={userData}
-              userId={user?.uid}
-              onSave={handleUpdateUser}
-              onCopyUserId={handleCopyUserId}
-            />
-            <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    You will be signed out of your account. You can sign back in at any time.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Log Out
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h1 className="text-2xl font-bold">Welcome,</h1>
-              <h1 className="text-primary text-3xl font-bold">{userData.name}</h1>
-            </div>
-            <div className="flex flex-col items-end">
-                <div className="flex items-center gap-2">
-                  <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
-                    <DialogContent className="max-w-[400px]">
-                       <DialogHeader>
-                        <DialogTitle>Wallet</DialogTitle>
-                      </DialogHeader>
-                      <BudgetPage 
-                        user={userData}
-                        budgets={budgets || []} 
-                        onUpdateIncome={handleUpdateIncome}
-                        onUpdateSavings={handleUpdateSavings}
-                        onUpdateBudget={handleUpdateBudget} 
-                        onAddCategory={handleAddCategory}
-                        onDeleteCategory={handleDeleteCategory}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Settings</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => setUserSettingsOpen(true)}>
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        <span>User Profile</span>
-                      </DropdownMenuItem>
-                       <DropdownMenuItem onSelect={() => setBudgetOpen(true)}>
-                        <Wallet className="mr-2 h-4 w-4" />
-                        <span>Wallet</span>
-                      </DropdownMenuItem>
-                       <DropdownMenuItem onSelect={() => setReportsOpen(true)}>
-                        <FileText className="mr-2 h-4 w-4" />
-                        <span>Reports</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setShowLogoutConfirm(true)} className="text-destructive">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log Out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-          </div>
-          
-          <Balance
-            totalSpending={totalSpent}
-            budget={totalBudget}
-            aggregatedData={aggregatedData}
-            chartConfig={chartConfig}
-            dateRange={dateRange}
-            onDateRangeChange={setDateRange}
-            displayDate={displayDate}
-          />
-          <TransactionsTable 
-            data={transactionsToShow} 
-            chartConfig={chartConfig}
-            hasMore={visibleTransactions < sortedTransactions.length}
-            onLoadMore={() => setVisibleTransactions(v => v + 5)}
-            sortOption={sortOption}
-            onSortChange={setSortOption}
-            onEdit={handleEditClick}
-            onDelete={handleDeleteClick}
-          />
-        </main>
-
-        <Drawer open={isAddTransactionOpen} onOpenChange={setAddTransactionOpen}>
-            <DrawerTrigger asChild>
-                <Button 
-                    variant="default"
-                    className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-6 h-16 w-16 rounded-full shadow-lg z-50"
-                    style={{ backgroundColor: 'hsl(var(--primary))' }}
-                >
-                    <Plus className="h-8 w-8" />
-                </Button>
-            </DrawerTrigger>
-            <DrawerContent>
-                <AddTransactionForm 
-                  userId={user?.uid}
-                  setOpen={setAddTransactionOpen}
-                  transactionToEdit={transactionToEdit}
-                  categories={categories}
-                />
-            </DrawerContent>
-        </Drawer>
-        
-        <Drawer open={isReportsOpen} onOpenChange={setReportsOpen}>
-          <DrawerContent>
-            <ReportsPage allTransactions={transactions || []} categories={categories} />
-          </DrawerContent>
-        </Drawer>
-
-      </div>
-    </div>
-  );
 }

@@ -33,9 +33,9 @@ export function NotificationPermissionDialog({
               <BellRing className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <AlertDialogTitle className="text-center">Enable Push Notifications</AlertDialogTitle>
+          <AlertDialogTitle className="text-center">Enable Browser Notifications</AlertDialogTitle>
           <AlertDialogDescription className="text-center">
-            Get notified instantly when new transactions are added via your Apple Shortcut. Stay on top of your spending without lifting a finger.
+            Allow this app to send you push notifications directly in your web browser. For notifications from external services like Apple Shortcuts, please add your Pushover Key in the User Settings.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="sm:justify-center">
@@ -46,5 +46,3 @@ export function NotificationPermissionDialog({
     </AlertDialog>
   );
 }
-
-    

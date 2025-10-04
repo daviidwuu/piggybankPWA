@@ -129,6 +129,30 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  webpack: (config, { isServer, dev }) => {
+    // Fix for warnings about cjs/esm package duplication
+    config.resolve.alias['firebase/app'] = 'firebase/app';
+    config.resolve.alias['firebase/auth'] = 'firebase/auth';
+    config.resolve.alias['firebase/firestore'] = 'firebase/firestore';
+
+    if (!isServer && !dev) {
+        // This is a placeholder for any future PWA-specific plugins
+        // For example, you could add workbox-webpack-plugin here
+        // to generate a more sophisticated service worker.
+
+        // Example of adding a plugin:
+        // const { GenerateSW } = require('workbox-webpack-plugin');
+        // config.plugins.push(
+        //   new GenerateSW({
+        //     clientsClaim: true,
+        //     skipWaiting: true,
+        //     // Other Workbox options...
+        //   })
+        // );
+    }
+    
+    return config;
+  }
 };
 
 export default withPWA(nextConfig);

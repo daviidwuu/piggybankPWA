@@ -40,7 +40,7 @@ export function Balance({
   const isOverBudget = spendingPercentage >= 100;
 
   return (
-    <Card>
+    <Card className="rounded-lg">
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>

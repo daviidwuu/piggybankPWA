@@ -6,13 +6,13 @@ import { type Budget, type User } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+  DrawerDescription,
+} from "@/components/ui/drawer";
 import {
   Card,
   CardContent,
@@ -84,8 +84,8 @@ export function BudgetPage({
 
 
   return (
-    <ScrollArea className="w-full max-h-[70vh] pr-2">
-        <div className="space-y-6">
+    <ScrollArea className="w-full max-h-[70vh]">
+        <div className="space-y-6 px-4">
             <Card className="border-none shadow-none">
                 <CardHeader>
                     <CardTitle>Income & Savings</CardTitle>
@@ -103,6 +103,7 @@ export function BudgetPage({
                                 onChange={(e) => setCurrentIncome(parseFloat(e.target.value) || 0)}
                                 className="h-9"
                                 placeholder="e.g., 3000"
+                                inputMode="decimal"
                             />
                         </div>
                     </div>
@@ -117,6 +118,7 @@ export function BudgetPage({
                                 onChange={(e) => setCurrentSavings(parseFloat(e.target.value) || 0)}
                                 className="h-9"
                                 placeholder="e.g., 500"
+                                inputMode="decimal"
                             />
                         </div>
                     </div>
@@ -129,18 +131,18 @@ export function BudgetPage({
                         <CardTitle>Category Budgets</CardTitle>
                         <CardDescription>Allocate your spending limits.</CardDescription>
                     </div>
-                    <Dialog open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
-                        <DialogTrigger asChild>
+                    <Drawer open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
+                        <DrawerTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0">
                                 <Pencil className="h-4 w-4" />
                             </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Manage Categories</DialogTitle>
-                                <DialogDescription>Add new spending categories or remove ones you no longer need.</DialogDescription>
-                            </DialogHeader>
-                            <div className="space-y-4 pt-4">
+                        </DrawerTrigger>
+                        <DrawerContent>
+                            <DrawerHeader>
+                                <DrawerTitle>Manage Categories</DrawerTitle>
+                                <DrawerDescription>Add new spending categories or remove ones you no longer need.</DrawerDescription>
+                            </DrawerHeader>
+                            <div className="space-y-4 pt-4 px-4">
                                 <div className="flex items-center gap-2">
                                     <Input 
                                         value={newCategory}
@@ -148,6 +150,7 @@ export function BudgetPage({
                                         placeholder="New Category Name"
                                         className="h-9"
                                         onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                                        autoFocus
                                     />
                                     <Button size="sm" onClick={handleAddCategory}>
                                         <Plus className="h-4 w-4 mr-1"/>
@@ -167,8 +170,8 @@ export function BudgetPage({
                                     </div>
                                 </ScrollArea>
                             </div>
-                        </DialogContent>
-                    </Dialog>
+                        </DrawerContent>
+                    </Drawer>
                 </CardHeader>
                 <CardContent className="space-y-4 pb-4">
                     <div className="w-full flex justify-between items-center py-4 border-b">
@@ -189,6 +192,7 @@ export function BudgetPage({
                                         onBlur={() => handleBudgetBlur(category)}
                                         className="h-8 w-24 text-right"
                                         placeholder="0.00"
+                                        inputMode="decimal"
                                     />
                                 </div>
                             </div>

@@ -5,6 +5,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  TableCaption,
 } from "@/components/ui/table";
 import {
   Card,
@@ -17,6 +18,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -69,7 +72,7 @@ export function TransactionsTable({
   ];
 
   return (
-    <Card>
+    <Card className="rounded-lg">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Recent Transactions</CardTitle>
@@ -79,20 +82,21 @@ export function TransactionsTable({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
+            <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20" aria-label="Sort transactions">
               <ArrowUpDown className="h-4 w-4 text-primary" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {sortOptions.map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onSelect={() => onSortChange(option.value)}
-                  className={sortOption === option.value ? "bg-accent" : ""}
-                >
-                  {option.label}
-                </DropdownMenuItem>
-              ))}
+            <DropdownMenuRadioGroup value={sortOption} onValueChange={(value) => onSortChange(value as SortOption)}>
+              {sortOptions.map((option) => (
+                  <DropdownMenuRadioItem
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+            </DropdownMenuRadioGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -100,12 +104,13 @@ export function TransactionsTable({
         {data.length > 0 ? (
           <>
             <Table>
+              <caption className="sr-only">Recent Transactions</caption>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="p-1 pl-0">Date</TableHead>
-                  <TableHead className="p-1 text-left">Amount</TableHead>
-                  <TableHead className="p-1">Description</TableHead>
-                  <TableHead className="p-1 pr-0 text-right"></TableHead>
+                  <TableHead scope="col" className="p-1 pl-0">Date</TableHead>
+                  <TableHead scope="col" className="p-1 text-left">Amount</TableHead>
+                  <TableHead scope="col" className="p-1">Description</TableHead>
+                  <TableHead scope="col" className="p-1 pr-0 text-right"><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -142,7 +147,7 @@ export function TransactionsTable({
                         <TableCell className="p-1 pr-0 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                              <Button variant="ghost" size="icon" className="h-6 w-6" aria-label={`More options for transaction of $${transaction.Amount.toFixed(2)} on ${date}`}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,6 +15,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
@@ -42,6 +43,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
   const [step, setStep] = useState(0);
   const { toast } = useToast();
   const firestore = useFirestore();
+  const amountInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -129,9 +131,8 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
     <>
       <DrawerHeader className="text-left relative">
         {step > 0 && (
-          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-1/2 -translate-y-1/2 px-2 h-auto">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back
+          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-1/2 -translate-y-1/2 px-2 h-auto focus:bg-transparent focus:text-current">
+            <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
         <DrawerTitle className="text-center">{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DrawerTitle>
@@ -139,25 +140,32 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
       <div className="p-4">
         <Form {...form}>
           <form onSubmit={form. handleSubmit(onSubmit)} className="space-y-4">
-              {step === 0 && (
-                  <FormField
-                      control={form.control}
-                      name="Amount"
-                      render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Amount</FormLabel>
-                          <FormControl>
-                          <Input type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
-                          </FormControl>
-                          <FormMessage />
-                      </FormItem>
-                      )}
-                  />
-              )}
+              <div className={`transition-opacity duration-300 ${step === 0 ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+                <FormField
+                    control={form.control}
+                    name="Amount"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                        <Input 
+                          ref={amountInputRef}
+                          type="number" 
+                          step="0.01" 
+                          {...field} 
+                          placeholder="$0.00" 
+                          inputMode="decimal"
+                        />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
 
-              {step === 1 && (
-                  <div className="space-y-2">
-                      <FormLabel>Category</FormLabel>
+              <div className={`transition-opacity duration-300 ${step === 1 ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+                  <fieldset className="space-y-2">
+                      <legend className="text-sm font-medium">Category</legend>
                       <div className="flex flex-wrap gap-2">
                           {categories.map((cat) => (
                               <Button
@@ -171,24 +179,24 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                           ))}
                       </div>
                       <FormMessage>{form.formState.errors.Category?.message}</FormMessage>
-                  </div>
-              )}
+                  </fieldset>
+              </div>
 
-              {step === 2 && (
-                  <FormField
-                      control={form.control}
-                      name="Notes"
-                      render={({ field }) => (
-                      <FormItem>
-                          <FormLabel>Notes</FormLabel>
-                          <FormControl>
-                          <Input {...field} placeholder="e.g., Coffee" autoFocus />
-                          </FormControl>
-                          <FormMessage />
-                      </FormItem>
-                      )}
-                  />
-              )}
+              <div className={`transition-opacity duration-300 ${step === 2 ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+                <FormField
+                    control={form.control}
+                    name="Notes"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
+                        <Textarea {...field} placeholder="e.g., Coffee" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
+              </div>
             
             <div className="pt-4">
                 {step === 0 && (

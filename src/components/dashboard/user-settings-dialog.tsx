@@ -1,10 +1,7 @@
 
-"use client";
-
-import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,101 +9,135 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { type User } from "@/lib/data";
-import { Loader2, Copy } from "lucide-react";
+import { UserData } from "@/lib/data";
 
-const formSchema = z.object({
-  name: z.string().min(1, { message: "Please enter your name." }),
+const settingsSchema = z.object({
+  income: z.preprocess(
+    (a) => parseFloat(z.string().parse(a)),
+    z.number().positive("Income must be a positive number.")
+  ),
+  savings: z.preprocess(
+    (a) => parseFloat(z.string().parse(a)),
+    z.number().positive("Savings goal must be a positive number.")
+  ),
+  pushoverKey: z.string().optional(),
 });
 
 interface UserSettingsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: User;
-  userId?: string;
-  onSave: (name: string) => void;
-  onCopyUserId: () => void;
+  user: UserData;
+  onUpdateIncome: (income: number) => void;
+  onUpdateSavings: (savings: number) => void;
+  onUpdatePushoverKey: (key: string | undefined) => void;
 }
 
-export function UserSettingsDialog({ open, onOpenChange, user, userId, onSave, onCopyUserId }: UserSettingsDialogProps) {
-  const [isLoading, setIsLoading] = useState(false);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+export function UserSettingsDialog({
+  open,
+  onOpenChange,
+  user,
+  onUpdateIncome,
+  onUpdateSavings,
+  onUpdatePushoverKey,
+}: UserSettingsDialogProps) {
+  const form = useForm<z.infer<typeof settingsSchema>>({
+    resolver: zodResolver(settingsSchema),
     defaultValues: {
-      name: user?.name || "",
+      income: user.income || 0,
+      savings: user.savings || 0,
+      pushoverKey: user.pushoverKey || "",
     },
   });
 
-  useEffect(() => {
-    if (user) {
-      form.reset({ name: user.name });
+  function onSubmit(values: z.infer<typeof settingsSchema>) {
+    onUpdateIncome(values.income);
+    onUpdateSavings(values.savings);
+    if (values.pushoverKey !== user.pushoverKey) {
+        onUpdatePushoverKey(values.pushoverKey);
     }
-  }, [user, form, open]);
-
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    setIsLoading(true);
-    onSave(values.name);
-    setIsLoading(false);
+    onOpenChange(false);
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>User Profile</DialogTitle>
+          <DialogTitle>User Settings</DialogTitle>
           <DialogDescription>
-            Update your name and view your unique User ID for connecting with external services like Apple Shortcuts.
+            Manage your monthly income and savings goal.
           </DialogDescription>
         </DialogHeader>
-        <div className="pt-4 space-y-6">
-            <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                      <FormItem>
-                      <FormLabel>Your Name</FormLabel>
-                      <FormControl>
-                          <Input
-                          placeholder="e.g., David"
-                          {...field}
-                          />
-                      </FormControl>
-                      <FormMessage />
-                      </FormItem>
-                  )}
-                />
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-                </Button>
-            </form>
-            </Form>
-          
-            {userId && (
-            <div className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">Your unique User ID:</p>
-                <div className="flex items-center w-full gap-2">
-                    <Input readOnly value={userId} className="text-xs" />
-                    <Button variant="outline" size="icon" onClick={onCopyUserId}>
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-            )}
-        </div>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="income"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monthly Income</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 5000" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="savings"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Monthly Savings Goal</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 500" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pushoverKey"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Pushover User Key</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter your Pushover user key" {...field} value={field.value ?? ""} />
+                  </FormControl>
+                  <FormDescription>
+                    For receiving notifications from Apple Shortcuts. Get this
+                    from the{" "}
+                    <a
+                      href="https://pushover.net/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      Pushover app
+                    </a>
+                    .
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type="submit">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
