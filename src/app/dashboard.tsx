@@ -25,7 +25,7 @@ import { RefreshCw, Plus, Settings, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection } from "@/firebase";
+import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, orderBy, deleteDoc, updateDoc, setDoc } from "firebase/firestore";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -84,7 +84,7 @@ export function Dashboard() {
     [firestore, user]
   );
   
-  const { data: userData, isLoading: isUserDataLoading } = useCollection<UserData>(userDocRef);
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserData>(userDocRef);
 
   const transactionsQuery = useMemoFirebase(
     () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc')) : null),
@@ -379,7 +379,7 @@ export function Dashboard() {
     }
   }, [isAddTransactionOpen]);
 
-  const mainContentUser = userData?.[0];
+  const mainContentUser = userData;
 
   if (isUserLoading || isUserDataLoading || (mainContentUser && (isTransactionsLoading || isBudgetsLoading))) {
     return <SkeletonLoader />;
@@ -486,5 +486,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
