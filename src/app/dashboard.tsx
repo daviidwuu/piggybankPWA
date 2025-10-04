@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -31,6 +32,8 @@ const chartColors = [
   "#10b981",
 ];
 
+const CACHE_KEY = 'finTrackMiniCache';
+
 export function Dashboard({ initialData }: { initialData: { transactions: Transaction[], budgets: Budget[] }}) {
   const [transactions, setTransactions] = useState<Transaction[]>(initialData.transactions);
   const [budgets, setBudgets] = useState<Budget[]>(initialData.budgets);
@@ -58,6 +61,9 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
       const { transactions: newTransactions, budgets: newBudgets } = await res.json();
       setTransactions(newTransactions);
       setBudgets(newBudgets);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ transactions: newTransactions, budgets: newBudgets, timestamp: Date.now() }));
+      }
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -70,12 +76,18 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
 
   useEffect(() => {
     setIsClient(true);
-    // If the component mounts with no data, it means it's the initial client-side load.
-    if (initialData.transactions.length === 0) {
-      fetchData();
-    } else {
-      setLoading(false); // Data was passed from server, no need to load initially.
+    // Stale-while-revalidate logic
+    if (typeof window !== 'undefined') {
+      const cachedData = localStorage.getItem(CACHE_KEY);
+      if (cachedData) {
+        const { transactions, budgets } = JSON.parse(cachedData);
+        setTransactions(transactions);
+        setBudgets(budgets);
+        setLoading(false);
+      }
     }
+    // Always fetch fresh data in the background
+    fetchData(!initialData.transactions.length);
   }, [fetchData, initialData.transactions.length]);
 
   const getDisplayDate = (range: DateRange): string => {
@@ -110,6 +122,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
             const current = new Date(t.Date);
             return current > max ? current : max;
         }, new Date(0));
+        if (isNaN(oldestDate.getTime()) || isNaN(mostRecentDate.getTime())) return "All Time";
         return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
     }
   };
@@ -316,3 +329,5 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     </div>
   );
 }
+
+  
