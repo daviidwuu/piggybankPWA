@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 export function SkeletonLoader() {
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
-      <div className="w-full max-w-[428px] border-x border-border">
+      <div className="w-full max-w-[428px]">
         <main className="flex-1 p-4 space-y-4 animate-pulse">
           <div className="flex justify-between items-start mb-4">
             <div className="space-y-2">

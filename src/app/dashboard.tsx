@@ -388,7 +388,7 @@ export function Dashboard() {
   if (!mainContentUser?.name) {
     return (
         <div className="flex flex-col min-h-screen bg-background items-center">
-            <div className="w-full max-w-[428px] border-x border-border p-6">
+            <div className="w-full max-w-[428px] p-6">
                 <SetupSheet 
                   onSave={handleSetupSave} 
                   onCopyUserId={handleCopyUserId}
@@ -401,7 +401,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
-      <div className="w-full max-w-[428px] border-x border-border pt-[env(safe-area-inset-top)]">
+      <div className="w-full max-w-[428px] pt-[env(safe-area-inset-top)]">
         <main className="flex-1 p-4 space-y-4 pb-[calc(env(safe-area-inset-bottom)+4rem)]">
            <NotificationPermissionDialog
               open={showNotificationDialog}
@@ -421,9 +421,6 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
-                  </Button>
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -437,6 +434,9 @@ export function Dashboard() {
                       <BudgetPage budgets={budgets || []} onUpdateBudget={handleUpdateBudget} />
                     </DialogContent>
                   </Dialog>
+                  <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
+                  </Button>
                   <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <Settings className="h-4 w-4" />
                   </Button>
@@ -491,9 +491,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
-
-    
-
-    
