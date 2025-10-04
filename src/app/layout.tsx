@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 export const metadata: Metadata = {
   title: "FinTrack Mini",
   description: "Track your finances with ease.",
+  manifest: "/manifest.json",
+  themeColor: "#000000",
 };
 
 export default function RootLayout({

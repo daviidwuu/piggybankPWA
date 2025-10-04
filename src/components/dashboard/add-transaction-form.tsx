@@ -52,9 +52,10 @@ const totalSteps = 5;
 interface AddTransactionFormProps {
   onSuccess: () => void;
   setOpen: (open: boolean) => void;
+  googleSheetUrl: string;
 }
 
-export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormProps) {
+export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(0);
   const { toast } = useToast();
@@ -98,6 +99,7 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          googleSheetUrl,
           sheetName: "Transactions",
           data: { ...values, ID: "" },
         }),
@@ -106,11 +108,9 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
       if (!response.ok) {
         let errorMessage = "Failed to add transaction";
         try {
-          // Try to parse the error as JSON
           const errorData = await response.json();
           errorMessage = errorData.details || errorData.error || errorMessage;
         } catch (e) {
-          // If JSON parsing fails, read as text
           const errorText = await response.text();
           errorMessage = errorText || errorMessage;
         }
@@ -269,5 +269,3 @@ export function AddTransactionForm({ onSuccess, setOpen }: AddTransactionFormPro
     </Form>
   );
 }
-
-    

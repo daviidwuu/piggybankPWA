@@ -7,6 +7,7 @@ import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
+import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, format } from 'date-fns';
 import {
@@ -33,10 +34,11 @@ const chartColors = [
 ];
 
 const CACHE_KEY = 'finTrackMiniCache';
+const SHEET_URL_KEY = 'googleSheetUrl';
 
-export function Dashboard({ initialData }: { initialData: { transactions: Transaction[], budgets: Budget[] }}) {
-  const [transactions, setTransactions] = useState<Transaction[]>(initialData.transactions);
-  const [budgets, setBudgets] = useState<Budget[]>(initialData.budgets);
+export function Dashboard() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>('month');
@@ -46,15 +48,23 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const [isClient, setIsClient] = useState(false);
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
+  const [googleSheetUrl, setGoogleSheetUrl] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (revalidate = false) => {
+  const handleUrlSave = (url: string) => {
+    localStorage.setItem(SHEET_URL_KEY, url);
+    setGoogleSheetUrl(url);
+    fetchData(true, url);
+  };
+
+  const fetchData = useCallback(async (revalidate = false, url: string) => {
+    if (!url) return;
     if (revalidate) {
       setIsRefreshing(true);
     } else {
       setLoading(true);
     }
     try {
-      const res = await fetch(`/api/sheet?revalidate=${revalidate}`);
+      const res = await fetch(`/api/sheet?url=${encodeURIComponent(url)}`);
       if (!res.ok) {
         throw new Error('Failed to fetch data');
       }
@@ -76,8 +86,10 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
 
   useEffect(() => {
     setIsClient(true);
-    // Stale-while-revalidate logic
-    if (typeof window !== 'undefined') {
+    const storedUrl = localStorage.getItem(SHEET_URL_KEY);
+    setGoogleSheetUrl(storedUrl);
+
+    if (storedUrl) {
       const cachedData = localStorage.getItem(CACHE_KEY);
       if (cachedData) {
         const { transactions, budgets } = JSON.parse(cachedData);
@@ -85,10 +97,11 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
         setBudgets(budgets);
         setLoading(false);
       }
+      fetchData(!cachedData, storedUrl);
+    } else {
+      setLoading(false);
     }
-    // Always fetch fresh data in the background
-    fetchData(!initialData.transactions.length);
-  }, [fetchData, initialData.transactions.length]);
+  }, [fetchData]);
 
   const getDisplayDate = (range: DateRange): string => {
     if (!transactions.length && range !== 'all') return "No data";
@@ -272,6 +285,16 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     );
   }
 
+  if (!googleSheetUrl) {
+    return (
+        <div className="flex flex-col min-h-screen bg-background items-center">
+            <div className="w-full max-w-[428px] border-x border-border p-6">
+                <SetupSheet onSave={handleUrlSave} />
+            </div>
+        </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
       <div className="w-full max-w-[428px] border-x border-border">
@@ -294,13 +317,14 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
                         <DialogTitle>Add New Transaction</DialogTitle>
                       </DialogHeader>
                       <AddTransactionForm 
+                        googleSheetUrl={googleSheetUrl}
                         setOpen={setAddTransactionOpen} 
-                        onSuccess={() => fetchData(true)}
+                        onSuccess={() => fetchData(true, googleSheetUrl)}
                       />
                     </DialogContent>
                   </Dialog>
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
-                  <Button variant="outline" size="icon" onClick={() => fetchData(true)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                  <Button variant="outline" size="icon" onClick={() => fetchData(true, googleSheetUrl)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                   </Button>
                 </div>
@@ -329,5 +353,3 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
     </div>
   );
 }
-
-  
