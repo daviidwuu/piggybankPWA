@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "FinancialAccount": {
@@ -177,6 +178,23 @@
         "insightText",
         "generatedDate"
       ]
+    },
+     "PushSubscription": {
+      "title": "PushSubscription",
+      "type": "object",
+      "description": "Represents a push notification subscription for a user's device.",
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "The unique push notification token for the device."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date and time the subscription was created."
+        }
+      },
+      "required": ["token", "createdAt"]
     }
   },
   "auth": {
@@ -215,6 +233,14 @@
         "$ref": "#/entities/SpendingInsight"
       },
       "description": "Stores spending insights generated for a specific user."
+    },
+    "/users/{userId}/pushSubscriptions/{subscriptionId}": {
+      "schema": {
+        "$ref": "#/entities/PushSubscription"
+      },
+      "description": "Stores push notification subscription tokens for a user's devices."
     }
   }
 }
+
+    

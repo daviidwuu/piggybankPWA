@@ -8,6 +8,7 @@ import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
+import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth } from 'date-fns';
 import {
@@ -18,14 +19,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus } from "lucide-react";
+import { RefreshCw, Plus, Bell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp } from "@/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { requestNotificationPermission } from "@/firebase/messaging";
+
 
 export type SortOption = 'latest' | 'highest' | 'category';
 
@@ -46,6 +49,7 @@ const categoryColors: { [key: string]: string } = categories.reduce((acc, catego
 
 
 const CACHE_KEY = 'finTrackMiniCache';
+const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 
 interface UserData {
     name: string;
@@ -65,11 +69,13 @@ export function Dashboard() {
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   
   const { toast } = useToast();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
+  const firebaseApp = useFirebaseApp();
 
   const userDocRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, "users", user.uid) : null),
@@ -89,6 +95,13 @@ export function Dashboard() {
         if (docSnap.exists()) {
             const data = docSnap.data() as UserData;
             setUserData(data);
+            
+            // Check if we should prompt for notifications
+            const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
+            if (!alreadyPrompted && Notification.permission === 'default') {
+                setTimeout(() => setShowNotificationDialog(true), 2000); // Delay for better UX
+            }
+            
             return data;
         } else {
             console.log("No such document!");
@@ -179,6 +192,19 @@ export function Dashboard() {
     setUserData(newUserData);
     fetchData(true, data.url);
   };
+  
+  const handlePermissionRequest = async () => {
+    if (user && firestore && firebaseApp) {
+      await requestNotificationPermission(user.uid, firestore, firebaseApp);
+    }
+    setShowNotificationDialog(false);
+    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
+  };
+
+  const handlePermissionDenial = () => {
+    setShowNotificationDialog(false);
+    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
+  }
 
   const dateFilterRange = useMemo(() => {
     const today = new Date();
@@ -368,6 +394,11 @@ export function Dashboard() {
     <div className="flex flex-col min-h-screen bg-background items-center">
       <div className="w-full max-w-[428px] border-x border-border pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <main className="flex-1 p-4 space-y-4">
+           <NotificationPermissionDialog
+              open={showNotificationDialog}
+              onAllow={handlePermissionRequest}
+              onDeny={handlePermissionDenial}
+           />
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold">Welcome,</h1>
@@ -422,3 +453,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
