@@ -55,7 +55,13 @@ export async function POST(request: NextRequest) {
         const result = await response.json();
         return NextResponse.json({ success: true, data: result });
     } else {
-        const details = "The Google Apps Script did not return a valid JSON response.";
+        const errorText = await response.text();
+        let details = "The Google Apps Script did not return a valid JSON response.";
+         if (errorText.trim().startsWith('<!DOCTYPE html>')) {
+            details += ' The script returned an HTML page, which often means you need to re-authorize the script or check its permissions in Google Apps Script.';
+        } else {
+            details += ` Response: ${errorText}`;
+        }
         console.error("Google Apps Script Error:", details);
         return NextResponse.json({ error: "Invalid response from Google Apps Script.", details }, { status: 502 });
     }

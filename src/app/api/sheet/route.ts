@@ -43,7 +43,13 @@ export async function GET(request: NextRequest) {
 
     const contentType = res.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
-        const details = `Expected JSON response but got ${contentType || 'an unknown content type'}. Please check the Google Apps Script.`;
+        const errorText = await res.text();
+        let details = `Expected JSON response but got ${contentType || 'an unknown content type'}.`;
+        if (errorText.trim().startsWith('<!DOCTYPE html>')) {
+            details += ' The script returned an HTML page, which often means you need to re-authorize the script or check its permissions in Google Apps Script.';
+        } else {
+            details += ` Response: ${errorText}`;
+        }
         console.error("Google Apps Script Error:", details);
         return NextResponse.json({ error: "Invalid response from Google Apps Script.", details }, { status: 502 });
     }
