@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
+import { useToast } from "@/hooks/use-toast";
 
 export type SortOption = 'latest' | 'highest' | 'category';
 
@@ -52,6 +53,7 @@ export function Dashboard() {
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
   const [googleSheetUrl, setGoogleSheetUrl] = useState<string | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const handleSetupSave = (data: { name: string; url: string }) => {
     localStorage.setItem(USER_NAME_KEY, data.name);
@@ -71,7 +73,16 @@ export function Dashboard() {
     try {
       const res = await fetch(`/api/sheet?url=${encodeURIComponent(url)}`);
       if (!res.ok) {
-        throw new Error('Failed to fetch data');
+        let errorMessage = 'Failed to fetch data';
+        try {
+            const errorData = await res.json();
+            errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch (e) {
+            // Not a JSON response
+            const errorText = await res.text();
+            errorMessage = errorText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
       const { transactions: newTransactions, budgets: newBudgets } = await res.json();
       setTransactions(newTransactions);
@@ -81,13 +92,19 @@ export function Dashboard() {
       }
     } catch (err) {
       console.error("Error loading data:", err);
+      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
+      toast({
+        variant: "destructive",
+        title: "Data Load Error",
+        description: errorMessage,
+      });
     } finally {
       if (revalidate) {
         setIsRefreshing(false);
       }
       setLoading(false);
     }
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     setIsClient(true);
