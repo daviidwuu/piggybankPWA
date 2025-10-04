@@ -1,200 +1,30 @@
-
 {
   "entities": {
-    "FinancialAccount": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FinancialAccount",
-      "type": "object",
-      "description": "Represents a financial account (e.g., checking, savings, credit card).",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the FinancialAccount entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N FinancialAccount)"
-        },
-        "accountName": {
-          "type": "string",
-          "description": "Name of the financial account (e.g., 'Checking Account', 'Visa Credit Card')."
-        },
-        "accountType": {
-          "type": "string",
-          "description": "Type of the financial account (e.g., 'checking', 'savings', 'credit_card')."
-        },
-        "institutionName": {
-          "type": "string",
-          "description": "Name of the financial institution holding the account (e.g., 'Bank of America', 'Chase')."
-        },
-        "balance": {
-          "type": "number",
-          "description": "Current balance of the financial account."
-        },
-        "currency": {
-          "type": "string",
-          "description": "Currency of the account balance (e.g., 'USD', 'EUR')."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "accountName",
-        "accountType",
-        "institutionName",
-        "balance",
-        "currency"
-      ]
-    },
-    "Transaction": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Transaction",
-      "type": "object",
-      "description": "Represents a single financial transaction.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Transaction entity."
-        },
-        "accountId": {
-          "type": "string",
-          "description": "Reference to FinancialAccount. (Relationship: FinancialAccount 1:N Transaction)"
-        },
-        "transactionDate": {
-          "type": "string",
-          "description": "Date of the transaction.",
-          "format": "date-time"
-        },
-        "description": {
-          "type": "string",
-          "description": "Description of the transaction."
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of the transaction. Positive for credits, negative for debits."
-        },
-        "category": {
-          "type": "string",
-          "description": "Category of the transaction (e.g., 'food', 'transportation', 'entertainment')."
-        },
-        "notes": {
-          "type": "string",
-          "description": "Optional notes about the transaction."
-        }
-      },
-      "required": [
-        "id",
-        "accountId",
-        "transactionDate",
-        "description",
-        "amount",
-        "category"
-      ]
-    },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the piggybank application.",
+      "description": "Represents a user of the FinTrack Mini application.",
       "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the User entity."
+        },
         "name": {
           "type": "string",
-          "description": "Display name of the user."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address of the user.",
-          "format": "email"
+          "description": "The user's name."
         },
         "googleSheetUrl": {
           "type": "string",
-          "description": "URL of the user's Google Sheet for data import.",
+          "description": "URL of the Google Sheet containing the user's financial data.",
           "format": "uri"
         }
       },
       "required": [
+        "id",
         "name",
         "googleSheetUrl"
       ]
-    },
-    "GoogleSheet": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "GoogleSheet",
-      "type": "object",
-      "description": "Stores the URL and related information for a Google Sheet used for data import.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the GoogleSheet entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N GoogleSheet)"
-        },
-        "sheetUrl": {
-          "type": "string",
-          "description": "URL of the Google Sheet.",
-          "format": "uri"
-        },
-        "lastImportDate": {
-          "type": "string",
-          "description": "Date and time of the last successful data import from the Google Sheet.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "sheetUrl"
-      ]
-    },
-    "SpendingInsight": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "SpendingInsight",
-      "type": "object",
-      "description": "Stores insights generated by the AI tool based on spending habits.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the SpendingInsight entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N SpendingInsight)"
-        },
-        "insightText": {
-          "type": "string",
-          "description": "The generated insight text."
-        },
-        "generatedDate": {
-          "type": "string",
-          "description": "Date and time when the insight was generated.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "insightText",
-        "generatedDate"
-      ]
-    },
-     "PushSubscription": {
-      "title": "PushSubscription",
-      "type": "object",
-      "description": "Represents a push notification subscription for a user's device.",
-      "properties": {
-        "token": {
-          "type": "string",
-          "description": "The unique push notification token for the device."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The date and time the subscription was created."
-        }
-      },
-      "required": ["token", "createdAt"]
     }
   },
   "auth": {
@@ -204,43 +34,24 @@
     ]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": {
-        "$ref": "#/entities/User"
-      },
-      "description": "Stores user profile information, including their name and Google Sheet URL."
-    },
-    "/users/{userId}/financialAccounts/{financialAccountId}": {
-      "schema": {
-        "$ref": "#/entities/FinancialAccount"
-      },
-      "description": "Stores financial account information for a specific user."
-    },
-    "/users/{userId}/financialAccounts/{financialAccountId}/transactions/{transactionId}": {
-      "schema": {
-        "$ref": "#/entities/Transaction"
-      },
-      "description": "Stores transaction information for a specific financial account of a user."
-    },
-    "/users/{userId}/googleSheets/{googleSheetId}": {
-      "schema": {
-        "$ref": "#/entities/GoogleSheet"
-      },
-      "description": "Stores Google Sheet URLs and import information for a specific user."
-    },
-    "/users/{userId}/spendingInsights/{spendingInsightId}": {
-      "schema": {
-        "$ref": "#/entities/SpendingInsight"
-      },
-      "description": "Stores spending insights generated for a specific user."
-    },
-    "/users/{userId}/pushSubscriptions/{subscriptionId}": {
-      "schema": {
-        "$ref": "#/entities/PushSubscription"
-      },
-      "description": "Stores push notification subscription tokens for a user's devices."
-    }
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data.  Path-based ownership is used for authorization. Only the authenticated user can write to their own document.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore data structure is designed to address the reported permission error and to support the FinTrack Mini application's features securely and scalably, adhering to the core design principles. The structure focuses on authorization independence by avoiding `get()` calls in security rules, enhancing debuggability through clear intent, relying solely on `request.auth.uid` for authorization, supporting secure list operations (QAPs), and maintaining data integrity.  \n\nThe primary strategy is **Authorization Independence via Denormalization**.  Specifically, since the current error stems from writing to the `users` collection, user-specific data is stored under `/users/{userId}`. This path-based ownership inherently provides authorization independence, eliminating the need for `get()` calls to verify ownership.  No denormalization is needed in this initial structure as the user's ID in the path directly implies ownership.\n\nThe design supports the required QAPs by using structural segregation.  All documents within the `users/{userId}` path share the same security requirements (only the authenticated user can write to their own document), simplifying rules and preventing unauthorized access.  If, in the future, different access levels are needed (e.g., public profile information), that data should be moved to a different collection such as `/public_profiles`.\n\nRadical consistency is maintained through explicit state modeling (although not currently used, this is a forward-looking approach) and predictable schema.  Standard authorization fields are used, and wildcards are descriptive."
   }
 }
-
-    

@@ -1,153 +1,51 @@
 /**
- * @fileoverview Firestore Security Rules for FinTrack Mini.
- *
- * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for all data. Each user has a dedicated data tree under `/users/{userId}`, and only the authenticated user can access their own data.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /users/{userId}/financialAccounts/{financialAccountId}: Stores financial account information for a specific user.
- * - /users/{userId}/financialAccounts/{financialAccountId}/transactions/{transactionId}: Stores transaction information for a specific financial account of a user.
- * - /users/{userId}/googleSheets/{googleSheetId}: Stores Google Sheet URLs and import information for a specific user.
- * - /users/{userId}/spendingInsights/{spendingInsightId}: Stores spending insights generated for a specific user.
- *
- * Key Security Decisions:
- * - User data is private and accessible only to the authenticated user.
- * - No user listing is allowed.
- * - Data consistency is enforced by matching the userId in the path with the userId in the document.
- *
- * Denormalization for Authorization:
- * - The `userId` is present in the path for all user-owned documents, eliminating the need for `get()` calls to determine ownership.
- *
- * Structural Segregation:
- * - All user-specific data is stored under the `/users/{userId}` path, ensuring a consistent security posture.
+ * @description This ruleset enforces a strict user-ownership model for the /users/{userId} collection.
+ * @dataStructure All user data is stored under the /users/{userId} path. Each user document contains their profile information.
+ * @keySecurityDecisions
+ *   - Users can only read and write their own user document.
+ *   - Listing the entire /users collection is disallowed.
+ *   - Only authenticated users can access data.
+ * @denormalizationForAuthorization None needed. Path-based ownership is sufficient.
+ * @structuralSegregation All user-specific data resides under the /users/{userId} path.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Secures the /users/{userId} document, allowing only the authenticated user to read and write their own profile.
+     * @description Controls access to individual user documents.
      * @path /users/{userId}
-     * @allow (create) - Authenticated user with UID 'user_abc' can create their own user document if the document id matches their UID.
-     * @allow (get, update, delete) - Authenticated user with UID 'user_abc' can get, update and delete their own user document if the document id matches their UID.
-     * @deny (create) - Authenticated user with UID 'user_xyz' cannot create a user document with ID 'user_abc'.
-     * @deny (get, update, delete) - Authenticated user with UID 'user_xyz' cannot get, update, or delete the user document with ID 'user_abc'.
-     * @principle Enforces document ownership for all operations.
+     * @allow (create) - Authenticated user creates their own document with matching userId and id.
+     * @allow (get) - Authenticated user reads their own document.
+     * @allow (update) - Authenticated user updates their own document.
+     * @allow (delete) - Authenticated user deletes their own document.
+     * @deny (create) - Authenticated user attempts to create a document with a mismatched userId and id.
+     * @deny (get) - Unauthorized user attempts to read another user's document.
+     * @deny (update) - Unauthorized user attempts to update another user's document.
+     * @deny (delete) - Unauthorized user attempts to delete another user's document.
+     * @principle Enforces document ownership for writes.
      */
     match /users/{userId} {
+      // Helpers
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return isSignedIn() && request.auth.uid == userId;
       }
 
       function isExistingOwner(userId) {
         return isOwner(userId) && resource != null;
       }
 
+      // Read Permissions
       allow get: if isOwner(userId);
       allow list: if false;
+
+      // Write Permissions
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Secures the /users/{userId}/financialAccounts/{financialAccountId} collection, allowing only the authenticated user to manage their own financial accounts.
-     * @path /users/{userId}/financialAccounts/{financialAccountId}
-     * @allow (create) - Authenticated user with UID 'user_abc' can create a financial account under their user document.
-     * @allow (get, list, update, delete) - Authenticated user with UID 'user_abc' can get, list, update, and delete their own financial accounts.
-     * @deny (create) - Authenticated user with UID 'user_xyz' cannot create a financial account under user 'user_abc'.
-     * @deny (get, list, update, delete) - Authenticated user with UID 'user_xyz' cannot get, list, update, or delete financial accounts under user 'user_abc'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/financialAccounts/{financialAccountId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Secures the /users/{userId}/financialAccounts/{financialAccountId}/transactions/{transactionId} collection, allowing only the authenticated user to manage their own transactions.
-     * @path /users/{userId}/financialAccounts/{financialAccountId}/transactions/{transactionId}
-     * @allow (create) - Authenticated user with UID 'user_abc' can create a transaction under their financial account.
-     * @allow (get, list, update, delete) - Authenticated user with UID 'user_abc' can get, list, update, and delete their own transactions.
-     * @deny (create) - Authenticated user with UID 'user_xyz' cannot create a transaction under user 'user_abc's financial account.
-     * @deny (get, list, update, delete) - Authenticated user with UID 'user_xyz' cannot get, list, update, or delete transactions under user 'user_abc's financial account.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/financialAccounts/{financialAccountId}/transactions/{transactionId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Secures the /users/{userId}/googleSheets/{googleSheetId} collection, allowing only the authenticated user to manage their own Google Sheet connections.
-     * @path /users/{userId}/googleSheets/{googleSheetId}
-     * @allow (create) - Authenticated user with UID 'user_abc' can create a Google Sheet connection under their user document.
-     * @allow (get, list, update, delete) - Authenticated user with UID 'user_abc' can get, list, update, and delete their own Google Sheet connections.
-     * @deny (create) - Authenticated user with UID 'user_xyz' cannot create a Google Sheet connection under user 'user_abc'.
-     * @deny (get, list, update, delete) - Authenticated user with UID 'user_xyz' cannot get, list, update, or delete Google Sheet connections under user 'user_abc'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/googleSheets/{googleSheetId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
-      allow delete: if isExistingOwner(userId);
-    }
-
-    /**
-     * @description Secures the /users/{userId}/spendingInsights/{spendingInsightId} collection, allowing only the authenticated user to access their own spending insights.
-     * @path /users/{userId}/spendingInsights/{spendingInsightId}
-     * @allow (create) - Authenticated user with UID 'user_abc' can have spending insights created under their user document.
-     * @allow (get, list, update, delete) - Authenticated user with UID 'user_abc' can get, list, update, and delete their own spending insights.
-     * @deny (create) - Authenticated user with UID 'user_xyz' cannot create spending insights under user 'user_abc'.
-     * @deny (get, list, update, delete) - Authenticated user with UID 'user_xyz' cannot get, list, update, or delete spending insights under user 'user_abc'.
-     * @principle Enforces document ownership for all operations.
-     */
-    match /users/{userId}/spendingInsights/{spendingInsightId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
   }
