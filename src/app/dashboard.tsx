@@ -290,7 +290,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
-      <div className="w-full max-w-[428px] border-x border-border">
+      <div className="w-full max-w-[428px] border-x border-border pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <main className="flex-1 p-4 space-y-4">
           <div className="flex justify-between items-start mb-4">
             <h1 className="text-2xl font-bold">
