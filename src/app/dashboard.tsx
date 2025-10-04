@@ -41,7 +41,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
+import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
@@ -510,15 +510,7 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
-                   <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
-                  </Button>
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                        <Wallet className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
                     <DialogContent className="max-w-[400px]">
                        <DialogHeader>
                         <DialogTitle>Wallet</DialogTitle>
@@ -546,6 +538,10 @@ export function Dashboard() {
                       <DropdownMenuItem onSelect={() => setUserSettingsOpen(true)}>
                         <UserIcon className="mr-2 h-4 w-4" />
                         <span>User Profile</span>
+                      </DropdownMenuItem>
+                       <DropdownMenuItem onSelect={() => setBudgetOpen(true)}>
+                        <Wallet className="mr-2 h-4 w-4" />
+                        <span>Wallet</span>
                       </DropdownMenuItem>
                        <DropdownMenuItem onSelect={() => setReportsOpen(true)}>
                         <FileText className="mr-2 h-4 w-4" />
