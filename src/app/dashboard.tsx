@@ -48,10 +48,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, orderBy } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
 import { toDate } from "date-fns";
+import { useRouter } from "next/navigation";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -93,6 +93,7 @@ export function Dashboard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
+  const router = useRouter();
 
   const userDocRef = useMemoFirebase(
     () => (firestore && user ? doc(firestore, "users", user.uid) : null),
@@ -120,12 +121,6 @@ export function Dashboard() {
     return acc;
   }, {} as { [key: string]: string });
   
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      initiateAnonymousSignIn(auth);
-    }
-  }, [isUserLoading, user, auth]);
-
   
   useEffect(() => {
     setIsClient(true);
@@ -246,6 +241,7 @@ export function Dashboard() {
     setShowLogoutConfirm(false);
     try {
       await signOut(auth);
+      router.push('/login');
       toast({
         title: "Logged Out",
         description: "You have been successfully signed out.",
@@ -497,7 +493,10 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
-                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
+                   <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
+                  </Button>
+                  <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                         <Wallet className="h-4 w-4" />
@@ -518,9 +517,6 @@ export function Dashboard() {
                       />
                     </DialogContent>
                   </Dialog>
-                   <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
-                  </Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
