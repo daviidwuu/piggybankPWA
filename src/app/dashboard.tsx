@@ -108,7 +108,7 @@ export function Dashboard() {
   
   useEffect(() => {
     setIsClient(true);
-    if (userData) {
+    if (userData && typeof window !== 'undefined' && 'Notification' in window) {
       const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
       if (!alreadyPrompted && Notification.permission === 'default') {
           setTimeout(() => setShowNotificationDialog(true), 2000);
@@ -491,5 +491,7 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
 
     
