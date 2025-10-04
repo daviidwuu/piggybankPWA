@@ -1,20 +1,21 @@
 /**
- * @file Firestore Security Rules for FinTrack Mini
- * @description This ruleset enforces a strict user-ownership model. Each user can only access their own data.
+ * @fileoverview Firestore Security Rules for FinTrack Mini.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Each user can only
+ * access their own data (profile, transactions, and budgets).
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile data.
- * - /users/{userId}/transactions/{transactionId}: Stores transactions for a specific user.
- * - /users/{userId}/budgets/{budgetId}: Stores budgets for a specific user.
+ * - /users/{userId}: Stores user profile information.
+ * - /users/{userId}/transactions/{transactionId}: Stores individual transaction records.
+ * - /users/{userId}/budgets/{budgetId}: Stores user-defined budget information.
  *
  * Key Security Decisions:
- * - Users can only access their own data (profile, transactions, and budgets).
+ * - Users can only read and write their own data.
  * - Listing all users is disallowed.
- * - No admin roles are defined.
  *
  * Denormalization for Authorization:
- * - Transactions and Budgets are stored as subcollections under the /users/{userId} document.
- *   This enforces the ownership and allows simple rules based on the path.  Each Transaction entry needs a userId field that matches the parent document.
+ * - The `Transaction` entity requires `userId` to be included as a property. The `userId` property must match the user ID in the path.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -22,16 +23,14 @@ service cloud.firestore {
 
     /**
      * @description Controls access to user profile documents.
-     * @path /databases/{database}/documents/users/{userId}
-     * @allow (get) Authenticated user can read their own profile.
-     * @allow (create) Authenticated user can create their own profile.
-     * @allow (update) Authenticated user can update their own profile.
-     * @allow (delete) Authenticated user can delete their own profile.
-     * @deny (get) Authenticated user cannot read another user's profile.
-     * @deny (create) Authenticated user cannot create another user's profile.
-     * @deny (update) Authenticated user cannot update another user's profile.
-     * @deny (delete) Authenticated user cannot delete another user's profile.
-     * @principle Enforces document ownership for all operations.
+     * @path /users/{userId}
+     * @allow (create) - Authenticated user can create their own profile.
+     * @allow (get) - Authenticated user can read their own profile.
+     * @allow (update) - Authenticated user can update their own profile.
+     * @allow (delete) - Authenticated user can delete their own profile.
+     * @deny (list) - Listing all users is not allowed.
+     * @deny (create) - Creating a profile with a mismatched user ID is not allowed.
+     * @principle Enforces user-ownership of profile data.
      */
     match /users/{userId} {
       function isSignedIn() {
@@ -43,7 +42,7 @@ service cloud.firestore {
       }
 
       function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isSignedIn() && isOwner(userId);
@@ -54,17 +53,14 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to transaction documents for a specific user.
-     * @path /databases/{database}/documents/users/{userId}/transactions/{transactionId}
-     * @allow (get) Authenticated user can read their own transaction.
-     * @allow (create) Authenticated user can create a transaction for themselves.
-     * @allow (update) Authenticated user can update their own transaction.
-     * @allow (delete) Authenticated user can delete their own transaction.
-     * @deny (get) Authenticated user cannot read another user's transaction.
-     * @deny (create) Authenticated user cannot create a transaction for another user.
-     * @deny (update) Authenticated user cannot update another user's transaction.
-     * @deny (delete) Authenticated user cannot delete another user's transaction.
-     * @principle Enforces document ownership and validates relational integrity.
+     * @description Controls access to transaction documents within a user's profile.
+     * @path /users/{userId}/transactions/{transactionId}
+     * @allow (create) - Authenticated user can create transactions under their profile.
+     * @allow (get) - Authenticated user can read transactions under their profile.
+     * @allow (update) - Authenticated user can update transactions under their profile.
+     * @allow (delete) - Authenticated user can delete transactions under their profile.
+     * @deny (create) - Creating a transaction with a mismatched user ID is not allowed.
+     * @principle Enforces user-ownership of transaction data.
      */
     match /users/{userId}/transactions/{transactionId} {
       function isSignedIn() {
@@ -75,8 +71,8 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+       function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isSignedIn() && isOwner(userId);
@@ -87,17 +83,15 @@ service cloud.firestore {
     }
 
     /**
-     * @description Controls access to budget documents for a specific user.
-     * @path /databases/{database}/documents/users/{userId}/budgets/{budgetId}
-     * @allow (get) Authenticated user can read their own budget.
-     * @allow (create) Authenticated user can create a budget for themselves.
-     * @allow (update) Authenticated user can update their own budget.
-     * @allow (delete) Authenticated user can delete their own budget.
-     * @deny (get) Authenticated user cannot read another user's budget.
-     * @deny (create) Authenticated user cannot create a budget for another user.
-     * @deny (update) Authenticated user cannot update another user's budget.
-     * @deny (delete) Authenticated user cannot delete another user's budget.
-     * @principle Enforces document ownership and validates relational integrity.
+     * @description Controls access to budget documents within a user's profile.
+     * @path /users/{userId}/budgets/{budgetId}
+     * @allow (create) - Authenticated user can create budgets under their profile.
+     * @allow (get) - Authenticated user can read budgets under their profile.
+     * @allow (update) - Authenticated user can update budgets under their profile.
+     * @allow (delete) - Authenticated user can delete their own profile.
+     * @deny (list) - Listing all users is not allowed.
+     * @deny (create) - Creating a profile with a mismatched user ID is not allowed.
+     * @principle Enforces user-ownership of budget data.
      */
     match /users/{userId}/budgets/{budgetId} {
       function isSignedIn() {
@@ -108,8 +102,8 @@ service cloud.firestore {
         return request.auth.uid == userId;
       }
 
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource.data != null;
+       function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
       }
 
       allow get: if isSignedIn() && isOwner(userId);
