@@ -1,52 +1,11 @@
-/**
- * @description This ruleset enforces a strict user-ownership model for the /users/{userId} collection.
- * @dataStructure All user data is stored under the /users/{userId} path. Each user document contains their profile information.
- * @keySecurityDecisions
- *   - Users can only read and write their own user document.
- *   - Listing the entire /users collection is disallowed.
- *   - Only authenticated users can access data.
- * @denormalizationForAuthorization None needed. Path-based ownership is sufficient.
- * @structuralSegregation All user-specific data resides under the /users/{userId} path.
- */
+
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    /**
-     * @description Controls access to individual user documents.
-     * @path /users/{userId}
-     * @allow (create) - Authenticated user creates their own document with matching userId and id.
-     * @allow (get) - Authenticated user reads their own document.
-     * @allow (update) - Authenticated user updates their own document.
-     * @allow (delete) - Authenticated user deletes their own document.
-     * @deny (create) - Authenticated user attempts to create a document with a mismatched userId and id.
-     * @deny (get) - Unauthorized user attempts to read another user's document.
-     * @deny (update) - Unauthorized user attempts to update another user's document.
-     * @deny (delete) - Unauthorized user attempts to delete another user's document.
-     * @principle Enforces document ownership for writes.
-     */
+    // Allow users to read and write to their own user document
     match /users/{userId} {
-      // Helpers
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      // Read Permissions
-      allow get: if isOwner(userId);
-      allow list: if false;
-
-      // Write Permissions
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
-      allow delete: if isExistingOwner(userId);
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
