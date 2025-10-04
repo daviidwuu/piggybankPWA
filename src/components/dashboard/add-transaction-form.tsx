@@ -23,20 +23,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
 import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { type Transaction } from "@/lib/data";
 
 const formSchema = z.object({
-  Date: z.string().refine((val) => !isNaN(Date.parse(val)), {
-    message: "Please enter a valid date and time",
-  }),
   Amount: z.coerce.number().positive({ message: "Amount must be positive" }),
-  Type: z.enum(["Expense", "Income"]),
   Category: z.string().min(1, { message: "Category is required" }),
   Notes: z.string().min(1, { message: "Notes are required" }),
 });
+
+type FormValues = z.infer<typeof formSchema>;
 
 interface AddTransactionFormProps {
   setOpen: (open: boolean) => void;
@@ -45,30 +43,16 @@ interface AddTransactionFormProps {
   categories: string[];
 }
 
-// Helper function to format a Date object into a 'yyyy-MM-ddTHH:mm' string for datetime-local input
-const formatForDateTimeLocal = (date: Date): string => {
-    const pad = (num: number) => num.toString().padStart(2, '0');
-    
-    const year = date.getFullYear();
-    const month = pad(date.getMonth() + 1);
-    const day = pad(date.getDate());
-    const hours = pad(date.getHours());
-    const minutes = pad(date.getMinutes());
-
-    return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 export function AddTransactionForm({ setOpen, userId, transactionToEdit, categories }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(0);
   const { toast } = useToast();
   const firestore = useFirestore();
 
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      Date: formatForDateTimeLocal(new Date()),
       Amount: '' as any,
-      Type: "Expense",
       Category: "",
       Notes: "",
     },
@@ -77,25 +61,31 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
 
   useEffect(() => {
     if (transactionToEdit) {
-      const transactionDate = transactionToEdit.Date 
-        ? new Date(transactionToEdit.Date.seconds * 1000)
-        : new Date();
       form.reset({
         ...transactionToEdit,
-        Date: formatForDateTimeLocal(transactionDate),
+        Amount: transactionToEdit.Amount,
       });
     } else {
       form.reset({
-        Date: formatForDateTimeLocal(new Date()),
         Amount: '' as any,
-        Type: "Expense",
         Category: "",
         Notes: "",
       });
     }
   }, [transactionToEdit, form]);
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const nextStep = async (field: keyof FormValues) => {
+    const isValid = await form.trigger(field);
+    if (isValid) {
+      setStep((s) => s + 1);
+    }
+  };
+
+  const prevStep = () => {
+    setStep((s) => s - 1);
+  };
+
+  async function onSubmit(values: FormValues) {
     if (!userId || !firestore) {
         toast({
             variant: "destructive",
@@ -108,7 +98,8 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
 
     const transactionData = {
         ...values,
-        Date: new Date(values.Date),
+        Date: new Date(),
+        Type: 'Expense',
         userId,
     };
     
@@ -128,7 +119,6 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         });
     }
 
-
     setIsLoading(false);
     setOpen(false);
   }
@@ -136,99 +126,99 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="Amount"
-            render={({ field }) => (
-              <FormItem className="col-span-2">
-                <FormLabel>Amount</FormLabel>
-                <FormControl>
-                  <Input type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+        {step > 0 && (
+          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-4 px-2">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+        )}
+        
+        <div className="pt-8">
+            {step === 0 && (
+                <FormField
+                    control={form.control}
+                    name="Amount"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                        <Input type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
             )}
-          />
 
-          <FormField
-            control={form.control}
-            name="Notes"
-            render={({ field }) => (
-              <FormItem className="col-span-2">
-                <FormLabel>Notes</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="e.g., Coffee" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            {step === 1 && (
+                <FormField
+                    control={form.control}
+                    name="Category"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Category</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                            <SelectTrigger>
+                            <SelectValue placeholder="Select one" />
+                            </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                        </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
             )}
-          />
 
-           <FormField
-            control={form.control}
-            name="Category"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select one" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {categories.map((cat) => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+            {step === 2 && (
+                <FormField
+                    control={form.control}
+                    name="Notes"
+                    render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
+                        <Input {...field} placeholder="e.g., Coffee" />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                    )}
+                />
             )}
-          />
-
-          <FormField
-            control={form.control}
-            name="Type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Expense">Expense</SelectItem>
-                    <SelectItem value="Income">Income</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="Date"
-            render={({ field }) => (
-              <FormItem className="col-span-2">
-                <FormLabel>Date & Time</FormLabel>
-                <FormControl>
-                  <Input type="datetime-local" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
         
-        <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading || !form.formState.isValid}>
-          {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {transactionToEdit ? 'Update Transaction' : 'Add Transaction'}
-        </Button>
+        <div className="pt-4">
+            {step < 2 ? (
+                <Button 
+                    type="button"
+                    onClick={() => {
+                        if (step === 0) nextStep('Amount');
+                        if (step === 1) nextStep('Category');
+                    }} 
+                    className="w-full h-12 text-lg"
+                    disabled={
+                        (step === 0 && !form.watch('Amount')) ||
+                        (step === 1 && !form.watch('Category'))
+                    }
+                >
+                    Next
+                </Button>
+            ) : (
+                <Button 
+                    type="submit" 
+                    className="w-full h-12 text-lg" 
+                    disabled={isLoading || !form.formState.isValid}
+                >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {transactionToEdit ? 'Update Transaction' : 'Add Transaction'}
+                </Button>
+            )}
+        </div>
       </form>
     </Form>
   );
