@@ -25,15 +25,35 @@ import { useToast } from "@/hooks/use-toast";
 
 export type SortOption = 'latest' | 'highest' | 'category';
 
+const categories = [
+  "Food & Drinks",
+  "Gambling",
+  "Drinks",
+  "Girlfriend",
+  "Entertainment",
+  "Shopping",
+  "Transport",
+  "Dad",
+  "Others",
+];
+
 const chartColors = [
   "hsl(var(--chart-1))",
   "hsl(var(--chart-2))",
   "hsl(var(--chart-3))",
   "hsl(var(--chart-4))",
   "hsl(var(--chart-5))",
-  "#f59e0b",
-  "#10b981",
+  "#f59e0b", // amber-500
+  "#10b981", // emerald-500
+  "#3b82f6", // blue-500
+  "#ef4444", // red-500
 ];
+
+const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
+  acc[category] = chartColors[index % chartColors.length];
+  return acc;
+}, {} as { [key: string]: string });
+
 
 const CACHE_KEY = 'finTrackMiniCache';
 const SHEET_URL_KEY = 'googleSheetUrl';
@@ -264,18 +284,18 @@ export function Dashboard() {
     .sort((a, b) => b.amount - a.amount), [expenseTransactions]);
 
   useEffect(() => {
-    const newChartConfig = aggregatedData.reduce((acc, item, index) => {
-      acc[item.category] = {
-        label: item.category,
-        color: chartColors[index % chartColors.length],
+    const newChartConfig = categories.reduce((acc, category) => {
+      acc[category] = {
+        label: category,
+        color: categoryColors[category] || chartColors[chartColors.length - 1],
       };
       return acc;
     }, {} as ChartConfig);
-
+  
     if (JSON.stringify(chartConfig) !== JSON.stringify(newChartConfig)) {
       setChartConfig(newChartConfig);
     }
-  }, [aggregatedData, chartConfig]);
+  }, [chartConfig]);
 
   const sortedTransactions = useMemo(() => {
     const sorted = [...expenseTransactions];
@@ -369,5 +389,7 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
 
     
