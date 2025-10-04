@@ -128,11 +128,11 @@ export function Dashboard() {
     if (firestore && user) {
         const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
         const defaultBudgets = [
-            { Category: "Food & Drinks", MonthlyBudget: 500 },
-            { Category: "Shopping", MonthlyBudget: 300 },
-            { Category: "Transport", MonthlyBudget: 100 },
-            { Category: "Entertainment", MonthlyBudget: 150 },
-            { Category: "Others", MonthlyBudget: 200 },
+            { Category: "Food & Drinks", MonthlyBudget: 0 },
+            { Category: "Shopping", MonthlyBudget: 0 },
+            { Category: "Transport", MonthlyBudget: 0 },
+            { Category: "Entertainment", MonthlyBudget: 0 },
+            { Category: "Others", MonthlyBudget: 0 },
         ];
         defaultBudgets.forEach(budget => {
             setDocumentNonBlocking(doc(budgetsCollection, budget.Category), budget, { merge: true });
@@ -459,9 +459,6 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
-                  <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
-                  </Button>
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -483,6 +480,9 @@ export function Dashboard() {
                       />
                     </DialogContent>
                   </Dialog>
+                  <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
+                  </Button>
                   <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <Settings className="h-4 w-4" />
                   </Button>
