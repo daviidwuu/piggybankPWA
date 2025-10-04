@@ -113,8 +113,7 @@ export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl, userId 
           const errorData = await response.json();
           errorMessage = errorData.details || errorData.error || errorMessage;
         } catch (e) {
-          const errorText = await response.text();
-          errorMessage = errorText || errorMessage;
+          errorMessage = `An unexpected error occurred: ${response.statusText}`;
         }
         throw new Error(errorMessage);
       }

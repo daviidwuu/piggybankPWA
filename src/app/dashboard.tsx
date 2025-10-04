@@ -135,8 +135,7 @@ export function Dashboard() {
             const errorData = await res.json();
             errorMessage = errorData.details || errorData.error || errorMessage;
         } catch (e) {
-            // If parsing JSON fails, fall back to text
-            errorMessage = await res.text();
+            errorMessage = `An unexpected error occurred: ${res.statusText}`;
         }
         // We throw an error here to be caught by the catch block below
         throw new Error(errorMessage);
