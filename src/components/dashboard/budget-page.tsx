@@ -17,7 +17,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -87,114 +86,116 @@ export function BudgetPage({
 
   return (
     <ScrollArea className="w-full max-h-[70vh]">
-        <div className="px-1">
-            <Card className="border-none shadow-none">
-            <CardHeader className="pt-2">
-                <CardTitle>Income & Savings</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                <label className="text-sm font-medium">Monthly Income</label>
-                <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                    type="number"
-                    defaultValue={currentIncome}
-                    onBlur={(e) => onUpdateIncome(parseFloat(e.target.value) || 0)}
-                    onChange={(e) => setCurrentIncome(parseFloat(e.target.value) || 0)}
-                    className="h-9"
-                    placeholder="e.g., 3000"
-                    />
-                </div>
-                </div>
-                <div className="space-y-2">
-                <label className="text-sm font-medium">Monthly Savings Goal</label>
-                <div className="flex items-center gap-2">
-                    <DollarSign className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                    type="number"
-                    defaultValue={currentSavings}
-                    onBlur={(e) => onUpdateSavings(parseFloat(e.target.value) || 0)}
-                    onChange={(e) => setCurrentSavings(parseFloat(e.target.value) || 0)}
-                    className="h-9"
-                    placeholder="e.g., 500"
-                    />
-                </div>
-                </div>
-            </CardContent>
-
-            <Separator className="my-4" />
-
-            <CardHeader className="flex-row items-center justify-between">
-                <div className="space-y-1.5">
-                    <CardTitle>Category Budgets</CardTitle>
-                    <CardDescription>Allocate your spending limits.</CardDescription>
-                </div>
-                <Dialog open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
-                    <DialogTrigger asChild>
-                         <Button variant="ghost" size="icon" className="h-8 w-8 text-primary">
-                            <Pencil className="h-4 w-4" />
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Manage Categories</DialogTitle>
-                            <DialogDescription>Add new spending categories or remove ones you no longer need.</DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 pt-4">
-                            <div className="flex items-center gap-2">
-                                <Input 
-                                    value={newCategory}
-                                    onChange={(e) => setNewCategory(e.target.value)}
-                                    placeholder="New Category Name"
-                                    className="h-9"
-                                    onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                                />
-                                <Button size="sm" onClick={handleAddCategory}>
-                                    <Plus className="h-4 w-4 mr-1"/>
-                                    Add
-                                </Button>
-                            </div>
-                             <ScrollArea className="h-64">
-                                <div className="space-y-2 pr-4">
-                                    {categories.map((category) => (
-                                        <div key={category} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
-                                            <span className="font-medium">{category}</span>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteCategory(category)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
+        <div className="px-1 space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Income & Savings</CardTitle>
+                    <CardDescription>Set your monthly income and savings goal.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Monthly Income</label>
+                        <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="number"
+                                defaultValue={currentIncome}
+                                onBlur={(e) => onUpdateIncome(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => setCurrentIncome(parseFloat(e.target.value) || 0)}
+                                className="h-9"
+                                placeholder="e.g., 3000"
+                            />
                         </div>
-                    </DialogContent>
-                </Dialog>
-            </CardHeader>
-            <CardContent className="space-y-3 pr-2">
-                <div className="w-full flex justify-between items-center p-3 rounded-lg bg-muted mb-4">
-                    <span className="font-medium text-muted-foreground">Left to Budget:</span>
-                    <span className={`font-bold text-lg ${leftToBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
-                        ${leftToBudget.toFixed(2)}
-                    </span>
-                </div>
-                {categories.map((category) => (
-                    <div key={category} className="flex items-center justify-between gap-4">
-                    <span className="font-medium truncate pr-2">{category}</span>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                        <Input
-                            type="number"
-                            value={budgetValues[category] ?? ''}
-                            onChange={(e) => handleBudgetChange(category, e.target.value)}
-                            onBlur={() => handleBudgetBlur(category)}
-                            className="h-8 w-24 text-right"
-                            placeholder="0.00"
-                        />
                     </div>
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Monthly Savings Goal</label>
+                        <div className="flex items-center gap-2">
+                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                            <Input
+                                type="number"
+                                defaultValue={currentSavings}
+                                onBlur={(e) => onUpdateSavings(parseFloat(e.target.value) || 0)}
+                                onChange={(e) => setCurrentSavings(parseFloat(e.target.value) || 0)}
+                                className="h-9"
+                                placeholder="e.g., 500"
+                            />
+                        </div>
                     </div>
-                )
-                )}
-            </CardContent>
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader className="flex-row items-center justify-between">
+                    <div className="space-y-1.5">
+                        <CardTitle>Category Budgets</CardTitle>
+                        <CardDescription>Allocate your spending limits.</CardDescription>
+                    </div>
+                    <Dialog open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0">
+                                <Pencil className="h-4 w-4" />
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Manage Categories</DialogTitle>
+                                <DialogDescription>Add new spending categories or remove ones you no longer need.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 pt-4">
+                                <div className="flex items-center gap-2">
+                                    <Input 
+                                        value={newCategory}
+                                        onChange={(e) => setNewCategory(e.target.value)}
+                                        placeholder="New Category Name"
+                                        className="h-9"
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
+                                    />
+                                    <Button size="sm" onClick={handleAddCategory}>
+                                        <Plus className="h-4 w-4 mr-1"/>
+                                        Add
+                                    </Button>
+                                </div>
+                                <ScrollArea className="h-64">
+                                    <div className="space-y-2 pr-4">
+                                        {categories.map((category) => (
+                                            <div key={category} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                                                <span className="font-medium">{category}</span>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteCategory(category)}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                </CardHeader>
+                <CardContent className="space-y-4 pr-2">
+                    <div className="w-full flex justify-between items-center p-3 rounded-lg bg-muted">
+                        <span className="font-medium text-muted-foreground">Left to Budget:</span>
+                        <span className={`font-bold text-lg ${leftToBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
+                            ${leftToBudget.toFixed(2)}
+                        </span>
+                    </div>
+                    <div className="space-y-3">
+                        {categories.map((category) => (
+                            <div key={category} className="flex items-center justify-between gap-4">
+                                <span className="font-medium truncate pr-2">{category}</span>
+                                <div className="flex items-center gap-2 flex-shrink-0">
+                                    <Input
+                                        type="number"
+                                        value={budgetValues[category] ?? ''}
+                                        onChange={(e) => handleBudgetChange(category, e.target.value)}
+                                        onBlur={() => handleBudgetBlur(category)}
+                                        className="h-8 w-24 text-right"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
             </Card>
         </div>
     </ScrollArea>
