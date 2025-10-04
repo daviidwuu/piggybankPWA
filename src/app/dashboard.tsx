@@ -337,9 +337,10 @@ export function Dashboard() {
       <div className="w-full max-w-[428px] border-x border-border pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         <main className="flex-1 p-4 space-y-4">
           <div className="flex justify-between items-start mb-4">
-            <h1 className="text-2xl font-bold">
-              Welcome, <span className="text-primary text-3xl">{userName}</span>
-            </h1>
+            <div>
+              <h1 className="text-2xl font-bold">Welcome,</h1>
+              <h1 className="text-primary text-3xl font-bold">{userName}</h1>
+            </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
                    <Dialog open={isAddTransactionOpen} onOpenChange={setAddTransactionOpen}>
@@ -390,4 +391,5 @@ export function Dashboard() {
   );
 }
 
+    
     
