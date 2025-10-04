@@ -20,6 +20,7 @@ import { Loader2, ArrowLeft } from "lucide-react";
 import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
 import { type Transaction } from "@/lib/data";
+import { DrawerHeader, DrawerTitle } from "../ui/drawer";
 
 const formSchema = z.object({
   Amount: z.coerce.number().positive({ message: "Amount must be positive" }),
@@ -65,7 +66,9 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         Notes: "",
       });
     }
-  }, [transactionToEdit, form]);
+    // Reset step to 0 whenever the form is opened/re-opened
+    setStep(0);
+  }, [transactionToEdit, form, setOpen]);
 
   const nextStep = async (field?: keyof FormValues) => {
     if (field) {
@@ -123,91 +126,95 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <>
+      <DrawerHeader className="text-left relative">
         {step > 0 && (
-          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-4 px-2">
+          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-1/2 -translate-y-1/2 px-2 h-auto">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back
           </Button>
         )}
-        
-        <div className="pt-8">
-            {step === 0 && (
-                <FormField
-                    control={form.control}
-                    name="Amount"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Amount</FormLabel>
-                        <FormControl>
-                        <Input type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-            )}
+        <DrawerTitle className="text-center">{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DrawerTitle>
+      </DrawerHeader>
+      <div className="p-4">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {step === 0 && (
+                  <FormField
+                      control={form.control}
+                      name="Amount"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Amount</FormLabel>
+                          <FormControl>
+                          <Input type="number" step="0.01" {...field} placeholder="$0.00" autoFocus/>
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+              )}
 
-            {step === 1 && (
-                <div className="space-y-2">
-                    <FormLabel>Category</FormLabel>
-                    <div className="flex flex-wrap gap-2">
-                        {categories.map((cat) => (
-                            <Button
-                                type="button"
-                                key={cat}
-                                variant={form.watch("Category") === cat ? "default" : "outline"}
-                                onClick={() => handleCategorySelect(cat)}
-                            >
-                                {cat}
-                            </Button>
-                        ))}
-                    </div>
-                     <FormMessage>{form.formState.errors.Category?.message}</FormMessage>
-                </div>
-            )}
+              {step === 1 && (
+                  <div className="space-y-2">
+                      <FormLabel>Category</FormLabel>
+                      <div className="flex flex-wrap gap-2">
+                          {categories.map((cat) => (
+                              <Button
+                                  type="button"
+                                  key={cat}
+                                  variant={form.watch("Category") === cat ? "default" : "outline"}
+                                  onClick={() => handleCategorySelect(cat)}
+                              >
+                                  {cat}
+                              </Button>
+                          ))}
+                      </div>
+                      <FormMessage>{form.formState.errors.Category?.message}</FormMessage>
+                  </div>
+              )}
 
-            {step === 2 && (
-                <FormField
-                    control={form.control}
-                    name="Notes"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Notes</FormLabel>
-                        <FormControl>
-                        <Input {...field} placeholder="e.g., Coffee" autoFocus />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
-            )}
-        </div>
-        
-        <div className="pt-4">
-            {step === 0 && (
-                <Button 
-                    type="button"
-                    onClick={() => nextStep('Amount')} 
-                    className="w-full h-12 text-lg"
-                    disabled={!form.watch('Amount')}
-                >
-                    Next
-                </Button>
-            )}
-            {step === 2 && (
-                <Button 
-                    type="submit" 
-                    className="w-full h-12 text-lg" 
-                    disabled={isLoading || !form.formState.isValid}
-                >
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {transactionToEdit ? 'Update Transaction' : 'Add Transaction'}
-                </Button>
-            )}
-        </div>
-      </form>
-    </Form>
+              {step === 2 && (
+                  <FormField
+                      control={form.control}
+                      name="Notes"
+                      render={({ field }) => (
+                      <FormItem>
+                          <FormLabel>Notes</FormLabel>
+                          <FormControl>
+                          <Input {...field} placeholder="e.g., Coffee" autoFocus />
+                          </FormControl>
+                          <FormMessage />
+                      </FormItem>
+                      )}
+                  />
+              )}
+            
+            <div className="pt-4">
+                {step === 0 && (
+                    <Button 
+                        type="button"
+                        onClick={() => nextStep('Amount')} 
+                        className="w-full h-12 text-lg"
+                        disabled={!form.watch('Amount')}
+                    >
+                        Next
+                    </Button>
+                )}
+                {step === 2 && (
+                    <Button 
+                        type="submit" 
+                        className="w-full h-12 text-lg" 
+                        disabled={isLoading || !form.formState.isValid}
+                    >
+                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {transactionToEdit ? 'Update Transaction' : 'Add Transaction'}
+                    </Button>
+                )}
+            </div>
+          </form>
+        </Form>
+      </div>
+    </>
   );
 }

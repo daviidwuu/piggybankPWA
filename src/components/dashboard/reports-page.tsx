@@ -24,6 +24,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { DateRange as ReactDateRange } from "react-day-picker";
+import { DrawerHeader, DrawerTitle } from "../ui/drawer";
 
 type ReportPeriod = "last7" | "last30" | "custom";
 
@@ -88,92 +89,97 @@ export function ReportsPage({ allTransactions, categories }: ReportsPageProps) {
   }, [generatedReport]);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <Select value={period} onValueChange={(value) => setPeriod(value as ReportPeriod)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select period" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="last7">Last 7 Days</SelectItem>
-            <SelectItem value="last30">Last 30 Days</SelectItem>
-            <SelectItem value="custom">Custom Range</SelectItem>
-          </SelectContent>
-        </Select>
+    <>
+      <DrawerHeader className="text-left">
+        <DrawerTitle>Generate Report</DrawerTitle>
+      </DrawerHeader>
+      <div className="p-4 space-y-6">
+        <div className="grid grid-cols-2 gap-4">
+          <Select value={period} onValueChange={(value) => setPeriod(value as ReportPeriod)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select period" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="last7">Last 7 Days</SelectItem>
+              <SelectItem value="last30">Last 30 Days</SelectItem>
+              <SelectItem value="custom">Custom Range</SelectItem>
+            </SelectContent>
+          </Select>
 
-        {period === "custom" && (
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className="justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {customDateRange?.from ? (
-                  customDateRange.to ? (
-                    <>
-                      {format(customDateRange.from, "LLL dd, y")} -{" "}
-                      {format(customDateRange.to, "LLL dd, y")}
-                    </>
+          {period === "custom" && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={"outline"}
+                  className="justify-start text-left font-normal"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {customDateRange?.from ? (
+                    customDateRange.to ? (
+                      <>
+                        {format(customDateRange.from, "LLL dd, y")} -{" "}
+                        {format(customDateRange.to, "LLL dd, y")}
+                      </>
+                    ) : (
+                      format(customDateRange.from, "LLL dd, y")
+                    )
                   ) : (
-                    format(customDateRange.from, "LLL dd, y")
-                  )
-                ) : (
-                  <span>Pick a date</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={customDateRange?.from}
-                selected={customDateRange}
-                onSelect={setCustomDateRange}
-                numberOfMonths={1}
-              />
-            </PopoverContent>
-          </Popover>
+                    <span>Pick a date</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={customDateRange?.from}
+                  selected={customDateRange}
+                  onSelect={setCustomDateRange}
+                  numberOfMonths={1}
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+
+        <Button onClick={handleGenerateReport} className="w-full">
+          Generate Report
+        </Button>
+
+        {generatedReport && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Spending Report</CardTitle>
+              <CardDescription>
+                  {dateRange.start && dateRange.end ? `${format(dateRange.start, "d MMM yyyy")} - ${format(dateRange.end, "d MMM yyyy")}` : ''}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-64">
+                <div className="space-y-4 pr-4">
+                  <div className="flex justify-between font-bold text-lg border-b pb-2 mb-2">
+                      <span>Total Spent:</span>
+                      <span>${totalSpent.toFixed(2)}</span>
+                  </div>
+                  {generatedReport.length > 0 ? (
+                    generatedReport.map((item) => (
+                      <div key={item.category} className="flex justify-between items-center">
+                        <div>
+                          <p className="font-medium">{item.category}</p>
+                          <p className="text-sm text-muted-foreground">{item.count} transaction{item.count > 1 ? 's' : ''}</p>
+                        </div>
+                        <p className="font-semibold">${item.amount.toFixed(2)}</p>
+                      </div>
+                    ))
+                  ) : (
+                      <p className="text-center text-muted-foreground py-8">No spending in this period.</p>
+                  )}
+                </div>
+              </ScrollArea>
+            </CardContent>
+          </Card>
         )}
       </div>
-
-      <Button onClick={handleGenerateReport} className="w-full">
-        Generate Report
-      </Button>
-
-      {generatedReport && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Spending Report</CardTitle>
-            <CardDescription>
-                {dateRange.start && dateRange.end ? `${format(dateRange.start, "d MMM yyyy")} - ${format(dateRange.end, "d MMM yyyy")}` : ''}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-64">
-              <div className="space-y-4 pr-4">
-                <div className="flex justify-between font-bold text-lg border-b pb-2 mb-2">
-                    <span>Total Spent:</span>
-                    <span>${totalSpent.toFixed(2)}</span>
-                </div>
-                {generatedReport.length > 0 ? (
-                  generatedReport.map((item) => (
-                    <div key={item.category} className="flex justify-between items-center">
-                      <div>
-                        <p className="font-medium">{item.category}</p>
-                        <p className="text-sm text-muted-foreground">{item.count} transaction{item.count > 1 ? 's' : ''}</p>
-                      </div>
-                      <p className="font-semibold">${item.amount.toFixed(2)}</p>
-                    </div>
-                  ))
-                ) : (
-                    <p className="text-center text-muted-foreground py-8">No spending in this period.</p>
-                )}
-              </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+    </>
   );
 }

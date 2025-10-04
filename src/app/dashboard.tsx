@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -18,8 +19,6 @@ import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth,
 import {
   Drawer,
   DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
 import {
@@ -595,28 +594,18 @@ export function Dashboard() {
                 </Button>
             </DrawerTrigger>
             <DrawerContent>
-                <DrawerHeader className="text-left">
-                  <DrawerTitle>{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DrawerTitle>
-                </DrawerHeader>
-                <div className="p-4">
-                  <AddTransactionForm 
-                    userId={user?.uid}
-                    setOpen={setAddTransactionOpen}
-                    transactionToEdit={transactionToEdit}
-                    categories={categories}
-                  />
-                </div>
+                <AddTransactionForm 
+                  userId={user?.uid}
+                  setOpen={setAddTransactionOpen}
+                  transactionToEdit={transactionToEdit}
+                  categories={categories}
+                />
             </DrawerContent>
         </Drawer>
         
         <Drawer open={isReportsOpen} onOpenChange={setReportsOpen}>
           <DrawerContent>
-            <DrawerHeader className="text-left">
-              <DrawerTitle>Generate Report</DrawerTitle>
-            </DrawerHeader>
-            <div className="p-4">
-              <ReportsPage allTransactions={transactions || []} categories={categories} />
-            </div>
+            <ReportsPage allTransactions={transactions || []} categories={categories} />
           </DrawerContent>
         </Drawer>
 
