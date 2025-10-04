@@ -9,5 +9,5 @@ export interface Transaction {
 
 export interface Budget {
   Category: string;
-  Budget: number;
+  MonthlyBudget: number;
 }

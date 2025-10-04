@@ -9,7 +9,7 @@ import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format, getDaysInMonth, getDaysInYear } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -127,24 +127,37 @@ export function Dashboard() {
     }
   }, [fetchData]);
 
+  const dateFilterRange = useMemo(() => {
+    const today = new Date();
+    switch (dateRange) {
+      case 'daily':
+        return { start: startOfDay(today), end: endOfDay(today) };
+      case 'week':
+        return { start: startOfWeek(today, { weekStartsOn: 1 }), end: endOfWeek(today, { weekStartsOn: 1 }) };
+      case 'month':
+        return { start: startOfMonth(today), end: endOfMonth(today) };
+      case 'yearly':
+        return { start: startOfYear(today), end: endOfYear(today) };
+      case 'all':
+      default:
+        return { start: null, end: null };
+    }
+  }, [dateRange]);
+
   const getDisplayDate = (range: DateRange): string => {
     if (!transactions.length && range !== 'all') return "No data";
     
-    const today = new Date();
-    let startDate: Date;
-    let endDate: Date = today;
+    const { start, end } = dateFilterRange;
 
     switch (range) {
       case 'daily':
-        return format(today, 'd MMM yyyy');
+        return start ? format(start, 'd MMM yyyy') : "Today";
       case 'week':
-        startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
-        endDate = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
-        return `${format(startDate, 'd MMM')} - ${format(endDate, 'd MMM yyyy')}`;
+        return (start && end) ? `${format(start, 'd MMM')} - ${format(end, 'd MMM yyyy')}` : "This Week";
       case 'month':
-        return format(today, 'MMMM yyyy');
+        return start ? format(start, 'MMMM yyyy') : "This Month";
       case 'yearly':
-        return format(today, 'yyyy');
+        return start ? format(start, 'yyyy') : "This Year";
       case 'all':
       default:
         if (!transactions.length) return "All Time";
@@ -166,35 +179,15 @@ export function Dashboard() {
   useEffect(() => {
     if (!isClient) return;
     setDisplayDate(getDisplayDate(dateRange));
-  }, [dateRange, transactions, isClient]);
+  }, [dateRange, transactions, isClient, dateFilterRange]);
 
   const filteredTransactions = useMemo(() => {
-    if (!isClient || !transactions.length) return [];
+    if (!isClient) return [];
+    
+    const { start, end } = dateFilterRange;
 
-    const today = new Date();
-    let startDate: Date;
-    let endDate: Date;
-
-    switch (dateRange) {
-      case 'daily':
-        startDate = startOfDay(today);
-        endDate = endOfDay(today);
-        break;
-      case 'week':
-        startDate = startOfWeek(today, { weekStartsOn: 1 });
-        endDate = endOfWeek(today, { weekStartsOn: 1 });
-        break;
-      case 'month':
-        startDate = startOfMonth(today);
-        endDate = endOfMonth(today);
-        break;
-      case 'yearly':
-        startDate = startOfYear(today);
-        endDate = endOfYear(today);
-        break;
-      case 'all':
-      default:
-        return transactions;
+    if (dateRange === 'all' || !start || !end) {
+      return transactions;
     }
 
     return transactions.filter(t => {
@@ -202,40 +195,42 @@ export function Dashboard() {
       const transactionDate = new Date(t.Date);
       if (isNaN(transactionDate.getTime())) return false;
       
-      const isAfterStart = transactionDate >= startDate;
-      const isBeforeEnd = transactionDate <= endDate;
+      const isAfterStart = transactionDate >= start;
+      const isBeforeEnd = transactionDate <= end;
       
       return isAfterStart && isBeforeEnd;
     });
-  }, [isClient, transactions, dateRange]);
+  }, [isClient, transactions, dateRange, dateFilterRange]);
   
   const scaledBudget = useMemo(() => {
-    if (!isClient) return 0;
+    if (!isClient || !budgets.length) return 0;
 
-    const monthlyBudget = budgets.reduce((sum, b) => sum + b.Budget, 0);
+    const monthlyBudget = budgets.reduce((sum, b) => sum + b.MonthlyBudget, 0);
     if (monthlyBudget === 0) return 0;
   
+    const today = new Date();
     switch (dateRange) {
       case 'daily':
-        return monthlyBudget / 30; // Approximation
+        return monthlyBudget / getDaysInMonth(today);
       case 'week':
-        return monthlyBudget / 4; // Approximation
+        return monthlyBudget / 4; // Approximation for a week
       case 'yearly':
         return monthlyBudget * 12;
       case 'month':
         return monthlyBudget;
-      case 'all':
-        if (transactions.length === 0) return monthlyBudget;
+      case 'all': {
+        if (!transactions.length) return monthlyBudget;
         const dates = transactions
           .map(t => new Date(t.Date!))
           .filter(d => !isNaN(d.getTime()));
-        if (dates.length === 0) return monthlyBudget;
+        if (dates.length < 2) return monthlyBudget;
         
-        const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-        const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+        const minDate = dates.reduce((min, d) => d < min ? d : min);
+        const maxDate = dates.reduce((max, d) => d > max ? d : max);
 
         const monthDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth()) + 1;
-        return monthlyBudget * monthDiff;
+        return monthlyBudget * Math.max(1, monthDiff);
+      }
       default:
         return monthlyBudget;
     }

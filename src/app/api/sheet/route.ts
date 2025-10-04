@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     // Process budget data
     const processedBudgets: Budget[] = budgets.map((row: any) => ({
         Category: String(row["Category"] || ""),
-        Budget: Number(row["Budget"] || 0),
+        MonthlyBudget: Number(row["MonthlyBudget"] || 0),
       }));
 
 
