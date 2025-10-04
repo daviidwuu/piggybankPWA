@@ -47,6 +47,8 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const fetchData = useCallback(async (revalidate = false) => {
     if (revalidate) {
       setIsRefreshing(true);
+    } else {
+      setLoading(true);
     }
     try {
       const res = await fetch(`/api/sheet?revalidate=${revalidate}`);
@@ -68,9 +70,13 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
 
   useEffect(() => {
     setIsClient(true);
-    setLoading(false);
-    fetchData(true); // Initial fresh data fetch
-  }, [fetchData]);
+    // If the component mounts with no data, it means it's the initial client-side load.
+    if (initialData.transactions.length === 0) {
+      fetchData();
+    } else {
+      setLoading(false); // Data was passed from server, no need to load initially.
+    }
+  }, [fetchData, initialData.transactions.length]);
 
   const getDisplayDate = (range: DateRange): string => {
     if (!transactions.length && range !== 'all') return "No data";
@@ -241,7 +247,7 @@ export function Dashboard({ initialData }: { initialData: { transactions: Transa
   const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
 
-  if (loading && transactions.length === 0) {
+  if (loading) {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center">
         <div className="w-full max-w-[428px] border-x border-border p-6">
