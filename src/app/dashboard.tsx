@@ -16,11 +16,17 @@ import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog"
 import { type ChartConfig } from "@/components/ui/chart";
 import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth, differenceInMonths, addMonths } from 'date-fns';
 import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -578,8 +584,8 @@ export function Dashboard() {
           />
         </main>
 
-        <Dialog open={isAddTransactionOpen} onOpenChange={setAddTransactionOpen}>
-            <DialogTrigger asChild>
+        <Drawer open={isAddTransactionOpen} onOpenChange={setAddTransactionOpen}>
+            <DrawerTrigger asChild>
                 <Button 
                     variant="default"
                     className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-6 h-16 w-16 rounded-full shadow-lg z-50"
@@ -587,32 +593,34 @@ export function Dashboard() {
                 >
                     <Plus className="h-8 w-8" />
                 </Button>
-            </DialogTrigger>
-            <DialogContent>
-                <DialogHeader>
-                <DialogTitle>{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DialogTitle>
-                </DialogHeader>
-                <AddTransactionForm 
-                  userId={user?.uid}
-                  setOpen={setAddTransactionOpen}
-                  transactionToEdit={transactionToEdit}
-                  categories={categories}
-                />
-            </DialogContent>
-        </Dialog>
+            </DrawerTrigger>
+            <DrawerContent>
+                <DrawerHeader className="text-left">
+                  <DrawerTitle>{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DrawerTitle>
+                </DrawerHeader>
+                <div className="p-4">
+                  <AddTransactionForm 
+                    userId={user?.uid}
+                    setOpen={setAddTransactionOpen}
+                    transactionToEdit={transactionToEdit}
+                    categories={categories}
+                  />
+                </div>
+            </DrawerContent>
+        </Drawer>
         
-        <Dialog open={isReportsOpen} onOpenChange={setReportsOpen}>
-          <DialogContent className="max-w-[400px]">
-            <DialogHeader>
-              <DialogTitle>Generate Report</DialogTitle>
-            </DialogHeader>
-            <ReportsPage allTransactions={transactions || []} categories={categories} />
-          </DialogContent>
-        </Dialog>
+        <Drawer open={isReportsOpen} onOpenChange={setReportsOpen}>
+          <DrawerContent>
+            <DrawerHeader className="text-left">
+              <DrawerTitle>Generate Report</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4">
+              <ReportsPage allTransactions={transactions || []} categories={categories} />
+            </div>
+          </DrawerContent>
+        </Drawer>
 
       </div>
     </div>
   );
 }
-
-    
