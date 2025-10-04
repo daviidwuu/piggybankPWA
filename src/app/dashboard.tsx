@@ -9,7 +9,7 @@ import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, subMonths, subYears, startOfWeek, endOfWeek, endOfDay, format } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -119,16 +119,15 @@ export function Dashboard() {
 
     switch (range) {
       case 'daily':
-        return format(today, 'd MMM');
+        return format(today, 'd MMM yyyy');
       case 'week':
         startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
         endDate = endOfWeek(today, { weekStartsOn: 1 }); // Sunday
-        return `${format(startDate, 'd MMM')} - ${format(endDate, 'd MMM')}`;
+        return `${format(startDate, 'd MMM')} - ${format(endDate, 'd MMM yyyy')}`;
       case 'month':
         return format(today, 'MMMM yyyy');
       case 'yearly':
-        startDate = subYears(today, 1);
-        return `${format(startDate, 'MMM yyyy')} - ${format(endDate, 'MMM yyyy')}`;
+        return format(today, 'yyyy');
       case 'all':
       default:
         if (!transactions.length) return "All Time";
@@ -157,7 +156,7 @@ export function Dashboard() {
 
     const today = new Date();
     let startDate: Date;
-    let endDate: Date | null = null;
+    let endDate: Date;
 
     switch (dateRange) {
       case 'daily':
@@ -165,16 +164,16 @@ export function Dashboard() {
         endDate = endOfDay(today);
         break;
       case 'week':
-        startDate = startOfWeek(today, { weekStartsOn: 1 }); // Monday
+        startDate = startOfWeek(today, { weekStartsOn: 1 });
         endDate = endOfWeek(today, { weekStartsOn: 1 });
         break;
       case 'month':
-        startDate = startOfDay(subMonths(today, 1));
-        endDate = endOfDay(today);
+        startDate = startOfMonth(today);
+        endDate = endOfMonth(today);
         break;
       case 'yearly':
-        startDate = startOfDay(subYears(today, 1));
-        endDate = endOfDay(today);
+        startDate = startOfYear(today);
+        endDate = endOfYear(today);
         break;
       case 'all':
       default:
@@ -187,7 +186,7 @@ export function Dashboard() {
       if (isNaN(transactionDate.getTime())) return false;
       
       const isAfterStart = transactionDate >= startDate;
-      const isBeforeEnd = endDate ? transactionDate <= endDate : true;
+      const isBeforeEnd = transactionDate <= endDate;
       
       return isAfterStart && isBeforeEnd;
     });
