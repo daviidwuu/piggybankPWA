@@ -23,22 +23,10 @@ export async function GET(request: NextRequest) {
     });
 
     // If the Apps Script redirects (e.g., to a login page), it's a failure.
-    if (res.type === 'opaqueredirect' || res.status > 300) {
-        let details = `Request to Google Apps Script failed with status: ${res.status}. This might be due to an incorrect URL or an issue with the script.`;
-        // Try to get more details if possible
-        try {
-            const errorText = await res.text();
-             // Check if the error text is actually HTML
-            if (errorText.trim().startsWith('<!DOCTYPE html>')) {
-              details += ' The script returned an HTML page instead of JSON. This often means you need to re-authorize the script or check its permissions in Google Apps Script.';
-            } else {
-              details += ` Response: ${errorText}`;
-            }
-        } catch (e) {
-             // Ignore if we can't read the body
-        }
-        console.error("Google Apps Script Error:", details);
-        return NextResponse.json({ error: "Google Apps Script failed.", details }, { status: 502 }); // 502 Bad Gateway is appropriate here
+    if (res.status >= 300 && res.status < 400 && res.headers.has('location')) {
+        const details = `Request to Google Apps Script resulted in a redirect to ${res.headers.get('location')}. This usually means the script needs to be re-authorized or re-deployed with the correct permissions.`;
+        console.error("Google Apps Script Redirect Error:", details);
+        return NextResponse.json({ error: "Google Apps Script requires authorization.", details }, { status: 502 }); // 502 Bad Gateway
     }
 
     const contentType = res.headers.get("content-type");

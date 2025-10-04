@@ -129,19 +129,15 @@ export function Dashboard() {
     }
     try {
       const res = await fetch(`/api/sheet?url=${encodeURIComponent(url)}`);
+      
+      const resJson = await res.json();
+
       if (!res.ok) {
-        let errorMessage = 'Failed to fetch data';
-        try {
-            const errorData = await res.json();
-            errorMessage = errorData.details || errorData.error || errorMessage;
-        } catch (e) {
-            // If parsing JSON fails, use the raw response text
-            errorMessage = `An unexpected error occurred: ${res.statusText}`;
-        }
-        // We throw an error here to be caught by the catch block below
+        // Use the detailed error message from the API if available
+        const errorMessage = resJson.details || resJson.error || 'An unexpected error occurred while fetching data.';
         throw new Error(errorMessage);
       }
-      const { transactions: newTransactions, budgets: newBudgets } = await res.json();
+      const { transactions: newTransactions, budgets: newBudgets } = resJson;
       setTransactions(newTransactions);
       setBudgets(newBudgets);
       if (typeof window !== 'undefined') {

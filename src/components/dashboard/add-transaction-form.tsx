@@ -106,15 +106,11 @@ export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl, userId 
           data: { ...values, ID: "" },
         }),
       });
+      
+      const resJson = await response.json();
 
       if (!response.ok) {
-        let errorMessage = "Failed to add transaction";
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.details || errorData.error || errorMessage;
-        } catch (e) {
-          errorMessage = `An unexpected error occurred: ${response.statusText}`;
-        }
+        const errorMessage = resJson.details || resJson.error || "Failed to add transaction.";
         throw new Error(errorMessage);
       }
 
