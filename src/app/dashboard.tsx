@@ -19,7 +19,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Plus, Bell } from "lucide-react";
+import { RefreshCw, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
@@ -135,7 +135,8 @@ export function Dashboard() {
             const errorData = await res.json();
             errorMessage = errorData.details || errorData.error || errorMessage;
         } catch (e) {
-            errorMessage = `An unexpected error occurred: ${res.statusText}`;
+            const errorText = await res.text();
+            errorMessage = errorText || `An unexpected error occurred: ${res.statusText}`;
         }
         // We throw an error here to be caught by the catch block below
         throw new Error(errorMessage);
@@ -191,6 +192,17 @@ export function Dashboard() {
     setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
     setUserData(newUserData);
     fetchData(true, data.url);
+  };
+
+  const handleResetSettings = () => {
+    setUserData(null);
+    setTransactions([]);
+    setBudgets([]);
+    localStorage.removeItem(CACHE_KEY);
+    toast({
+        title: "Settings Reset",
+        description: "Please enter your new configuration.",
+    });
   };
   
   const handlePermissionRequest = async () => {
@@ -427,6 +439,9 @@ export function Dashboard() {
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
                   <Button variant="outline" size="icon" onClick={() => fetchData(true, userData.googleSheetUrl)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <Settings className="h-4 w-4" />
                   </Button>
                 </div>
                  <span className="text-xs text-muted-foreground mt-1 min-w-max">
