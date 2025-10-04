@@ -12,17 +12,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { categories } from "@/app/dashboard";
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2, Plus } from "lucide-react";
 
 interface BudgetPageProps {
   budgets: Budget[];
+  categories: string[];
   onUpdateBudget: (category: string, newBudget: number) => void;
+  onAddCategory: (category: string) => void;
+  onDeleteCategory: (category: string) => void;
 }
 
-export function BudgetPage({ budgets, onUpdateBudget }: BudgetPageProps) {
+export function BudgetPage({ budgets, categories, onUpdateBudget, onAddCategory, onDeleteCategory }: BudgetPageProps) {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [newBudgetValue, setNewBudgetValue] = useState<number | string>("");
+  const [newCategory, setNewCategory] = useState("");
 
   const handleEditClick = (budget: Budget) => {
     setEditingCategory(budget.Category);
@@ -41,6 +44,13 @@ export function BudgetPage({ budgets, onUpdateBudget }: BudgetPageProps) {
   const handleCancelClick = () => {
     setEditingCategory(null);
     setNewBudgetValue("");
+  };
+
+  const handleAddCategory = () => {
+    if (newCategory.trim() !== "" && !categories.includes(newCategory.trim())) {
+      onAddCategory(newCategory.trim());
+      setNewCategory("");
+    }
   };
 
   const getBudgetForCategory = (category: string): Budget => {
@@ -79,14 +89,27 @@ export function BudgetPage({ budgets, onUpdateBudget }: BudgetPageProps) {
                   <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(budget)}>
                     <Pencil className="h-4 w-4" />
                   </Button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDeleteCategory(category)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               )}
             </div>
           );
         })}
+        <div className="flex items-center gap-2 pt-4">
+          <Input 
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+            placeholder="New Category Name"
+            className="h-8"
+          />
+          <Button size="sm" onClick={handleAddCategory}>
+            <Plus className="h-4 w-4 mr-1"/>
+            Add
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
 }
-
-    

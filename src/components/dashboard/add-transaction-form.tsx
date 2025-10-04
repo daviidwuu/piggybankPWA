@@ -26,7 +26,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { collection, doc } from "firebase/firestore";
-import { categories } from "@/app/dashboard";
 import { type Transaction } from "@/lib/data";
 import { format, toDate } from "date-fns";
 
@@ -44,9 +43,10 @@ interface AddTransactionFormProps {
   setOpen: (open: boolean) => void;
   userId?: string;
   transactionToEdit?: Transaction | null;
+  categories: string[];
 }
 
-export function AddTransactionForm({ setOpen, userId, transactionToEdit }: AddTransactionFormProps) {
+export function AddTransactionForm({ setOpen, userId, transactionToEdit, categories }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -218,5 +218,3 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit }: AddTr
     </Form>
   );
 }
-
-    

@@ -40,21 +40,17 @@ const chartColors = [
   "#78350f", "#ec4899", "#64748b", "#f59e0b"
 ];
 
-export const categories = [
+const defaultCategories = [
   "Food & Drinks", "Gambling", "Drinks", "Girlfriend",
   "Entertainment", "Shopping", "Transport", "Dad", "Others",
 ];
-
-const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
-  acc[category] = chartColors[index % chartColors.length];
-  return acc;
-}, {} as { [key: string]: string });
 
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 const USER_ID_COPIED_KEY = 'userIdCopied';
 
 interface UserData {
     name: string;
+    categories?: string[];
 }
 
 export function Dashboard() {
@@ -98,6 +94,12 @@ export function Dashboard() {
   );
   const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
 
+  const categories = userData?.categories || defaultCategories;
+
+  const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
+    acc[category] = chartColors[index % chartColors.length];
+    return acc;
+  }, {} as { [key: string]: string });
   
   useEffect(() => {
     if (!isUserLoading && !user) {
@@ -119,7 +121,7 @@ export function Dashboard() {
 
   const handleSetupSave = (data: { name: string; }) => {
     if (!userDocRef) return;
-    const newUserData = { name: data.name };
+    const newUserData = { name: data.name, categories: defaultCategories };
     setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
     
     // Add default budgets
@@ -168,6 +170,24 @@ export function Dashboard() {
         description: `Budget for ${category} has been set to $${newBudget.toFixed(2)}.`,
     });
   };
+
+  const handleAddCategory = (category: string) => {
+    if (!userDocRef) return;
+    const updatedCategories = [...categories, category];
+    updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
+    handleUpdateBudget(category, 0); // Initialize with 0 budget
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    if (!userDocRef || !user || !firestore) return;
+    const updatedCategories = categories.filter(c => c !== category);
+    updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
+
+    // Also delete the budget associated with the category
+    const budgetRef = doc(firestore, `users/${user.uid}/budgets`, category);
+    deleteDocumentNonBlocking(budgetRef);
+  };
+
 
   const handleResetSettings = () => {
     if (userDocRef) {
@@ -350,7 +370,7 @@ export function Dashboard() {
     if (JSON.stringify(chartConfig) !== JSON.stringify(newChartConfig)) {
         setChartConfig(newChartConfig);
     }
-  }, [chartConfig]);
+  }, [chartConfig, categoryColors]);
 
   const sortedTransactions = useMemo(() => {
     if (!expenseTransactions) return [];
@@ -431,7 +451,13 @@ export function Dashboard() {
                        <DialogHeader>
                         <DialogTitle>Manage Budgets</DialogTitle>
                       </DialogHeader>
-                      <BudgetPage budgets={budgets || []} onUpdateBudget={handleUpdateBudget} />
+                      <BudgetPage 
+                        budgets={budgets || []} 
+                        categories={categories}
+                        onUpdateBudget={handleUpdateBudget} 
+                        onAddCategory={handleAddCategory}
+                        onDeleteCategory={handleDeleteCategory}
+                      />
                     </DialogContent>
                   </Dialog>
                   <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -480,9 +506,10 @@ export function Dashboard() {
                 <DialogTitle>{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DialogTitle>
                 </DialogHeader>
                 <AddTransactionForm 
-                userId={user?.uid}
-                setOpen={setAddTransactionOpen}
-                transactionToEdit={transactionToEdit}
+                  userId={user?.uid}
+                  setOpen={setAddTransactionOpen}
+                  transactionToEdit={transactionToEdit}
+                  categories={categories}
                 />
             </DialogContent>
         </Dialog>
