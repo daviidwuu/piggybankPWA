@@ -459,10 +459,13 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
+                  <Button variant="outline" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
+                  </Button>
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
-                        <Wallet className="h-4 w-4 text-primary" />
+                      <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                        <Wallet className="h-4 w-4" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-[400px]">
@@ -480,9 +483,6 @@ export function Dashboard() {
                       />
                     </DialogContent>
                   </Dialog>
-                  <Button variant="ghost" size="icon" onClick={() => {}} disabled={isTransactionsLoading || isBudgetsLoading} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
-                    <RefreshCw className={cn("h-4 w-4 text-primary", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
-                  </Button>
                   <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <Settings className="h-4 w-4" />
                   </Button>
@@ -538,3 +538,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
