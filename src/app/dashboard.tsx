@@ -2,10 +2,10 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { type Transaction, type Budget } from "@/lib/data";
+import { type Transaction, type Budget, type Income, type Savings } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
-import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
+import { type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { BudgetPage } from "@/components/dashboard/budget-page";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
@@ -93,6 +93,18 @@ export function Dashboard() {
     [firestore, user]
   );
   const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
+  
+  const incomeDocRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, "users", user.uid, "financials", "income") : null),
+    [firestore, user]
+  );
+  const { data: income, isLoading: isIncomeLoading } = useDoc<Income>(incomeDocRef);
+
+  const savingsDocRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, "users", user.uid, "financials", "savings") : null),
+    [firestore, user]
+  );
+  const { data: savings, isLoading: isSavingsLoading } = useDoc<Savings>(savingsDocRef);
 
   const categories = userData?.categories || defaultCategories;
 
@@ -120,10 +132,14 @@ export function Dashboard() {
 
 
   const handleSetupSave = (data: { name: string; }) => {
-    if (!userDocRef) return;
+    if (!userDocRef || !incomeDocRef || !savingsDocRef) return;
     const newUserData = { name: data.name, categories: defaultCategories };
     setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
     
+    // Set default income and savings
+    setDocumentNonBlocking(incomeDocRef, { amount: 0 }, { merge: true });
+    setDocumentNonBlocking(savingsDocRef, { amount: 0 }, { merge: true });
+
     // Add default budgets
     if (firestore && user) {
         const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
@@ -157,6 +173,24 @@ export function Dashboard() {
     toast({
       title: "Transaction Deleted",
       description: "The transaction has been successfully removed.",
+    });
+  };
+
+  const handleUpdateIncome = (newIncome: number) => {
+    if (!incomeDocRef) return;
+    setDocumentNonBlocking(incomeDocRef, { amount: newIncome }, { merge: true });
+    toast({
+        title: "Income Updated",
+        description: `Your monthly income has been set to $${newIncome.toFixed(2)}.`,
+    });
+  };
+
+  const handleUpdateSavings = (newSavings: number) => {
+    if (!savingsDocRef) return;
+    setDocumentNonBlocking(savingsDocRef, { amount: newSavings }, { merge: true });
+     toast({
+        title: "Savings Goal Updated",
+        description: `Your monthly savings goal has been set to $${newSavings.toFixed(2)}.`,
     });
   };
 
@@ -400,8 +434,10 @@ export function Dashboard() {
   }, [isAddTransactionOpen]);
 
   const mainContentUser = userData;
+  const isLoading = isUserLoading || isUserDataLoading || (mainContentUser && (isTransactionsLoading || isBudgetsLoading || isIncomeLoading || isSavingsLoading));
 
-  if (isUserLoading || isUserDataLoading || (mainContentUser && (isTransactionsLoading || isBudgetsLoading))) {
+
+  if (isLoading) {
     return <SkeletonLoader />;
   }
   
@@ -443,25 +479,29 @@ export function Dashboard() {
                 <div className="flex items-center gap-2">
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                        <Wallet className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
+                        <Wallet className="h-4 w-4 text-primary" />
                       </Button>
                     </DialogTrigger>
-                    <DialogContent>
+                    <DialogContent className="max-w-[400px]">
                        <DialogHeader>
-                        <DialogTitle>Manage Budgets</DialogTitle>
+                        <DialogTitle>Wallet</DialogTitle>
                       </DialogHeader>
                       <BudgetPage 
+                        income={income}
+                        savings={savings}
                         budgets={budgets || []} 
                         categories={categories}
+                        onUpdateIncome={handleUpdateIncome}
+                        onUpdateSavings={handleUpdateSavings}
                         onUpdateBudget={handleUpdateBudget} 
                         onAddCategory={handleAddCategory}
                         onDeleteCategory={handleDeleteCategory}
                       />
                     </DialogContent>
                   </Dialog>
-                  <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
+                  <Button variant="ghost" size="icon" onClick={() => {}} disabled={true} className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
+                    <RefreshCw className={cn("h-4 w-4 text-primary", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
                   </Button>
                   <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <Settings className="h-4 w-4" />
@@ -518,3 +558,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
