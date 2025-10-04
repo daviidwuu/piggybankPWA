@@ -62,8 +62,7 @@ const chartColors = [
 ];
 
 const defaultCategories = [
-  "Food & Drinks", "Gambling", "Drinks", "Girlfriend",
-  "Entertainment", "Shopping", "Transport", "Dad", "Others",
+  "F&B", "Shopping", "Transport", "Bills",
 ];
 
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
@@ -146,17 +145,12 @@ export function Dashboard() {
     // Add default budgets
     if (firestore && user) {
         const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
-        const defaultBudgets = [
-            { Category: "Food & Drinks", MonthlyBudget: 0 },
-            { Category: "Shopping", MonthlyBudget: 0 },
-            { Category: "Transport", MonthlyBudget: 0 },
-            { Category: "Entertainment", MonthlyBudget: 0 },
-            { Category: "Others", MonthlyBudget: 0 },
-        ];
-        defaultBudgets.forEach(budget => {
-            setDocumentNonBlocking(doc(budgetsCollection, budget.Category), budget, { merge: true });
+        defaultCategories.forEach(category => {
+            setDocumentNonBlocking(doc(budgetsCollection, category), { Category: category, MonthlyBudget: 0 }, { merge: true });
         })
     }
+    // Open the budget page for new users
+    setBudgetOpen(true);
   };
 
   const handleEditClick = (transaction: Transaction) => {
@@ -624,3 +618,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
