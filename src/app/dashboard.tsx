@@ -135,9 +135,10 @@ export function Dashboard() {
             const errorData = await res.json();
             errorMessage = errorData.details || errorData.error || errorMessage;
         } catch (e) {
-            const errorText = await res.text();
-            errorMessage = errorText || errorMessage;
+            // If parsing JSON fails, fall back to text
+            errorMessage = await res.text();
         }
+        // We throw an error here to be caught by the catch block below
         throw new Error(errorMessage);
       }
       const { transactions: newTransactions, budgets: newBudgets } = await res.json();
@@ -454,3 +455,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
