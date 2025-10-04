@@ -110,5 +110,3 @@ export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
     </Card>
   );
 }
-
-    
