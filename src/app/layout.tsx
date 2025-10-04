@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Roboto } from 'next/font/google';
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { FirebaseClientProvider } from "@/firebase/client-provider";
 
 const roboto = Roboto({
   subsets: ['latin'],
@@ -50,7 +51,9 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash/ipadpro2_splash.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)" />
       </head>
       <body className={`${roboto.variable} font-body antialiased`} suppressHydrationWarning>
-        {children}
+        <FirebaseClientProvider>
+          {children}
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>

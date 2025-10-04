@@ -96,28 +96,24 @@
       "type": "object",
       "description": "Represents a user of the FinTrack Mini application.",
       "properties": {
-        "id": {
+        "name": {
           "type": "string",
-          "description": "Unique identifier for the User entity."
-        },
-        "username": {
-          "type": "string",
-          "description": "Username of the user."
+          "description": "Display name of the user."
         },
         "email": {
           "type": "string",
           "description": "Email address of the user.",
           "format": "email"
         },
-        "telegramId": {
+        "googleSheetUrl": {
           "type": "string",
-          "description": "Telegram user ID for bot integration."
+          "description": "URL of the user's Google Sheet for data import.",
+          "format": "uri"
         }
       },
       "required": [
-        "id",
-        "username",
-        "email"
+        "name",
+        "googleSheetUrl"
       ]
     },
     "GoogleSheet": {
@@ -190,108 +186,35 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores user profile information.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
-        }
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
       },
-      {
-        "path": "/users/{userId}/financialAccounts/{financialAccountId}",
-        "definition": {
-          "entityName": "FinancialAccount",
-          "schema": {
-            "$ref": "#/backend/entities/FinancialAccount"
-          },
-          "description": "Stores financial account information for a specific user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "financialAccountId",
-              "description": "The unique identifier of the financial account."
-            }
-          ]
-        }
+      "description": "Stores user profile information, including their name and Google Sheet URL."
+    },
+    "/users/{userId}/financialAccounts/{financialAccountId}": {
+      "schema": {
+        "$ref": "#/entities/FinancialAccount"
       },
-      {
-        "path": "/users/{userId}/financialAccounts/{financialAccountId}/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": {
-            "$ref": "#/backend/entities/Transaction"
-          },
-          "description": "Stores transaction information for a specific financial account of a user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "financialAccountId",
-              "description": "The unique identifier of the financial account."
-            },
-            {
-              "name": "transactionId",
-              "description": "The unique identifier of the transaction."
-            }
-          ]
-        }
+      "description": "Stores financial account information for a specific user."
+    },
+    "/users/{userId}/financialAccounts/{financialAccountId}/transactions/{transactionId}": {
+      "schema": {
+        "$ref": "#/entities/Transaction"
       },
-      {
-        "path": "/users/{userId}/googleSheets/{googleSheetId}",
-        "definition": {
-          "entityName": "GoogleSheet",
-          "schema": {
-            "$ref": "#/backend/entities/GoogleSheet"
-          },
-          "description": "Stores Google Sheet URLs and import information for a specific user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "googleSheetId",
-              "description": "The unique identifier of the Google Sheet."
-            }
-          ]
-        }
+      "description": "Stores transaction information for a specific financial account of a user."
+    },
+    "/users/{userId}/googleSheets/{googleSheetId}": {
+      "schema": {
+        "$ref": "#/entities/GoogleSheet"
       },
-      {
-        "path": "/users/{userId}/spendingInsights/{spendingInsightId}",
-        "definition": {
-          "entityName": "SpendingInsight",
-          "schema": {
-            "$ref": "#/backend/entities/SpendingInsight"
-          },
-          "description": "Stores spending insights generated for a specific user.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            },
-            {
-              "name": "spendingInsightId",
-              "description": "The unique identifier of the spending insight."
-            }
-          ]
-        }
-      }
-    ],
-    "reasoning": "The Firestore data structure is designed to ensure security, scalability, and ease of debugging, following the principles of Authorization Independence, Clarity of Intent, DBAC, and QAPs. The design leverages denormalization for authorization, structural segregation for homogeneous security postures, and consistent access modeling.\n\n*   **Authorization Independence:** The structure avoids `get()` calls in security rules by denormalizing authorization data. The `FinancialAccount`, `Transaction`, `GoogleSheet`, and `SpendingInsight` collections are all subcollections of `/users/{userId}`, ensuring that access control can be based solely on the user ID present in the path.\n*   **Structural Segregation:** Each collection stores data with the same access requirements, simplifying security rules.\n*   **Access Modeling:**  The structure uses path-based ownership (`/users/{userId}/...`) for private user data. This ensures that only the authenticated user can access their own financial accounts, transactions, Google Sheets, and spending insights.\n*   **QAPs:** Secure list operations are supported via structural segregation and path-based ownership, ensuring rules are not used as filters.\n\nThis design provides a clear and maintainable data structure that facilitates robust and easily debuggable security rules."
+      "description": "Stores Google Sheet URLs and import information for a specific user."
+    },
+    "/users/{userId}/spendingInsights/{spendingInsightId}": {
+      "schema": {
+        "$ref": "#/entities/SpendingInsight"
+      },
+      "description": "Stores spending insights generated for a specific user."
+    }
   }
 }

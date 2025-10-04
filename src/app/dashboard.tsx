@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -10,7 +9,7 @@ import { DateFilter, type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, format, getDaysInMonth, getDaysInYear } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -23,49 +22,35 @@ import { RefreshCw, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth, useUser, useFirestore, useMemoFirebase } from "@/firebase";
+import { doc, setDoc, getDoc } from "firebase/firestore";
+import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
+import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 
 export type SortOption = 'latest' | 'highest' | 'category';
 
-const categories = [
-  "Food & Drinks",
-  "Gambling",
-  "Drinks",
-  "Girlfriend",
-  "Entertainment",
-  "Shopping",
-  "Transport",
-  "Dad",
-  "Others",
-];
-
 const chartColors = [
-  "#1f77b4", // Muted Blue
-  "#ff7f0e", // Safety Orange
-  "#2ca02c", // Cooked Asparagus Green
-  "#d62728", // Brick Red
-  "#9467bd", // Muted Purple
-  "#8c564b", // Chestnut Brown
-  "#e377c2", // Opera Pink
-  "#7f7f7f", // Middle Gray
-  "#bcbd22", // Curry Yellow-Green
+  "#2563eb", "#f97316", "#22c55e", "#ef4444", "#8b5cf6",
+  "#78350f", "#ec4899", "#64748b", "#f59e0b"
 ];
 
-const categoryColors: { [key: string]: string } = {
-  "Food & Drinks": chartColors[0],
-  "Gambling": chartColors[1],
-  "Drinks": chartColors[2],
-  "Girlfriend": chartColors[3],
-  "Entertainment": chartColors[4],
-  "Shopping": chartColors[5],
-  "Transport": chartColors[6],
-  "Dad": chartColors[7],
-  "Others": chartColors[8],
-};
+const categories = [
+  "Food & Drinks", "Gambling", "Drinks", "Girlfriend",
+  "Entertainment", "Shopping", "Transport", "Dad", "Others",
+];
+
+const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
+  acc[category] = chartColors[index % chartColors.length];
+  return acc;
+}, {} as { [key: string]: string });
 
 
 const CACHE_KEY = 'finTrackMiniCache';
-const SHEET_URL_KEY = 'googleSheetUrl';
-const USER_NAME_KEY = 'userName';
+
+interface UserData {
+    name: string;
+    googleSheetUrl: string;
+}
 
 export function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -79,19 +64,50 @@ export function Dashboard() {
   const [isClient, setIsClient] = useState(false);
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
-  const [googleSheetUrl, setGoogleSheetUrl] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
+  
   const { toast } = useToast();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+  const firestore = useFirestore();
 
-  const handleSetupSave = (data: { name: string; url: string }) => {
-    localStorage.setItem(USER_NAME_KEY, data.name);
-    localStorage.setItem(SHEET_URL_KEY, data.url);
-    setUserName(data.name);
-    setGoogleSheetUrl(data.url);
-    fetchData(true, data.url);
-  };
+  const userDocRef = useMemoFirebase(
+    () => (firestore && user ? doc(firestore, "users", user.uid) : null),
+    [firestore, user]
+  );
+  
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [isUserLoading, user, auth]);
 
-  const fetchData = useCallback(async (revalidate = false, url: string) => {
+  const fetchUserData = useCallback(async () => {
+    if (!userDocRef) return;
+    try {
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data() as UserData;
+            setUserData(data);
+            return data;
+        } else {
+            console.log("No such document!");
+            setUserData(null);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error getting user data:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Could not load user profile.",
+        });
+        return null;
+    }
+  }, [userDocRef, toast]);
+
+
+  const fetchData = useCallback(async (revalidate = false, url: string | undefined) => {
     if (!url) return;
     if (revalidate) {
       setIsRefreshing(true);
@@ -106,7 +122,6 @@ export function Dashboard() {
             const errorData = await res.json();
             errorMessage = errorData.details || errorData.error || errorMessage;
         } catch (e) {
-            // Not a JSON response
             const errorText = await res.text();
             errorMessage = errorText || errorMessage;
         }
@@ -136,25 +151,34 @@ export function Dashboard() {
 
   useEffect(() => {
     setIsClient(true);
-    const storedUrl = localStorage.getItem(SHEET_URL_KEY);
-    const storedName = localStorage.getItem(USER_NAME_KEY);
-    setGoogleSheetUrl(storedUrl);
-    setUserName(storedName);
-
-    if (storedUrl) {
-      const cachedData = localStorage.getItem(CACHE_KEY);
-      if (cachedData) {
-        const { transactions, budgets } = JSON.parse(cachedData);
-        setTransactions(transactions);
-        setBudgets(budgets);
-        setLoading(false); // Instantly show cached data
-      }
-      // Fetch fresh data in the background
-      fetchData(!cachedData, storedUrl);
-    } else {
-      setLoading(false);
+    if (user) {
+        setLoading(true);
+        fetchUserData().then((fetchedUserData) => {
+            if (fetchedUserData?.googleSheetUrl) {
+                 const cachedData = localStorage.getItem(CACHE_KEY);
+                 if (cachedData) {
+                    const { transactions, budgets } = JSON.parse(cachedData);
+                    setTransactions(transactions);
+                    setBudgets(budgets);
+                    setLoading(false);
+                 }
+                 fetchData(!cachedData, fetchedUserData.googleSheetUrl);
+            } else {
+                setLoading(false);
+            }
+        });
+    } else if (!isUserLoading) {
+        setLoading(false);
     }
-  }, [fetchData]);
+  }, [user, isUserLoading, fetchUserData, fetchData]);
+
+  const handleSetupSave = (data: { name: string; url: string }) => {
+    if (!userDocRef) return;
+    const newUserData = { name: data.name, googleSheetUrl: data.url };
+    setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
+    setUserData(newUserData);
+    fetchData(true, data.url);
+  };
 
   const dateFilterRange = useMemo(() => {
     const today = new Date();
@@ -326,11 +350,11 @@ export function Dashboard() {
   const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
 
-  if (loading) {
+  if (loading || isUserLoading) {
     return <SkeletonLoader />;
   }
 
-  if (!googleSheetUrl || !userName) {
+  if (!userData?.googleSheetUrl || !userData?.name) {
     return (
         <div className="flex flex-col min-h-screen bg-background items-center">
             <div className="w-full max-w-[428px] border-x border-border p-6">
@@ -347,7 +371,7 @@ export function Dashboard() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold">Welcome,</h1>
-              <h1 className="text-primary text-3xl font-bold">{userName}</h1>
+              <h1 className="text-primary text-3xl font-bold">{userData.name}</h1>
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
@@ -362,14 +386,14 @@ export function Dashboard() {
                         <DialogTitle>Add New Transaction</DialogTitle>
                       </DialogHeader>
                       <AddTransactionForm 
-                        googleSheetUrl={googleSheetUrl}
+                        googleSheetUrl={userData.googleSheetUrl}
                         setOpen={setAddTransactionOpen} 
-                        onSuccess={() => fetchData(true, googleSheetUrl)}
+                        onSuccess={() => fetchData(true, userData.googleSheetUrl)}
                       />
                     </DialogContent>
                   </Dialog>
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
-                  <Button variant="outline" size="icon" onClick={() => fetchData(true, googleSheetUrl)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                  <Button variant="outline" size="icon" onClick={() => fetchData(true, userData.googleSheetUrl)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
                   </Button>
                 </div>
@@ -398,8 +422,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
-    
-
-    
