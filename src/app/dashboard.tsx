@@ -14,7 +14,7 @@ import { NotificationPermissionDialog } from "@/components/dashboard/notificatio
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
 import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth, differenceInMonths, addMonths } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -356,8 +356,31 @@ export function Dashboard() {
   
   const totalBudget = useMemo(() => {
     if (!userData) return 0;
-    return (userData.income || 0) - (userData.savings || 0);
-  }, [userData]);
+    const monthlyBudget = (userData.income || 0) - (userData.savings || 0);
+    const now = new Date();
+
+    switch (dateRange) {
+      case 'daily':
+        return monthlyBudget / getDaysInMonth(now);
+      case 'week':
+        return (monthlyBudget / getDaysInMonth(now)) * 7;
+      case 'month':
+        return monthlyBudget;
+      case 'yearly':
+        return monthlyBudget * 12;
+      case 'all':
+        if (!transactions || transactions.length === 0) return monthlyBudget;
+        const oldestDate = transactions.reduce((min, t) => {
+          if (!t.Date) return min;
+          const current = toDate(t.Date.seconds * 1000);
+          return current < min ? current : min;
+        }, new Date());
+        const monthSpan = differenceInMonths(now, oldestDate) + 1;
+        return monthlyBudget * Math.max(1, monthSpan);
+      default:
+        return monthlyBudget;
+    }
+  }, [userData, dateRange, transactions]);
 
   const expenseTransactions = useMemo(() => 
     filteredTransactions.filter(t => t.Type === 'Expense'),
