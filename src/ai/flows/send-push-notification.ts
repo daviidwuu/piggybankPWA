@@ -4,13 +4,11 @@
  * @fileOverview A flow to send push notifications to a user's devices.
  * 
  * - sendPushNotification - A function that sends a push notification.
- * - PushNotificationInput - The input type for the sendPushNotification function.
- * - PushNotificationOutput - The return type for the sendPushNotification function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
 import * as admin from 'firebase-admin';
+import { PushNotificationInputSchema, PushNotificationOutputSchema, type PushNotificationInput, type PushNotificationOutput } from './types';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (admin.apps.length === 0) {
@@ -21,19 +19,6 @@ if (admin.apps.length === 0) {
 
 const firestore = admin.firestore();
 const messaging = admin.messaging();
-
-export const PushNotificationInputSchema = z.object({
-  userId: z.string().describe("The ID of the user to send the notification to."),
-  message: z.string().describe("The content of the notification message."),
-});
-export type PushNotificationInput = z.infer<typeof PushNotificationInputSchema>;
-
-export const PushNotificationOutputSchema = z.object({
-  successCount: z.number().describe("The number of messages that were sent successfully."),
-  failureCount: z.number().describe("The number of messages that failed to be sent."),
-  errors: z.array(z.string()).describe("A list of error messages for failed deliveries."),
-});
-export type PushNotificationOutput = z.infer<typeof PushNotificationOutputSchema>;
 
 // This is the exported wrapper function.
 export async function sendPushNotification(input: PushNotificationInput): Promise<PushNotificationOutput> {
