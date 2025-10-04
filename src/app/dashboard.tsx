@@ -401,8 +401,8 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
-      <div className="w-full max-w-[428px] border-x border-border pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-        <main className="flex-1 p-4 space-y-4">
+      <div className="w-full max-w-[428px] border-x border-border pt-[env(safe-area-inset-top)]">
+        <main className="flex-1 p-4 space-y-4 pb-[calc(env(safe-area-inset-bottom)+4rem)]">
            <NotificationPermissionDialog
               open={showNotificationDialog}
               onAllow={handlePermissionRequest}
@@ -469,7 +469,8 @@ export function Dashboard() {
             <DialogTrigger asChild>
                 <Button 
                     variant="default"
-                    className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
+                    className="fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] right-6 h-16 w-16 rounded-full shadow-lg z-50"
+                    style={{ backgroundColor: 'hsl(var(--primary))' }}
                 >
                     <Plus className="h-8 w-8" />
                 </Button>

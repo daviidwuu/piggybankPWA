@@ -14,19 +14,19 @@ body {
     --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 142.1 70% 30%;
+    --primary: 142.1 76% 36%;
     --primary-foreground: 355.7 100% 97.3%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 210 40% 9%;
     --muted: 210 40% 96.1%;
     --muted-foreground: 210 40% 45.1%;
-    --accent: 142.1 70% 30%;
+    --accent: 142.1 76% 36%;
     --accent-foreground: 210 40% 9%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 142.1 70% 30%;
+    --ring: 142.1 76% 36%;
     --chart-1: 210 40% 50%;
     --chart-2: 150 40% 50%;
     --chart-3: 30 80% 55%;
@@ -49,19 +49,19 @@ body {
     --card-foreground: 0 0% 98%;
     --popover: 240 4% 10%;
     --popover-foreground: 0 0% 98%;
-    --primary: 120 100% 25%; /* Green */
+    --primary: 142.1 76% 36%; /* Green */
     --primary-foreground: 0 0% 100%;
     --secondary: 240 4% 15%;
     --secondary-foreground: 0 0% 98%;
     --muted: 240 4% 15%;
     --muted-foreground: 0 0% 60%;
-    --accent: 120 100% 35%; /* Brighter Green */
+    --accent: 142.1 76% 46%; /* Brighter Green */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 4% 15%;
     --input: 240 4% 15%;
-    --ring: 120 100% 35%;
+    --ring: 142.1 76% 46%;
     --chart-1: 140 70% 50%; /* Green shade 1 */
     --chart-2: 150 60% 40%; /* Green shade 2 */
     --chart-3: 130 80% 30%; /* Green shade 3 */
@@ -99,3 +99,5 @@ input[type=number]::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+    
