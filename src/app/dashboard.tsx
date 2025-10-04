@@ -36,6 +36,7 @@ const chartColors = [
 
 const CACHE_KEY = 'finTrackMiniCache';
 const SHEET_URL_KEY = 'googleSheetUrl';
+const USER_NAME_KEY = 'userName';
 
 export function Dashboard() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -50,11 +51,14 @@ export function Dashboard() {
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
   const [googleSheetUrl, setGoogleSheetUrl] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
 
-  const handleUrlSave = (url: string) => {
-    localStorage.setItem(SHEET_URL_KEY, url);
-    setGoogleSheetUrl(url);
-    fetchData(true, url);
+  const handleSetupSave = (data: { name: string; url: string }) => {
+    localStorage.setItem(USER_NAME_KEY, data.name);
+    localStorage.setItem(SHEET_URL_KEY, data.url);
+    setUserName(data.name);
+    setGoogleSheetUrl(data.url);
+    fetchData(true, data.url);
   };
 
   const fetchData = useCallback(async (revalidate = false, url: string) => {
@@ -88,7 +92,9 @@ export function Dashboard() {
   useEffect(() => {
     setIsClient(true);
     const storedUrl = localStorage.getItem(SHEET_URL_KEY);
+    const storedName = localStorage.getItem(USER_NAME_KEY);
     setGoogleSheetUrl(storedUrl);
+    setUserName(storedName);
 
     if (storedUrl) {
       const cachedData = localStorage.getItem(CACHE_KEY);
@@ -278,11 +284,11 @@ export function Dashboard() {
     return <SkeletonLoader />;
   }
 
-  if (!googleSheetUrl) {
+  if (!googleSheetUrl || !userName) {
     return (
         <div className="flex flex-col min-h-screen bg-background items-center">
             <div className="w-full max-w-[428px] border-x border-border p-6">
-                <SetupSheet onSave={handleUrlSave} />
+                <SetupSheet onSave={handleSetupSave} />
             </div>
         </div>
     );
@@ -295,7 +301,7 @@ export function Dashboard() {
           <div className="flex justify-between items-start mb-4">
             <h1 className="text-2xl font-bold">
               <div>Welcome,</div>
-              <div className="text-primary text-3xl">David</div>
+              <div className="text-primary text-3xl">{userName}</div>
             </h1>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">

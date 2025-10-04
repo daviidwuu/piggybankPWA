@@ -24,11 +24,12 @@ import {
 import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
+  name: z.string().min(1, { message: "Please enter your name." }),
   googleSheetUrl: z.string().url({ message: "Please enter a valid URL." }),
 });
 
 interface SetupSheetProps {
-  onSave: (url: string) => void;
+  onSave: (data: { name: string; url: string }) => void;
 }
 
 export function SetupSheet({ onSave }: SetupSheetProps) {
@@ -37,16 +38,14 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      name: "",
       googleSheetUrl: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    // Here you could add a step to validate the sheet URL
-    // For now, we'll just save it.
-    onSave(values.googleSheetUrl);
-    // No need to set loading to false, as the parent component will re-render
+    onSave({ name: values.name, url: values.googleSheetUrl });
   }
 
   return (
@@ -54,12 +53,28 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
         <CardHeader>
             <CardTitle>Welcome to FinTrack Mini</CardTitle>
             <CardDescription>
-                To get started, please enter the URL of your Google Apps Script endpoint.
+                To get started, please enter your name and the URL of your Google Apps Script.
             </CardDescription>
         </CardHeader>
         <CardContent>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                      <FormItem>
+                      <FormLabel>Your Name</FormLabel>
+                      <FormControl>
+                          <Input
+                          placeholder="e.g., David"
+                          {...field}
+                          />
+                      </FormControl>
+                      <FormMessage />
+                      </FormItem>
+                  )}
+                />
                 <FormField
                 control={form.control}
                 name="googleSheetUrl"
