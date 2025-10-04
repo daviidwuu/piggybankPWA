@@ -103,8 +103,8 @@ export function TransactionsTable({
               <TableHeader>
                 <TableRow>
                   <TableHead className="p-1 pl-0">Date</TableHead>
+                  <TableHead className="p-1 text-left">Amount</TableHead>
                   <TableHead className="p-1">Description</TableHead>
-                  <TableHead className="p-1 text-right">Amount</TableHead>
                   <TableHead className="p-1 pr-0 text-right"></TableHead>
                 </TableRow>
               </TableHeader>
@@ -116,6 +116,12 @@ export function TransactionsTable({
                         <TableCell className="font-medium text-sm p-1 pl-0">
                             <div>{date}</div>
                             <div className="text-muted-foreground">{time}</div>
+                        </TableCell>
+                        <TableCell className="font-medium text-sm p-1 text-left">
+                          <div className="flex items-center">
+                            <span>$</span>
+                            <span>{transaction.Amount.toFixed(2)}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="p-1">
                           <div className="flex items-center gap-2">
@@ -131,12 +137,6 @@ export function TransactionsTable({
                               {transaction.Category}
                             </Badge>
                             <span className="font-medium truncate block max-w-[100px] text-sm">{transaction.Notes}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium text-sm p-1 pr-0 text-right">
-                          <div className="flex items-center justify-end">
-                            <span>$</span>
-                            <span>{transaction.Amount.toFixed(2)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="p-1 pr-0 text-right">
