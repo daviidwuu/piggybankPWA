@@ -5,9 +5,7 @@ import { getMessaging, getToken, isSupported } from "firebase/messaging";
 import { collection, addDoc, serverTimestamp, Firestore } from "firebase/firestore";
 import { type FirebaseApp } from "firebase/app";
 
-// This is a placeholder for your VAPID key.
-// You need to generate this in your Firebase project settings.
-// Go to Project settings > Cloud Messaging > Web configuration > Generate key pair
+// This is the VAPID key for your Firebase project. It is required for Web Push notifications.
 const VAPID_KEY = "BBglrgnvLgJ4NVE_A8YSYoIAG9lvRVYQQaZanKuyiDyNzzhlIyQ39lES8VsePTKekVsrczEO2KlBf37JOFlD-RY"; 
 
 /**
@@ -19,7 +17,7 @@ const VAPID_KEY = "BBglrgnvLgJ4NVE_A8YSYoIAG9lvRVYQQaZanKuyiDyNzzhlIyQ39lES8VseP
 export async function requestNotificationPermission(userId: string, firestore: Firestore, app: FirebaseApp) {
   try {
     const supported = await isSupported();
-    if (!supported || typeof window === 'undefined') {
+    if (!supported) {
         console.log("Firebase Messaging is not supported in this browser.");
         return;
     }
@@ -31,7 +29,7 @@ export async function requestNotificationPermission(userId: string, firestore: F
       
       const messaging = getMessaging(app);
 
-      // Get the token
+      // Get the token, providing the VAPID key which is crucial for web push.
       const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
 
       if (currentToken) {
@@ -44,7 +42,8 @@ export async function requestNotificationPermission(userId: string, firestore: F
         });
         console.log("Push token saved to Firestore.");
       } else {
-        console.log("No registration token available. Request permission to generate one.");
+        // This can happen if the service worker isn't ready or there's a configuration issue.
+        console.log("No registration token available. Request permission to generate one or check service worker.");
       }
     } else {
       console.log("Unable to get permission to notify.");
@@ -53,5 +52,3 @@ export async function requestNotificationPermission(userId: string, firestore: F
     console.error("An error occurred while requesting notification permission.", error);
   }
 }
-
-    
