@@ -1,0 +1,323 @@
+{
+  "entities": {
+    "FinancialAccount": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FinancialAccount",
+      "type": "object",
+      "description": "Represents a financial account, such as a bank account or credit card.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the financial account."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the financial account (e.g., 'Checking Account', 'Credit Card')."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of financial account (e.g., 'bank', 'credit', 'investment')."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N FinancialAccount)"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "userId"
+      ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a financial transaction.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transaction."
+        },
+        "accountId": {
+          "type": "string",
+          "description": "Reference to FinancialAccount. (Relationship: FinancialAccount 1:N Transaction)"
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the transaction.",
+          "format": "date-time"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the transaction."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the transaction."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Transaction)"
+        }
+      },
+      "required": [
+        "id",
+        "accountId",
+        "date",
+        "description",
+        "amount",
+        "categoryId"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for classifying transactions.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the category."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the category (e.g., 'Food', 'Transportation', 'Entertainment')."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Category). Indicates the user who created the category."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "userId"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "firstName": {
+          "type": "string",
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "firstName",
+        "lastName"
+      ]
+    },
+    "ImportedData": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ImportedData",
+      "type": "object",
+      "description": "Represents the imported financial data from an external source (e.g., Google Sheet).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the imported data entry."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N ImportedData)"
+        },
+        "sourceUrl": {
+          "type": "string",
+          "description": "URL of the data source (e.g., Google Sheet URL)."
+        },
+        "importDate": {
+          "type": "string",
+          "description": "Date and time when the data was imported.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "sourceUrl",
+        "importDate"
+      ]
+    },
+    "TelegramIntegration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "TelegramIntegration",
+      "type": "object",
+      "description": "Represents the integration with a Telegram bot for automated notifications.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Telegram integration."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N TelegramIntegration)"
+        },
+        "telegramChatId": {
+          "type": "string",
+          "description": "The Telegram chat ID associated with the user."
+        },
+        "notificationEnabled": {
+          "type": "boolean",
+          "description": "Indicates whether Telegram notifications are enabled."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "telegramChatId",
+        "notificationEnabled"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Collection to store user profiles.  Root document for user-specific data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/financialAccounts/{accountId}",
+        "definition": {
+          "entityName": "FinancialAccount",
+          "schema": {
+            "$ref": "#/backend/entities/FinancialAccount"
+          },
+          "description": "Collection of financial accounts owned by a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "accountId",
+              "description": "The unique identifier of the financial account."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/financialAccounts/{accountId}/transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": {
+            "$ref": "#/backend/entities/Transaction"
+          },
+          "description": "Collection of transactions associated with a specific financial account of a user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "accountId",
+              "description": "The unique identifier of the financial account."
+            },
+            {
+              "name": "transactionId",
+              "description": "The unique identifier of the transaction."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Collection of categories created by a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "categoryId",
+              "description": "The unique identifier of the category."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/importedData/{importedDataId}",
+        "definition": {
+          "entityName": "ImportedData",
+          "schema": {
+            "$ref": "#/backend/entities/ImportedData"
+          },
+          "description": "Collection of imported data entries for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "importedDataId",
+              "description": "The unique identifier of the imported data entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/telegramIntegrations/{telegramIntegrationId}",
+        "definition": {
+          "entityName": "TelegramIntegration",
+          "schema": {
+            "$ref": "#/backend/entities/TelegramIntegration"
+          },
+          "description": "Collection of Telegram integrations for a specific user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "telegramIntegrationId",
+              "description": "The unique identifier of the Telegram integration."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, support QAPs (queries are not filters), and maintain data clarity.  User-owned data is segregated under `/users/{userId}` paths for easy management and security.  Authorization independence is achieved by relying on path-based ownership for most collections.\n\n*   `/users/{userId}`:  The foundation of the structure. All user-related data resides under this path, simplifying ownership-based security rules.\n*   `/users/{userId}/financialAccounts/{accountId}`: Financial accounts are owned by the user, as indicated by the hierarchical path.\n*   `/users/{userId}/categories/{categoryId}`: Categories are specific to each user.\n*   `/users/{userId}/importedData/{importedDataId}`: Imported data is specific to each user.\n*   `/users/{userId}/telegramIntegrations/{telegramIntegrationId}`: Telegram integrations are specific to each user.\n*   `/users/{userId}/financialAccounts/{accountId}/transactions/{transactionId}`: Transactions are nested under financial accounts owned by a specific user. This ensures clear ownership and simplifies security rules.\n\nThis structure directly supports QAPs by ensuring that listing operations can be secured by checking the user ID in the path against `request.auth.uid`, without requiring complex filtering or `get()` calls in security rules."
+  }
+}

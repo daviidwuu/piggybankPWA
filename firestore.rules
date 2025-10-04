@@ -1,0 +1,228 @@
+/**
+ * @file Firestore Security Rules
+ * @version 2
+ *
+ * @corePhilosophy This ruleset enforces a strict user-ownership model, where each user has exclusive access to their own data,
+ *                 and no cross-user access is permitted.  All data is nested under /users/{userId}.
+ *
+ * @dataStructure
+ * - /users/{userId}:  Root collection for user profiles. Only the authenticated user can read or write their own profile.
+ * - /users/{userId}/financialAccounts/{accountId}: Financial accounts owned by the user.
+ * - /users/{userId}/categories/{categoryId}: Categories are specific to each user.
+ * - /users/{userId}/importedData/{importedDataId}: Imported data is specific to each user.
+ * - /users/{userId}/telegramIntegrations/{telegramIntegrationId}: Telegram integrations are specific to each user.
+ * - /users/{userId}/financialAccounts/{accountId}/transactions/{transactionId}: Transactions are nested under financial accounts owned by a specific user.
+ *
+ * @keySecurityDecisions
+ * - User listing is disallowed to protect user privacy.
+ * - All collections enforce strict ownership; a user can only access data under their own /users/{userId} path.
+ * - The rules explicitly deny any ambiguous or unspecified access to ensure a secure default posture.
+ *
+ * @denormalizationForAuthorization To create simpler, more performant rules, data required for authorization (specifically, the userId)
+ *                                 is denormalized into the documents themselves. This avoids costly `get()` calls.
+ *                                 For example, each financialAccount document has a 'userId' field that must match the path.
+ *
+ * @structuralSegregation All user-specific data is segregated under the /users/{userId} collection, ensuring clear ownership and
+ *                         preventing accidental data leaks.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to user profiles.
+     * @path /users/{userId}
+     * @allow (create) User with ID 'user123' can create their profile: `request.auth.uid == 'user123'` and `request.resource.data.id == 'user123'`.
+     * @allow (get) User with ID 'user123' can read their own profile: `request.auth.uid == 'user123'`.
+     * @allow (update) User with ID 'user123' can update their profile: `request.auth.uid == 'user123'` and the document exists.
+     * @allow (delete) User with ID 'user123' can delete their own profile: `request.auth.uid == 'user123'` and the document exists.
+     * @deny (create) User with ID 'user123' cannot create a profile with a different ID: `request.auth.uid == 'user456'` and `request.resource.data.id == 'user123'`.
+     * @deny (get) User with ID 'user123' cannot read another user's profile: `request.auth.uid == 'user456'`.
+     * @deny (update) User with ID 'user123' cannot update another user's profile: `request.auth.uid == 'user456'`.
+     * @deny (delete) User with ID 'user123' cannot delete another user's profile: `request.auth.uid == 'user456'`.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data for reads.
+     */
+    match /users/{userId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the resource.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if false; // User listing is not allowed for privacy.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to financial accounts owned by a specific user.
+     * @path /users/{userId}/financialAccounts/{accountId}
+     * @allow (create) User with ID 'user123' can create a financial account under their profile: `request.auth.uid == 'user123'` and `request.resource.data.userId == 'user123'`.
+     * @allow (get) User with ID 'user123' can read their own financial account: `request.auth.uid == 'user123'`.
+     * @allow (list) User with ID 'user123' can list their own financial accounts: `request.auth.uid == 'user123'`.
+     * @allow (update) User with ID 'user123' can update their own financial account: `request.auth.uid == 'user123'` and the document exists.
+     * @allow (delete) User with ID 'user123' can delete their own financial account: `request.auth.uid == 'user123'` and the document exists.
+     * @deny (create) User with ID 'user123' cannot create a financial account for another user: `request.auth.uid == 'user456'` and `request.resource.data.userId == 'user123'`.
+     * @deny (get) User with ID 'user123' cannot read another user's financial account: `request.auth.uid == 'user456'`.
+     * @deny (list) User with ID 'user123' cannot list another user's financial accounts: `request.auth.uid == 'user456'`.
+     * @deny (update) User with ID 'user123' cannot update another user's financial account: `request.auth.uid == 'user456'`.
+     * @deny (delete) User with ID 'user123' cannot delete another user's financial account: `request.auth.uid == 'user456'`.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data, and validates relational integrity.
+     */
+    match /users/{userId}/financialAccounts/{accountId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the resource.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to transactions associated with a specific financial account of a user.
+     * @path /users/{userId}/financialAccounts/{accountId}/transactions/{transactionId}
+     * @allow (create) User with ID 'user123' can create a transaction under their financial account: `request.auth.uid == 'user123'`.
+     * @allow (get) User with ID 'user123' can read their own transaction: `request.auth.uid == 'user123'`.
+     * @allow (list) User with ID 'user123' can list their own transactions: `request.auth.uid == 'user123'`.
+     * @allow (update) User with ID 'user123' can update their own transaction: `request.auth.uid == 'user123'` and the document exists.
+     * @allow (delete) User with ID 'user123' can delete their own transaction: `request.auth.uid == 'user123'` and the document exists.
+     * @deny (create) User with ID 'user123' cannot create a transaction for another user: `request.auth.uid == 'user456'`.
+     * @deny (get) User with ID 'user123' cannot read another user's transaction: `request.auth.uid == 'user456'`.
+     * @deny (list) User with ID 'user123' cannot list another user's transactions: `request.auth.uid == 'user456'`.
+     * @deny (update) User with ID 'user123' cannot update another user's transaction: `request.auth.uid == 'user456'`.
+     * @deny (delete) User with ID 'user123' cannot delete another user's transaction: `request.auth.uid == 'user456'`.
+     * @principle Enforces document ownership for writes and restricts access to a user's own data.
+     */
+    match /users/{userId}/financialAccounts/{accountId}/transactions/{transactionId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the resource.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to categories created by a specific user.
+     * @path /users/{userId}/categories/{categoryId}
+     * @allow (create) User with ID 'user123' can create a category under their profile: `request.auth.uid == 'user123'` and `request.resource.data.userId == 'user123'`.
+     * @allow (get) User with ID 'user123' can read their own category: `request.auth.uid == 'user123'`.
+     * @allow (list) User with ID 'user123' can list their own categories: `request.auth.uid == 'user123'`.
+     * @allow (update) User with ID 'user123' can update their own category: `request.auth.uid == 'user123'` and the document exists.
+     * @allow (delete) User with ID 'user123' can delete their own category: `request.auth.uid == 'user123'` and the document exists.
+     * @deny (create) User with ID 'user123' cannot create a category for another user: `request.auth.uid == 'user456'` and `request.resource.data.userId == 'user123'`.
+     * @deny (get) User with ID 'user123' cannot read another user's category: `request.auth.uid == 'user456'`.
+     * @deny (list) User with ID 'user123' cannot list another user's categories: `request.auth.uid == 'user456'`.
+     * @deny (update) User with ID 'user123' cannot update another user's category: `request.auth.uid == 'user456'`.
+     * @deny (delete) User with ID 'user123' cannot delete another user's category: `request.auth.uid == 'user456'`.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data, and validates relational integrity.
+     */
+    match /users/{userId}/categories/{categoryId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the resource.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to imported data entries for a specific user.
+     * @path /users/{userId}/importedData/{importedDataId}
+     * @allow (create) User with ID 'user123' can create an imported data entry under their profile: `request.auth.uid == 'user123'` and `request.resource.data.userId == 'user123'`.
+     * @allow (get) User with ID 'user123' can read their own imported data entry: `request.auth.uid == 'user123'`.
+     * @allow (list) User with ID 'user123' can list their own imported data entries: `request.auth.uid == 'user123'`.
+     * @allow (update) User with ID 'user123' can update their own imported data entry: `request.auth.uid == 'user123'` and the document exists.
+     * @allow (delete) User with ID 'user123' can delete their own imported data entry: `request.auth.uid == 'user123'` and the document exists.
+     * @deny (create) User with ID 'user123' cannot create an imported data entry for another user: `request.auth.uid == 'user456'` and `request.resource.data.userId == 'user123'`.
+     * @deny (get) User with ID 'user123' cannot read another user's imported data entry: `request.auth.uid == 'user456'`.
+     * @deny (list) User with ID 'user123' cannot list another user's imported data entries: `request.auth.uid == 'user456'`.
+     * @deny (update) User with ID 'user123' cannot update another user's imported data entry: `request.auth.uid == 'user456'`.
+     * @deny (delete) User with ID 'user123' cannot delete another user's imported data entry: `request.auth.uid == 'user456'`.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data, and validates relational integrity.
+     */
+    match /users/{userId}/importedData/{importedDataId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the resource.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to Telegram integrations for a specific user.
+     * @path /users/{userId}/telegramIntegrations/{telegramIntegrationId}
+     * @allow (create) User with ID 'user123' can create a Telegram integration under their profile: `request.auth.uid == 'user123'` and `request.resource.data.userId == 'user123'`.
+     * @allow (get) User with ID 'user123' can read their own Telegram integration: `request.auth.uid == 'user123'`.
+     * @allow (list) User with ID 'user123' can list their own Telegram integrations: `request.auth.uid == 'user123'`.
+     * @allow (update) User with ID 'user123' can update their own Telegram integration: `request.auth.uid == 'user123'` and the document exists.
+     * @allow (delete) User with ID 'user123' can delete their own Telegram integration: `request.auth.uid == 'user123'` and the document exists.
+     * @deny (create) User with ID 'user123' cannot create a Telegram integration for another user: `request.auth.uid == 'user456'` and `request.resource.data.userId == 'user123'`.
+     * @deny (get) User with ID 'user123' cannot read another user's Telegram integration: `request.auth.uid == 'user456'`.
+     * @deny (list) User with ID 'user123' cannot list another user's Telegram integrations: `request.auth.uid == 'user456'`.
+     * @deny (update) User with ID 'user123' cannot update another user's Telegram integration: `request.auth.uid == 'user456'`.
+     * @deny (delete) User with ID 'user123' cannot delete another user's Telegram integration: `request.auth.uid == 'user456'`.
+     * @principle Enforces document ownership for writes, restricts access to a user's own data, and validates relational integrity.
+     */
+    match /users/{userId}/telegramIntegrations/{telegramIntegrationId} {
+      // Helper function to check if the authenticated user is the owner of the resource.
+      function isOwner(userId) {
+        return request.auth != null && request.auth.uid == userId;
+      }
+
+      // Helper function to check if the authenticated user is the existing owner of the resource.
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+  }
+}
