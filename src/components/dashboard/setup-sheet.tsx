@@ -52,7 +52,7 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
   return (
     <Card className="w-full max-w-md">
         <CardHeader>
-            <CardTitle>Welcome to FinTrack Mini</CardTitle>
+            <CardTitle>Welcome to piggybank</CardTitle>
             <CardDescription>
                 To get started, please enter your name and the URL of your Google Apps Script.
             </CardDescription>

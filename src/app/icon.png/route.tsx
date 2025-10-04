@@ -4,7 +4,7 @@ import { ImageResponse } from 'next/og'
 export const runtime = 'edge'
 
 // Image metadata
-export const alt = 'FinTrack Mini'
+export const alt = 'piggybank'
 export const size = {
   width: 192,
   height: 192,

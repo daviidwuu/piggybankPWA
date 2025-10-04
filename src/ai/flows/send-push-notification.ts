@@ -72,7 +72,7 @@ const sendPushNotificationFlow = ai.defineFlow(
     // 2. Construct the push message payload
     const payload: admin.messaging.MessagingPayload = {
       notification: {
-        title: 'FinTrack Mini',
+        title: 'piggybank',
         body: message,
         icon: '/icon.png',
       },
