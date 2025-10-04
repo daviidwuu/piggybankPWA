@@ -86,7 +86,7 @@
         "definition": {
           "entityName": "User",
           "schema": {
-            "$ref": "#/backend/entities/User"
+            "$ref": "#/entities/User"
           },
           "description": "Stores user data. Only the authenticated user can write to their own document."
         }
@@ -95,7 +95,7 @@
         "path": "/users/{userId}/transactions/{transactionId}",
         "definition": {
             "entityName": "Transaction",
-            "schema": { "$ref": "#/backend/entities/Transaction" },
+            "schema": { "$ref": "#/entities/Transaction" },
             "description": "Stores individual transactions for a user. Only the user can access their own transactions."
         }
       },
@@ -103,7 +103,7 @@
           "path": "/users/{userId}/budgets/{budgetId}",
           "definition": {
               "entityName": "Budget",
-              "schema": { "$ref": "#/backend/entities/Budget" },
+              "schema": { "$ref": "#/entities/Budget" },
               "description": "Stores budget configurations for a user."
           }
       },
@@ -111,7 +111,7 @@
         "path": "/users/{userId}/financials/income",
         "definition": {
           "entityName": "Income",
-          "schema": { "$ref": "#/backend/entities/Income" },
+          "schema": { "$ref": "#/entities/Income" },
           "description": "Stores the user's income. Only the user can access their own income data."
         }
       },
@@ -119,7 +119,7 @@
         "path": "/users/{userId}/financials/savings",
         "definition": {
           "entityName": "Savings",
-          "schema": { "$ref": "#/backend/entities/Savings" },
+          "schema": { "$ref": "#/entities/Savings" },
           "description": "Stores the user's savings goal. Only the user can access their own savings data."
         }
       }
