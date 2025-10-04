@@ -12,7 +12,7 @@ import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format } from 'date-fns';
 import {
   Dialog,
   DialogContent,
@@ -315,39 +315,10 @@ export function Dashboard() {
     });
   }, [isClient, transactions, dateRange, dateFilterRange]);
   
-  const scaledBudget = useMemo(() => {
-    if (!isClient || !budgets?.length) return 0;
-
-    const monthlyBudget = budgets.reduce((sum, b) => sum + b.MonthlyBudget, 0);
-    if (monthlyBudget === 0) return 0;
-  
-    const today = new Date();
-    switch (dateRange) {
-      case 'daily':
-        return monthlyBudget / getDaysInMonth(today);
-      case 'week':
-        return monthlyBudget / 4; // Approximation for a week
-      case 'yearly':
-        return monthlyBudget * 12;
-      case 'month':
-        return monthlyBudget;
-      case 'all': {
-        if (!transactions?.length) return monthlyBudget;
-        const dates = transactions
-          .map(t => toDate(t.Date!.seconds * 1000))
-          .filter(d => !isNaN(d.getTime()));
-        if (dates.length < 2) return monthlyBudget;
-        
-        const minDate = dates.reduce((min, d) => d < min ? d : min);
-        const maxDate = dates.reduce((max, d) => d > max ? d : max);
-
-        const monthDiff = (maxDate.getFullYear() - minDate.getFullYear()) * 12 + (maxDate.getMonth() - minDate.getMonth()) + 1;
-        return monthlyBudget * Math.max(1, monthDiff);
-      }
-      default:
-        return monthlyBudget;
-    }
-  }, [isClient, budgets, dateRange, transactions]);
+  const totalBudget = useMemo(() => {
+    if (!userData) return 0;
+    return (userData.income || 0) - (userData.savings || 0);
+  }, [userData]);
 
   const expenseTransactions = useMemo(() => 
     filteredTransactions.filter(t => t.Type === 'Expense'),
@@ -492,7 +463,7 @@ export function Dashboard() {
           
           <Balance
             totalSpending={totalSpent}
-            budget={scaledBudget}
+            budget={totalBudget}
             aggregatedData={aggregatedData}
             chartConfig={chartConfig}
             dateRange={dateRange}
@@ -538,5 +509,7 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
 
     
