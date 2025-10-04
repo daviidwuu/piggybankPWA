@@ -72,9 +72,9 @@ const sendPushNotificationFlow = ai.defineFlow(
     // 2. Construct the push message payload
     const payload: admin.messaging.MessagingPayload = {
       notification: {
-        title: 'New Transaction Added',
+        title: 'FinTrack Mini',
         body: message,
-        icon: '/icon.png', // Optional: path to an icon
+        icon: '/icon.png',
       },
     };
 
