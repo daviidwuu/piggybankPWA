@@ -16,15 +16,19 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { doc, getDoc } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword,
+  type AuthError
+} from 'firebase/auth';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+
 
 export default function LoginPage() {
   const auth = useAuth();
-  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
-  const [userId, setUserId] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -35,128 +39,149 @@ export default function LoginPage() {
     }
   }, [isUserLoading, user, router]);
 
-  if (isUserLoading || user) {
-    return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  }
+  const handleAuthError = (error: AuthError) => {
+    let title = 'Authentication Failed';
+    let description = 'An unexpected error occurred. Please try again.';
 
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!userId.trim()) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'User ID cannot be empty.',
-      });
-      return;
+    switch (error.code) {
+        case 'auth/user-not-found':
+            description = 'No account found with this email. Please sign up.';
+            break;
+        case 'auth/wrong-password':
+            description = 'Incorrect password. Please try again.';
+            break;
+        case 'auth/email-already-in-use':
+            description = 'This email is already in use. Please sign in.';
+            break;
+        case 'auth/weak-password':
+            description = 'The password is too weak. It must be at least 6 characters long.';
+            break;
+        case 'auth/invalid-email':
+            description = 'The email address is not valid.';
+            break;
+        default:
+            console.error('Authentication error:', error);
+            break;
     }
+    
+    toast({ variant: 'destructive', title, description });
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
-
     try {
-      const userDocRef = doc(firestore, 'users', userId.trim());
-      const userDoc = await getDoc(userDocRef);
-
-      if (!userDoc.exists()) {
-        toast({
-          variant: 'destructive',
-          title: 'Login Failed',
-          description: 'No user found with that ID.',
-        });
-        setIsLoading(false);
-        return;
-      }
-      
-      // Since we can't "log in" as an existing anonymous user directly,
-      // we'll sign in a new anonymous user and then just route to the main page.
-      // The AuthGuard will see the new user, and the dashboard will load data for the provided UID.
-      // This is a workaround for the user's request. A real app would use a proper auth provider.
-      // A better flow would be to create a custom token on a server and use signInWithCustomToken.
-      // For this environment, we will just create a new anonymous user to satisfy the auth guard.
-      await signInAnonymously(auth);
-
-      // We are not actually using the credentials of the user with 'userId',
-      // but we need to signal to the app that we intend to use this user's data.
-      // A robust way is to store this in session storage and have the dashboard read it.
-      sessionStorage.setItem('targetedUserId', userId.trim());
-
+      await createUserWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle redirection
       toast({
-        title: 'Success',
-        description: `Welcome back!`,
+        title: 'Account Created',
+        description: "Welcome! Let's get you set up.",
       });
-
-      router.push('/');
-
     } catch (error) {
-      console.error('Login error:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: 'An unexpected error occurred. Please try again.',
-      });
+      handleAuthError(error as AuthError);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCreateAccount = async () => {
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
     try {
-      const userCredential = await signInAnonymously(auth);
-      const newUserId = userCredential.user.uid;
-      
-      // Store the new ID so the setup sheet knows who to create the document for.
-      sessionStorage.setItem('targetedUserId', newUserId);
-      
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle redirection
       toast({
-        title: 'Account Created',
-        description: 'You can now set up your profile.',
+        title: 'Signed In',
+        description: 'Welcome back!',
       });
-      router.push('/'); // Redirect to the setup page (which is the root page for new users)
     } catch (error) {
-        console.error('Anonymous sign-in error:', error);
-        toast({
-            variant: 'destructive',
-            title: 'Error',
-            description: 'Could not create a guest account.',
-        });
+      handleAuthError(error as AuthError);
     } finally {
-        setIsLoading(false);
+      setIsLoading(false);
     }
+  };
+
+  if (isUserLoading || (!isUserLoading && user)) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl text-center">piggybank</CardTitle>
-          <CardDescription className="text-center">
-            Enter your User ID to log in or create a new account.
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">piggybank</CardTitle>
+          <CardDescription>
+            Sign in to your account or create a new one.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="userId">User ID</Label>
-              <Input
-                id="userId"
-                type="text"
-                placeholder="Your unique User ID"
-                required
-                value={userId}
-                onChange={(e) => setUserId(e.target.value)}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Log In
-            </Button>
-          </form>
-          <div className="mt-4 text-center text-sm">
-            Don't have an account?{' '}
-            <Button variant="link" className="p-0 h-auto" onClick={handleCreateAccount} disabled={isLoading}>
-              Create one
-            </Button>
-          </div>
+          <Tabs defaultValue="signin" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="signin">Sign In</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            <TabsContent value="signin">
+                <form onSubmit={handleSignIn} className="grid gap-4 pt-4">
+                    <div className="grid gap-2">
+                    <Label htmlFor="email-signin">Email</Label>
+                    <Input
+                        id="email-signin"
+                        type="email"
+                        placeholder="m@example.com"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                    />
+                    </div>
+                    <div className="grid gap-2">
+                    <Label htmlFor="password-signin">Password</Label>
+                    <Input 
+                        id="password-signin" 
+                        type="password" 
+                        required 
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
+                    </div>
+                    <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Sign In'}
+                    </Button>
+                </form>
+            </TabsContent>
+            <TabsContent value="signup">
+                <form onSubmit={handleSignUp} className="grid gap-4 pt-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="email-signup">Email</Label>
+                        <Input
+                            id="email-signup"
+                            type="email"
+                            placeholder="m@example.com"
+                            required
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="password-signup">Password</Label>
+                        <Input 
+                            id="password-signup" 
+                            type="password" 
+                            required 
+                            placeholder="Must be at least 6 characters"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                    </div>
+                    <Button type="submit" className="w-full mt-2" disabled={isLoading}>
+                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 'Create Account'}
+                    </Button>
+                </form>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>

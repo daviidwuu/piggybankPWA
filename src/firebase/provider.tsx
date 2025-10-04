@@ -79,16 +79,6 @@ export const FirebaseProvider: React.FC<FirebaseProviderProps> = ({
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => { // Auth state determined
-        if (firebaseUser && typeof window !== 'undefined') {
-            const targetedUserId = sessionStorage.getItem('targetedUserId');
-            if (targetedUserId && firebaseUser.uid !== targetedUserId) {
-                // This is a hack to align the auth state with the user's intended data context
-                Object.defineProperty(firebaseUser, 'uid', {
-                    value: targetedUserId,
-                    writable: false,
-                });
-            }
-        }
         setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
       },
       (error) => { // Auth listener error
