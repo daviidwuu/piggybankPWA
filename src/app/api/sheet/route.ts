@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
     });
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch sheet data: ${res.statusText}`);
+      const errorText = await res.text();
+      console.error("Google Apps Script Error:", errorText);
+      throw new Error(`Failed to fetch sheet data: ${res.statusText} - ${errorText}`);
     }
 
     // Expect a response with { transactions: [], budgets: [] }
