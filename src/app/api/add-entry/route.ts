@@ -27,21 +27,39 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
+      // IMPORTANT: Don't follow redirects automatically, as this can obscure the real error
+      redirect: 'manual', 
     });
-
-    if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Google Apps Script Error:", errorText);
-        // Propagate the actual error from the script
-        return NextResponse.json(
-            { error: "Google Apps Script failed.", details: errorText },
-            { status: response.status }
-        );
+    
+    // If the Apps Script redirects (e.g., to an error page), it's a failure.
+    if (response.type === 'opaqueredirect' || response.status > 300) {
+        let details = `Request to Google Apps Script failed with status: ${response.status}. This might be due to an incorrect URL or an issue with the script itself.`;
+         // Try to get more details if possible, but handle cases where it's not JSON
+        try {
+            const errorText = await response.text();
+            // Check if the error text is actually HTML
+            if (errorText.trim().startsWith('<!DOCTYPE html>')) {
+              details += ' The script returned an HTML page instead of JSON, which usually indicates a login or permission issue on the Google side.';
+            } else {
+              details += ` Response: ${errorText}`;
+            }
+        } catch (e) {
+            // Ignore if we can't read the body
+        }
+        console.error("Google Apps Script Error:", details);
+        return NextResponse.json({ error: "Google Apps Script failed.", details }, { status: 502 });
+    }
+    
+    const contentType = response.headers.get("content-type");
+    if (contentType && contentType.indexOf("application/json") !== -1) {
+        const result = await response.json();
+        return NextResponse.json({ success: true, data: result });
+    } else {
+        const details = "The Google Apps Script did not return a valid JSON response.";
+        console.error("Google Apps Script Error:", details);
+        return NextResponse.json({ error: "Invalid response from Google Apps Script.", details }, { status: 502 });
     }
 
-    const result = await response.json();
-    
-    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     console.error("Failed to add entry via Google Sheet:", error);
     const errorMessage = error instanceof Error ? error.message : "An unknown error occurred";

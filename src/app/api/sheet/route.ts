@@ -18,22 +18,34 @@ export async function GET(request: NextRequest) {
     const res = await fetch(`${googleSheetUrl}?all=1`, {
       method: 'GET',
       cache: 'no-store',
+      // IMPORTANT: Don't follow redirects automatically, as this can obscure the real error
+      redirect: 'manual', 
     });
 
-    if (!res.ok) {
-      let errorDetails = `Failed to fetch sheet data: ${res.statusText}`;
-      try {
-        // The Apps Script might return a JSON error object
-        const errorJson = await res.json();
-        errorDetails = errorJson.error || errorJson.message || errorDetails;
-      } catch (e) {
-        // If not, it might be plain text or HTML
-        const errorText = await res.text();
-        errorDetails = errorText || errorDetails;
-      }
-      console.error("Google Apps Script Error:", errorDetails);
-      // We throw here to be caught by the outer catch block, ensuring a consistent error response format.
-      throw new Error(errorDetails);
+    // If the Apps Script redirects (e.g., to a login page), it's a failure.
+    if (res.type === 'opaqueredirect' || res.status > 300) {
+        let details = `Request to Google Apps Script failed with status: ${res.status}. This might be due to an incorrect URL or an issue with the script.`;
+        // Try to get more details if possible
+        try {
+            const errorText = await res.text();
+             // Check if the error text is actually HTML
+            if (errorText.trim().startsWith('<!DOCTYPE html>')) {
+              details += ' The script returned an HTML page instead of JSON. This often means you need to re-authorize the script or check its permissions in Google Apps Script.';
+            } else {
+              details += ` Response: ${errorText}`;
+            }
+        } catch (e) {
+             // Ignore if we can't read the body
+        }
+        console.error("Google Apps Script Error:", details);
+        return NextResponse.json({ error: "Google Apps Script failed.", details }, { status: 502 }); // 502 Bad Gateway is appropriate here
+    }
+
+    const contentType = res.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+        const details = `Expected JSON response but got ${contentType || 'an unknown content type'}. Please check the Google Apps Script.`;
+        console.error("Google Apps Script Error:", details);
+        return NextResponse.json({ error: "Invalid response from Google Apps Script.", details }, { status: 502 });
     }
     
     const data = await res.json();
