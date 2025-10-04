@@ -1,13 +1,14 @@
 export interface Transaction {
-  ID: string; // Column A
-  Date: string | null; // Column B - Can be null if date is invalid
-  Amount: number; // Column C
-  Type: string; // Column D (Income / Expense)
-  Category: string; // Column E
-  Notes: string; // Column F
+  id: string;
+  Date: { seconds: number; nanoseconds: number; } | null;
+  Amount: number;
+  Type: string;
+  Category: string;
+  Notes: string;
 }
 
 export interface Budget {
+  id: string;
   Category: string;
   MonthlyBudget: number;
 }

@@ -23,11 +23,12 @@ import { RefreshCw, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp } from "@/firebase";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
+import { doc, setDoc, getDoc, collection, query, orderBy } from "firebase/firestore";
 import { initiateAnonymousSignIn } from "@/firebase/non-blocking-login";
 import { setDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
+import { toDate } from "date-fns";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -47,20 +48,13 @@ const categoryColors: { [key: string]: string } = categories.reduce((acc, catego
   return acc;
 }, {} as { [key: string]: string });
 
-
-const CACHE_KEY = 'finTrackMiniCache';
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 
 interface UserData {
     name: string;
-    googleSheetUrl: string;
 }
 
 export function Dashboard() {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(5);
@@ -68,7 +62,6 @@ export function Dashboard() {
   const [isClient, setIsClient] = useState(false);
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   
   const { toast } = useToast();
@@ -82,119 +75,64 @@ export function Dashboard() {
     [firestore, user]
   );
   
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserData>(userDocRef);
+
+  const transactionsQuery = useMemoFirebase(
+    () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc')) : null),
+    [firestore, user]
+  );
+  const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsQuery);
+
+  const budgetsQuery = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, `users/${user.uid}/budgets`) : null),
+    [firestore, user]
+  );
+  const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
+
+  
   useEffect(() => {
     if (!isUserLoading && !user) {
       initiateAnonymousSignIn(auth);
     }
   }, [isUserLoading, user, auth]);
 
-  const fetchUserData = useCallback(async () => {
-    if (!userDocRef) return;
-    try {
-        const docSnap = await getDoc(userDocRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data() as UserData;
-            setUserData(data);
-            
-            // Check if we should prompt for notifications
-            const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
-            if (!alreadyPrompted && Notification.permission === 'default') {
-                setTimeout(() => setShowNotificationDialog(true), 2000); // Delay for better UX
-            }
-            
-            return data;
-        } else {
-            console.log("No such document!");
-            setUserData(null);
-            return null;
-        }
-    } catch (error) {
-        console.error("Error getting user data:", error);
-        toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Could not load user profile.",
-        });
-        return null;
-    }
-  }, [userDocRef, toast]);
-
-
-  const fetchData = useCallback(async (revalidate = false, url: string | undefined) => {
-    if (!url) return;
-    if (revalidate) {
-      setIsRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-    try {
-      const res = await fetch(`/api/sheet?url=${encodeURIComponent(url)}`);
-      
-      const resJson = await res.json();
-
-      if (!res.ok) {
-        // Use the detailed error message from the API if available
-        const errorMessage = resJson.details || resJson.error || 'An unexpected error occurred while fetching data.';
-        throw new Error(errorMessage);
-      }
-      const { transactions: newTransactions, budgets: newBudgets } = resJson;
-      setTransactions(newTransactions);
-      setBudgets(newBudgets);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ transactions: newTransactions, budgets: newBudgets, timestamp: Date.now() }));
-      }
-    } catch (err) {
-      console.error("Error loading data:", err);
-      const errorMessage = err instanceof Error ? err.message : "An unknown error occurred";
-      toast({
-        variant: "destructive",
-        title: "Data Load Error",
-        description: errorMessage,
-      });
-    } finally {
-      if (revalidate) {
-        setIsRefreshing(false);
-      }
-      setLoading(false);
-    }
-  }, [toast]);
-
+  
   useEffect(() => {
     setIsClient(true);
-    if (user) {
-        setLoading(true);
-        fetchUserData().then((fetchedUserData) => {
-            if (fetchedUserData?.googleSheetUrl) {
-                 const cachedData = localStorage.getItem(CACHE_KEY);
-                 if (cachedData) {
-                    const { transactions, budgets } = JSON.parse(cachedData);
-                    setTransactions(transactions);
-                    setBudgets(budgets);
-                    setLoading(false);
-                 }
-                 fetchData(!cachedData, fetchedUserData.googleSheetUrl);
-            } else {
-                setLoading(false);
-            }
-        });
-    } else if (!isUserLoading) {
-        setLoading(false);
+    if (userData) {
+      const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
+      if (!alreadyPrompted && Notification.permission === 'default') {
+          setTimeout(() => setShowNotificationDialog(true), 2000);
+      }
     }
-  }, [user, isUserLoading, fetchUserData, fetchData]);
+  }, [userData]);
 
-  const handleSetupSave = (data: { name: string; url: string }) => {
+
+  const handleSetupSave = (data: { name: string; }) => {
     if (!userDocRef) return;
-    const newUserData = { name: data.name, googleSheetUrl: data.url };
+    const newUserData = { name: data.name };
     setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
-    setUserData(newUserData);
-    fetchData(true, data.url);
+    
+    // Add default budgets
+    if (firestore && user) {
+        const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
+        const defaultBudgets = [
+            { Category: "Food & Drinks", MonthlyBudget: 500 },
+            { Category: "Shopping", MonthlyBudget: 300 },
+            { Category: "Transport", MonthlyBudget: 100 },
+            { Category: "Entertainment", MonthlyBudget: 150 },
+            { Category: "Others", MonthlyBudget: 200 },
+        ];
+        defaultBudgets.forEach(budget => {
+            setDocumentNonBlocking(doc(budgetsCollection, budget.Category), budget, { merge: true });
+        })
+    }
   };
 
   const handleResetSettings = () => {
-    setUserData(null);
-    setTransactions([]);
-    setBudgets([]);
-    localStorage.removeItem(CACHE_KEY);
+    if (userDocRef) {
+        setDocumentNonBlocking(userDocRef, { name: null }, { merge: true });
+    }
     toast({
         title: "Settings Reset",
         description: "Please enter your new configuration.",
@@ -232,7 +170,7 @@ export function Dashboard() {
   }, [dateRange]);
 
   const getDisplayDate = (range: DateRange): string => {
-    if (!transactions.length && range !== 'all') return "No data";
+    if (!transactions?.length && range !== 'all') return "No data";
     
     const { start, end } = dateFilterRange;
 
@@ -247,15 +185,15 @@ export function Dashboard() {
         return start ? format(start, 'yyyy') : "This Year";
       case 'all':
       default:
-        if (!transactions.length) return "All Time";
+        if (!transactions?.length) return "All Time";
         const oldestDate = transactions.reduce((min, t) => {
             if (!t.Date) return min;
-            const current = new Date(t.Date);
+            const current = toDate(t.Date.seconds * 1000);
             return current < min ? current : min;
         }, new Date());
         const mostRecentDate = transactions.reduce((max, t) => {
             if (!t.Date) return max;
-            const current = new Date(t.Date);
+            const current = toDate(t.Date.seconds * 1000);
             return current > max ? current : max;
         }, new Date(0));
         if (isNaN(oldestDate.getTime()) || isNaN(mostRecentDate.getTime())) return "All Time";
@@ -269,7 +207,7 @@ export function Dashboard() {
   }, [dateRange, transactions, isClient, dateFilterRange]);
 
   const filteredTransactions = useMemo(() => {
-    if (!isClient) return [];
+    if (!isClient || !transactions) return [];
     
     const { start, end } = dateFilterRange;
 
@@ -279,7 +217,7 @@ export function Dashboard() {
 
     return transactions.filter(t => {
       if (!t.Date) return false;
-      const transactionDate = new Date(t.Date);
+      const transactionDate = toDate(t.Date.seconds * 1000);
       if (isNaN(transactionDate.getTime())) return false;
       
       const isAfterStart = transactionDate >= start;
@@ -290,7 +228,7 @@ export function Dashboard() {
   }, [isClient, transactions, dateRange, dateFilterRange]);
   
   const scaledBudget = useMemo(() => {
-    if (!isClient || !budgets.length) return 0;
+    if (!isClient || !budgets?.length) return 0;
 
     const monthlyBudget = budgets.reduce((sum, b) => sum + b.MonthlyBudget, 0);
     if (monthlyBudget === 0) return 0;
@@ -306,9 +244,9 @@ export function Dashboard() {
       case 'month':
         return monthlyBudget;
       case 'all': {
-        if (!transactions.length) return monthlyBudget;
+        if (!transactions?.length) return monthlyBudget;
         const dates = transactions
-          .map(t => new Date(t.Date!))
+          .map(t => toDate(t.Date!.seconds * 1000))
           .filter(d => !isNaN(d.getTime()));
         if (dates.length < 2) return monthlyBudget;
         
@@ -365,6 +303,7 @@ export function Dashboard() {
   }, [chartConfig]);
 
   const sortedTransactions = useMemo(() => {
+    if (!expenseTransactions) return [];
     const sorted = [...expenseTransactions];
     switch (sortOption) {
       case 'highest':
@@ -376,19 +315,18 @@ export function Dashboard() {
         return sorted.sort((a, b) => {
           if (a.Date === null) return 1;
           if (b.Date === null) return -1;
-          return new Date(b.Date).getTime() - new Date(a.Date).getTime();
+          return b.Date.seconds - a.Date.seconds;
         });
     }
   }, [expenseTransactions, sortOption]);
 
   const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
-
-  if (loading || isUserLoading) {
+  if (isUserLoading || isUserDataLoading || (userData && (isTransactionsLoading || isBudgetsLoading))) {
     return <SkeletonLoader />;
   }
-
-  if (!userData?.googleSheetUrl || !userData?.name) {
+  
+  if (!userData?.name) {
     return (
         <div className="flex flex-col min-h-screen bg-background items-center">
             <div className="w-full max-w-[428px] border-x border-border p-6">
@@ -425,16 +363,14 @@ export function Dashboard() {
                         <DialogTitle>Add New Transaction</DialogTitle>
                       </DialogHeader>
                       <AddTransactionForm 
-                        googleSheetUrl={userData.googleSheetUrl}
                         userId={user?.uid}
                         setOpen={setAddTransactionOpen} 
-                        onSuccess={() => fetchData(true, userData.googleSheetUrl)}
                       />
                     </DialogContent>
                   </Dialog>
                   <DateFilter value={dateRange} onValueChange={setDateRange} />
-                  <Button variant="outline" size="icon" onClick={() => fetchData(true, userData.googleSheetUrl)} disabled={isRefreshing} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                    <RefreshCw className={cn("h-4 w-4", isRefreshing && "animate-spin")} />
+                  <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
+                    <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
                   </Button>
                   <Button variant="outline" size="icon" onClick={handleResetSettings} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <Settings className="h-4 w-4" />

@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { addDocumentNonBlocking, useFirestore } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 const formSchema = z.object({
   Date: z.string().refine((val) => !isNaN(Date.parse(val)), {
@@ -50,16 +52,15 @@ const categories = [
 const totalSteps = 5;
 
 interface AddTransactionFormProps {
-  onSuccess: () => void;
   setOpen: (open: boolean) => void;
-  googleSheetUrl: string;
   userId?: string;
 }
 
-export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl, userId }: AddTransactionFormProps) {
+export function AddTransactionForm({ setOpen, userId }: AddTransactionFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(0);
   const { toast } = useToast();
+  const firestore = useFirestore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -94,43 +95,33 @@ export function AddTransactionForm({ onSuccess, setOpen, googleSheetUrl, userId 
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!userId || !firestore) {
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "User not authenticated.",
+        });
+        return;
+    }
     setIsLoading(true);
-    try {
-      const response = await fetch("/api/add-entry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          googleSheetUrl,
-          userId,
-          sheetName: "Transactions",
-          data: { ...values, ID: "" },
-        }),
-      });
-      
-      const resJson = await response.json();
 
-      if (!response.ok) {
-        const errorMessage = resJson.details || resJson.error || "Failed to add transaction.";
-        throw new Error(errorMessage);
-      }
+    const transactionData = {
+        ...values,
+        Date: new Date(values.Date),
+        userId,
+    };
+    
+    const transactionsCollection = collection(firestore, `users/${userId}/transactions`);
+    
+    addDocumentNonBlocking(transactionsCollection, transactionData);
 
-      toast({
+    toast({
         title: "Success",
         description: "New transaction added.",
-      });
-      onSuccess();
-      setOpen(false);
-    } catch (error) {
-      console.error(error);
-      const errorMessage = error instanceof Error ? error.message : "There was a problem with your request.";
-      toast({
-        variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: errorMessage,
-      });
-    } finally {
-      setIsLoading(false);
-    }
+    });
+
+    setIsLoading(false);
+    setOpen(false);
   }
 
   const isNextDisabled = () => {

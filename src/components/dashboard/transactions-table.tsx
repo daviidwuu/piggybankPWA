@@ -22,7 +22,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Transaction } from "@/lib/data";
 import { ChartConfig } from "../ui/chart";
-import { format } from 'date-fns';
+import { format, toDate } from 'date-fns';
 import { Button } from "../ui/button";
 import { ChevronDown, ArrowUpDown } from "lucide-react";
 import { SortOption } from "@/app/dashboard";
@@ -37,11 +37,11 @@ interface TransactionsTableProps {
 }
 
 export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sortOption, onSortChange }: TransactionsTableProps) {
-  const formatDate = (dateString: string | null) => {
-    if (dateString === null) {
+  const formatDate = (dateValue: { seconds: number; nanoseconds: number; } | null) => {
+    if (dateValue === null) {
         return { date: 'Invalid', time: 'Date' };
     }
-    const date = new Date(dateString);
+    const date = toDate(dateValue.seconds * 1000);
     if (isNaN(date.getTime())) {
       return { date: 'Invalid', time: 'Date' };
     }
@@ -90,26 +90,20 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
           <TableHeader>
             <TableRow>
               <TableHead className="p-1 pl-0">Date</TableHead>
-              <TableHead className="p-1 text-center">Amount</TableHead>
-              <TableHead className="p-1 pr-0">Description</TableHead>
+              <TableHead className="p-1">Description</TableHead>
+              <TableHead className="p-1 pr-0 text-right">Amount</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.map((transaction) => {
                 const { date, time } = formatDate(transaction.Date);
                 return (
-                  <TableRow key={transaction.ID}>
+                  <TableRow key={transaction.id}>
                     <TableCell className="font-medium text-sm p-1 pl-0">
                         <div>{date}</div>
                         <div className="text-muted-foreground">{time}</div>
                     </TableCell>
-                    <TableCell className="font-medium text-sm p-1 pl-3">
-                      <div className="flex items-center">
-                        <span>$</span>
-                        <span>{transaction.Amount.toFixed(2)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-1 pr-0">
+                    <TableCell className="p-1">
                       <div className="flex items-center gap-2">
                          <Badge
                           className="whitespace-nowrap px-1.5 py-0 font-semibold"
@@ -123,6 +117,12 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                           {transaction.Category}
                         </Badge>
                         <span className="font-medium truncate block max-w-[150px] text-sm">{transaction.Notes}</span>
+                      </div>
+                    </TableCell>
+                     <TableCell className="font-medium text-sm p-1 pr-0 text-right">
+                      <div className="flex items-center justify-end">
+                        <span>$</span>
+                        <span>{transaction.Amount.toFixed(2)}</span>
                       </div>
                     </TableCell>
                   </TableRow>

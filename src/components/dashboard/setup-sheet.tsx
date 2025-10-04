@@ -26,11 +26,10 @@ import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Please enter your name." }),
-  googleSheetUrl: z.string().url({ message: "Please enter a valid URL." }),
 });
 
 interface SetupSheetProps {
-  onSave: (data: { name: string; url: string }) => void;
+  onSave: (data: { name: string; }) => void;
 }
 
 export function SetupSheet({ onSave }: SetupSheetProps) {
@@ -40,13 +39,12 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
-      googleSheetUrl: "",
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    onSave({ name: values.name, url: values.googleSheetUrl });
+    onSave({ name: values.name });
   }
 
   return (
@@ -54,7 +52,7 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
         <CardHeader>
             <CardTitle>Welcome to piggybank</CardTitle>
             <CardDescription>
-                To get started, please enter your name and the URL of your Google Apps Script.
+                To get started, please enter your name.
             </CardDescription>
         </CardHeader>
         <CardContent className="pb-2">
@@ -75,22 +73,6 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
                       <FormMessage />
                       </FormItem>
                   )}
-                />
-                <FormField
-                control={form.control}
-                name="googleSheetUrl"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Google Apps Script URL</FormLabel>
-                    <FormControl>
-                        <Input
-                        placeholder="https://script.google.com/macros/s/..."
-                        {...field}
-                        />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

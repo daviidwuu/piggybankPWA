@@ -13,18 +13,38 @@
         "name": {
           "type": "string",
           "description": "The user's name."
-        },
-        "googleSheetUrl": {
-          "type": "string",
-          "description": "URL of the Google Sheet containing the user's financial data.",
-          "format": "uri"
         }
       },
       "required": [
         "id",
-        "name",
-        "googleSheetUrl"
+        "name"
       ]
+    },
+    "Transaction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transaction",
+      "type": "object",
+      "description": "Represents a single financial transaction.",
+      "properties": {
+        "Date": { "type": "string", "format": "date-time" },
+        "Amount": { "type": "number" },
+        "Type": { "type": "string", "enum": ["Expense", "Income"] },
+        "Category": { "type": "string" },
+        "Notes": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["Date", "Amount", "Type", "Category", "Notes", "userId"]
+    },
+    "Budget": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "title": "Budget",
+        "type": "object",
+        "description": "Represents a budget for a specific category.",
+        "properties": {
+            "Category": { "type": "string" },
+            "MonthlyBudget": { "type": "number" }
+        },
+        "required": ["Category", "MonthlyBudget"]
     }
   },
   "auth": {
@@ -42,16 +62,25 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user data.  Path-based ownership is used for authorization. Only the authenticated user can write to their own document.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user."
-            }
-          ]
+          "description": "Stores user data. Only the authenticated user can write to their own document."
         }
+      },
+      {
+        "path": "/users/{userId}/transactions/{transactionId}",
+        "definition": {
+            "entityName": "Transaction",
+            "schema": { "$ref": "#/backend/entities/Transaction" },
+            "description": "Stores individual transactions for a user. Only the user can access their own transactions."
+        }
+      },
+      {
+          "path": "/users/{userId}/budgets/{budgetId}",
+          "definition": {
+              "entityName": "Budget",
+              "schema": { "$ref": "#/backend/entities/Budget" },
+              "description": "Stores budget configurations for a user."
+          }
       }
-    ],
-    "reasoning": "The Firestore data structure is designed to address the reported permission error and to support the FinTrack Mini application's features securely and scalably, adhering to the core design principles. The structure focuses on authorization independence by avoiding `get()` calls in security rules, enhancing debuggability through clear intent, relying solely on `request.auth.uid` for authorization, supporting secure list operations (QAPs), and maintaining data integrity.  \n\nThe primary strategy is **Authorization Independence via Denormalization**.  Specifically, since the current error stems from writing to the `users` collection, user-specific data is stored under `/users/{userId}`. This path-based ownership inherently provides authorization independence, eliminating the need for `get()` calls to verify ownership.  No denormalization is needed in this initial structure as the user's ID in the path directly implies ownership.\n\nThe design supports the required QAPs by using structural segregation.  All documents within the `users/{userId}` path share the same security requirements (only the authenticated user can write to their own document), simplifying rules and preventing unauthorized access.  If, in the future, different access levels are needed (e.g., public profile information), that data should be moved to a different collection such as `/public_profiles`.\n\nRadical consistency is maintained through explicit state modeling (although not currently used, this is a forward-looking approach) and predictable schema.  Standard authorization fields are used, and wildcards are descriptive."
+    ]
   }
 }
