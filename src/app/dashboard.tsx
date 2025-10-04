@@ -39,15 +39,15 @@ const categories = [
 ];
 
 const chartColors = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "#f59e0b", // amber-500
-  "#10b981", // emerald-500
-  "#3b82f6", // blue-500
-  "#ef4444", // red-500
+  "#1f77b4", // Muted Blue
+  "#ff7f0e", // Safety Orange
+  "#2ca02c", // Cooked Asparagus Green
+  "#d62728", // Brick Red
+  "#9467bd", // Muted Purple
+  "#8c564b", // Chestnut Brown
+  "#e377c2", // Opera Pink
+  "#7f7f7f", // Middle Gray
+  "#bcbd22", // Curry Yellow-Green
 ];
 
 const categoryColors: { [key: string]: string } = {
