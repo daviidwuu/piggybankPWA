@@ -87,11 +87,11 @@ export function BudgetPage({
     <ScrollArea className="w-full max-h-[70vh] pr-2">
         <div className="space-y-6">
             <Card className="border-none shadow-none">
-                <CardHeader className="px-1">
+                <CardHeader>
                     <CardTitle>Income & Savings</CardTitle>
                     <CardDescription>Set your monthly income and savings goal.</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4 px-1 pb-2">
+                <CardContent className="space-y-4 pb-4">
                     <div className="space-y-2">
                         <label className="text-sm font-medium">Monthly Income</label>
                         <div className="flex items-center gap-2">
@@ -124,7 +124,7 @@ export function BudgetPage({
             </Card>
 
             <Card className="border-none shadow-none">
-                <CardHeader className="flex-row items-center justify-between px-1">
+                <CardHeader className="flex-row items-center justify-between">
                     <div className="space-y-1.5">
                         <CardTitle>Category Budgets</CardTitle>
                         <CardDescription>Allocate your spending limits.</CardDescription>
@@ -170,7 +170,7 @@ export function BudgetPage({
                         </DialogContent>
                     </Dialog>
                 </CardHeader>
-                <CardContent className="space-y-4 px-1 pb-2">
+                <CardContent className="space-y-4 pb-4">
                     <div className="w-full flex justify-between items-center py-4 border-b">
                         <span className="font-medium text-muted-foreground">Left to Budget:</span>
                         <span className={`font-bold text-lg ${leftToBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
