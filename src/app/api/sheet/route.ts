@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from "next/server";
 import { type Transaction, type Budget } from "@/lib/data";
 
