@@ -135,8 +135,8 @@ export function Dashboard() {
             const errorData = await res.json();
             errorMessage = errorData.details || errorData.error || errorMessage;
         } catch (e) {
-            const errorText = await res.text();
-            errorMessage = errorText || `An unexpected error occurred: ${res.statusText}`;
+            // If parsing JSON fails, use the raw response text
+            errorMessage = `An unexpected error occurred: ${res.statusText}`;
         }
         // We throw an error here to be caught by the catch block below
         throw new Error(errorMessage);
@@ -469,5 +469,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
