@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 
 export type SortOption = 'latest' | 'highest' | 'category';
 
@@ -274,15 +275,7 @@ export function Dashboard() {
 
 
   if (loading) {
-    return (
-      <div className="flex flex-col min-h-screen bg-background items-center">
-        <div className="w-full max-w-[428px] border-x border-border p-6">
-          <div className="flex justify-center items-center h-64">
-            <p>Loading your financial data...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <SkeletonLoader />;
   }
 
   if (!googleSheetUrl) {

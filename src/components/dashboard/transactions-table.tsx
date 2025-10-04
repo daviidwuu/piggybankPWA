@@ -90,7 +90,7 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
           <TableHeader>
             <TableRow>
               <TableHead className="p-1 pl-0">Date</TableHead>
-              <TableHead className="text-right p-1">Amount</TableHead>
+              <TableHead className="p-1 text-center">Amount</TableHead>
               <TableHead className="p-1 pr-0">Description</TableHead>
             </TableRow>
           </TableHeader>
@@ -103,8 +103,11 @@ export function TransactionsTable({ data, chartConfig, hasMore, onLoadMore, sort
                         <div>{date}</div>
                         <div className="text-muted-foreground">{time}</div>
                     </TableCell>
-                    <TableCell className="text-right font-medium text-sm p-1">
-                      ${transaction.Amount.toFixed(2)}
+                    <TableCell className="font-medium text-sm p-1 pl-3">
+                      <div className="flex items-center">
+                        <span>$</span>
+                        <span>{transaction.Amount.toFixed(2)}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="p-1 pr-0">
                       <div className="flex items-center gap-2">
