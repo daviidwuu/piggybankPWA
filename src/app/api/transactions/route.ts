@@ -28,18 +28,37 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (!newEntry.data || !newEntry.data.Amount || !newEntry.data.Category || !newEntry.data.Notes || !newEntry.data.Type) {
+    const { Amount, Category, Notes, Type, Date: transactionDate } = newEntry.data || {};
+
+    if (!Amount || !Category || !Notes || !Type) {
         return NextResponse.json(
-            { error: "Incomplete transaction data provided." },
+            { error: "Incomplete transaction data provided. Required fields: Amount, Category, Notes, Type." },
+            { status: 400 }
+        );
+    }
+
+    if (typeof Category !== 'string') {
+        return NextResponse.json(
+            { error: "Category must be a string." },
+            { status: 400 }
+        );
+    }
+
+    const numericAmount = Number(Amount);
+    if (isNaN(numericAmount)) {
+         return NextResponse.json(
+            { error: "Amount must be a valid number." },
             { status: 400 }
         );
     }
 
     const transactionData = {
-        ...newEntry.data,
-        Date: newEntry.data.Date ? new Date(newEntry.data.Date) : FieldValue.serverTimestamp(),
-        Amount: Number(newEntry.data.Amount),
-        userId: userId, // Store the userId with the transaction
+        Amount: numericAmount,
+        Category,
+        Notes,
+        Type,
+        Date: transactionDate ? new Date(transactionDate) : FieldValue.serverTimestamp(),
+        userId: userId,
     };
     
     // Add the new transaction to the user's transactions subcollection
