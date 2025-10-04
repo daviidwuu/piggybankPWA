@@ -1,11 +1,88 @@
-
+/**
+ * @file Firebase Security Rules for FinTrack Mini
+ *
+ * @core_philosophy This ruleset enforces a strict user-ownership model. Each user can only
+ *  access and modify their own data. Data validation is relaxed to allow for rapid
+ *  prototyping, but authorization is strictly enforced.
+ *
+ * @data_structure
+ *  - /users/{userId}: Stores user profiles.
+ *  - /users/{userId}/transactions/{transactionId}: Stores transaction data for each user.
+ *  - /users/{userId}/budgets/{budgetId}: Stores budget data for each user.
+ *
+ * @key_security_decisions
+ *  - User listing is disallowed to prevent information disclosure.
+ *  - All write operations are protected by an ownership check.
+ *
+ * @denormalization_for_authorization N/A
+ * @structural_segregation N/A
+ */
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read and write to their own user document
+
+    /**
+     * @description Secure user profiles. Only the authenticated user can read or write their own profile.
+     * @path /users/{userId}
+     * @allow (create) User with UID 'user123' can create their own profile.
+     * @deny (create) User with UID 'user456' cannot create a profile with ID 'user123'.
+     * @allow (get) User with UID 'user123' can read their own profile.
+     * @deny (get) User with UID 'user456' cannot read user 'user123' profile.
+     * @principle Enforces document ownership for all operations.
+     */
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure user transactions. Only the authenticated user can read or write their own transactions.
+     * @path /users/{userId}/transactions/{transactionId}
+     * @allow (create) User with UID 'user123' can create a transaction under their profile.
+     * @deny (create) User with UID 'user456' cannot create a transaction under user 'user123' profile.
+     * @allow (get) User with UID 'user123' can read a transaction under their profile.
+     * @deny (get) User with UID 'user456' cannot read a transaction under user 'user123' profile.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/transactions/{transactionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secure user budgets. Only the authenticated user can read or write their own budgets.
+     * @path /users/{userId}/budgets/{budgetId}
+     * @allow (create) User with UID 'user123' can create a budget under their profile.
+     * @deny (create) User with UID 'user456' cannot create a budget under user 'user123' profile.
+     * @allow (get) User with UID 'user123' can read a budget under their profile.
+     * @deny (get) User with UID 'user456' cannot read a budget under user 'user123' profile.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/budgets/{budgetId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // --- Helper functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
     }
   }
 }
