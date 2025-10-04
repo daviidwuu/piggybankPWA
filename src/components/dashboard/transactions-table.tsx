@@ -97,77 +97,85 @@ export function TransactionsTable({
         </DropdownMenu>
       </CardHeader>
       <CardContent className="px-6 pt-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="p-1 pl-0">Date</TableHead>
-              <TableHead className="p-1">Description</TableHead>
-              <TableHead className="p-1 text-right">Amount</TableHead>
-              <TableHead className="p-1 pr-0 text-right"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((transaction) => {
-                const { date, time } = formatDate(transaction.Date);
-                return (
-                  <TableRow key={transaction.id}>
-                    <TableCell className="font-medium text-sm p-1 pl-0">
-                        <div>{date}</div>
-                        <div className="text-muted-foreground">{time}</div>
-                    </TableCell>
-                    <TableCell className="p-1">
-                      <div className="flex items-center gap-2">
-                         <Badge
-                          className="whitespace-nowrap px-1.5 py-0 font-semibold"
-                           style={{
-                            backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820', // 12.5% opacity
-                            color: chartConfig[transaction.Category]?.color || '#888888',
-                            borderColor: chartConfig[transaction.Category]?.color || '#888888',
-                            borderWidth: '1px',
-                          }}
-                        >
-                          {transaction.Category}
-                        </Badge>
-                        <span className="font-medium truncate block max-w-[100px] text-sm">{transaction.Notes}</span>
-                      </div>
-                    </TableCell>
-                     <TableCell className="font-medium text-sm p-1 pr-0 text-right">
-                      <div className="flex items-center justify-end">
-                        <span>$</span>
-                        <span>{transaction.Amount.toFixed(2)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="p-1 pr-0 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-6 w-6">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => onEdit(transaction)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onSelect={() => onDelete(transaction)} className="text-destructive">
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                )
-            })}
-          </TableBody>
-        </Table>
-        {hasMore && (
-          <div className="p-0 pt-1 flex justify-center">
-            <Button
-              variant="ghost"
-              onClick={onLoadMore}
-              className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent"
-            >
-              <ChevronDown className="h-4 w-4" />
-            </Button>
+        {data.length > 0 ? (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="p-1 pl-0">Date</TableHead>
+                  <TableHead className="p-1">Description</TableHead>
+                  <TableHead className="p-1 text-right">Amount</TableHead>
+                  <TableHead className="p-1 pr-0 text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.map((transaction) => {
+                    const { date, time } = formatDate(transaction.Date);
+                    return (
+                      <TableRow key={transaction.id}>
+                        <TableCell className="font-medium text-sm p-1 pl-0">
+                            <div>{date}</div>
+                            <div className="text-muted-foreground">{time}</div>
+                        </TableCell>
+                        <TableCell className="p-1">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className="whitespace-nowrap px-1.5 py-0 font-semibold"
+                              style={{
+                                backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820', // 12.5% opacity
+                                color: chartConfig[transaction.Category]?.color || '#888888',
+                                borderColor: chartConfig[transaction.Category]?.color || '#888888',
+                                borderWidth: '1px',
+                              }}
+                            >
+                              {transaction.Category}
+                            </Badge>
+                            <span className="font-medium truncate block max-w-[100px] text-sm">{transaction.Notes}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-sm p-1 pr-0 text-right">
+                          <div className="flex items-center justify-end">
+                            <span>$</span>
+                            <span>{transaction.Amount.toFixed(2)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="p-1 pr-0 text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onSelect={() => onEdit(transaction)}>
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => onDelete(transaction)} className="text-destructive">
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    )
+                })}
+              </TableBody>
+            </Table>
+            {hasMore && (
+              <div className="p-0 pt-1 flex justify-center">
+                <Button
+                  variant="ghost"
+                  onClick={onLoadMore}
+                  className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-8 text-muted-foreground">
+            No transactions for this period.
           </div>
         )}
       </CardContent>
