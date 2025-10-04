@@ -21,17 +21,29 @@ export async function GET(request: NextRequest) {
     });
 
     if (!res.ok) {
-      const errorText = await res.text();
-      console.error("Google Apps Script Error:", errorText);
-      throw new Error(`Failed to fetch sheet data: ${res.statusText} - ${errorText}`);
+      let errorDetails = `Failed to fetch sheet data: ${res.statusText}`;
+      try {
+        // The Apps Script might return a JSON error object
+        const errorJson = await res.json();
+        errorDetails = errorJson.error || errorJson.message || errorDetails;
+      } catch (e) {
+        // If not, it might be plain text or HTML
+        const errorText = await res.text();
+        errorDetails = errorText || errorDetails;
+      }
+      console.error("Google Apps Script Error:", errorDetails);
+      // We throw here to be caught by the outer catch block, ensuring a consistent error response format.
+      throw new Error(errorDetails);
     }
+    
+    const data = await res.json();
 
     // Expect a response with { transactions: [], budgets: [] }
-    const { transactions, budgets } = await res.json();
+    const { transactions, budgets } = data;
 
     // Basic validation of the response structure
     if (!Array.isArray(transactions) || !Array.isArray(budgets)) {
-        throw new Error("Invalid data structure from Google Sheet.");
+        throw new Error("Invalid data structure from Google Sheet. Expected { transactions: [], budgets: [] } but received something else.");
     }
     
     // Process transactions data
@@ -65,4 +77,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
