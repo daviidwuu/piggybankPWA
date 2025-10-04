@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { useAuth, initiateAnonymousSignIn, useUser } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -17,7 +18,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInAnonymously } from 'firebase/auth';
 
 export default function LoginPage() {
   const auth = useAuth();
