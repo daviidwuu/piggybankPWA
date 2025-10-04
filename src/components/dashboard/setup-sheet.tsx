@@ -57,7 +57,7 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
                 To get started, please enter your name and the URL of your Google Apps Script.
             </CardDescription>
         </CardHeader>
-        <CardContent className="pb-10">
+        <CardContent className="pb-6">
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
