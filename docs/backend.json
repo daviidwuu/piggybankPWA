@@ -80,49 +80,25 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "User",
-          "schema": {
-            "$ref": "#/entities/User"
-          },
-          "description": "Stores user data. Only the authenticated user can write to their own document."
-        }
-      },
-      {
-        "path": "/users/{userId}/transactions/{transactionId}",
-        "definition": {
-            "entityName": "Transaction",
-            "schema": { "$ref": "#/entities/Transaction" },
-            "description": "Stores individual transactions for a user. Only the user can access their own transactions."
-        }
-      },
-      {
-          "path": "/users/{userId}/budgets/{budgetId}",
-          "definition": {
-              "entityName": "Budget",
-              "schema": { "$ref": "#/entities/Budget" },
-              "description": "Stores budget configurations for a user."
-          }
-      },
-      {
-        "path": "/users/{userId}/financials/income",
-        "definition": {
-          "entityName": "Income",
-          "schema": { "$ref": "#/entities/Income" },
-          "description": "Stores the user's income. Only the user can access their own income data."
-        }
-      },
-      {
-        "path": "/users/{userId}/financials/savings",
-        "definition": {
-          "entityName": "Savings",
-          "schema": { "$ref": "#/entities/Savings" },
-          "description": "Stores the user's savings goal. Only the user can access their own savings data."
-        }
-      }
-    ]
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores user profile data. Only the authenticated user can access their own document."
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Stores individual transactions for a user. Only the user can access their own transactions."
+    },
+    "/users/{userId}/budgets/{budgetId}": {
+      "schema": { "$ref": "#/entities/Budget" },
+      "description": "Stores budget configurations for a user. Only the user can access their own budgets."
+    },
+    "/users/{userId}/financials/income": {
+      "schema": { "$ref": "#/entities/Income" },
+      "description": "Stores the user's income. Only the user can access their own income data."
+    },
+    "/users/{userId}/financials/savings": {
+      "schema": { "$ref": "#/entities/Savings" },
+      "description": "Stores the user's savings goal. Only the user can access their own savings data."
+    }
   }
 }
