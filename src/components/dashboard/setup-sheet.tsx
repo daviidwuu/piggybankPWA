@@ -57,7 +57,7 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
                 To get started, please enter your name and the URL of your Google Apps Script.
             </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pb-10">
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
@@ -92,7 +92,7 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
                     </FormItem>
                 )}
                 />
-                <Button type="submit" className="w-full mb-10" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save and Continue
                 </Button>
