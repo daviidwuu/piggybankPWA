@@ -45,7 +45,7 @@ export function Balance({
         <div className="flex justify-between items-start">
             <div>
                 <CardTitle>Balance</CardTitle>
-                <CardDescription>Your spending vs. budget for this period.</CardDescription>
+                <CardDescription>Spending vs. budget.</CardDescription>
             </div>
             <div className="flex flex-col items-end gap-1">
                 <DateFilter value={dateRange} onValueChange={onDateRangeChange} />
