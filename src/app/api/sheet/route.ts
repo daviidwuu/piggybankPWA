@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Make a single request to the Google Apps Script
-    const res = await fetch(googleSheetUrl, {
+    // Make a single request to the Google Apps Script using the `?all=1` parameter
+    const res = await fetch(`${googleSheetUrl}?all=1`, {
       method: 'GET',
       cache: 'no-store',
     });
@@ -65,3 +65,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
