@@ -15,13 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
@@ -74,11 +67,12 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
     }
   }, [transactionToEdit, form]);
 
-  const nextStep = async (field: keyof FormValues) => {
-    const isValid = await form.trigger(field);
-    if (isValid) {
-      setStep((s) => s + 1);
+  const nextStep = async (field?: keyof FormValues) => {
+    if (field) {
+        const isValid = await form.trigger(field);
+        if (!isValid) return;
     }
+    setStep((s) => s + 1);
   };
 
   const prevStep = () => {
@@ -123,6 +117,11 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
     setOpen(false);
   }
 
+  const handleCategorySelect = (category: string) => {
+    form.setValue("Category", category, { shouldValidate: true });
+    nextStep();
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -151,28 +150,22 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
             )}
 
             {step === 1 && (
-                <FormField
-                    control={form.control}
-                    name="Category"
-                    render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Category</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                            <SelectTrigger>
-                            <SelectValue placeholder="Select one" />
-                            </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                            {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                            ))}
-                        </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                    )}
-                />
+                <div className="space-y-2">
+                    <FormLabel>Category</FormLabel>
+                    <div className="flex flex-wrap gap-2">
+                        {categories.map((cat) => (
+                            <Button
+                                type="button"
+                                key={cat}
+                                variant={form.watch("Category") === cat ? "default" : "outline"}
+                                onClick={() => handleCategorySelect(cat)}
+                            >
+                                {cat}
+                            </Button>
+                        ))}
+                    </div>
+                     <FormMessage>{form.formState.errors.Category?.message}</FormMessage>
+                </div>
             )}
 
             {step === 2 && (
@@ -183,7 +176,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                     <FormItem>
                         <FormLabel>Notes</FormLabel>
                         <FormControl>
-                        <Input {...field} placeholder="e.g., Coffee" />
+                        <Input {...field} placeholder="e.g., Coffee" autoFocus />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -193,22 +186,17 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         </div>
         
         <div className="pt-4">
-            {step < 2 ? (
+            {step === 0 && (
                 <Button 
                     type="button"
-                    onClick={() => {
-                        if (step === 0) nextStep('Amount');
-                        if (step === 1) nextStep('Category');
-                    }} 
+                    onClick={() => nextStep('Amount')} 
                     className="w-full h-12 text-lg"
-                    disabled={
-                        (step === 0 && !form.watch('Amount')) ||
-                        (step === 1 && !form.watch('Category'))
-                    }
+                    disabled={!form.watch('Amount')}
                 >
                     Next
                 </Button>
-            ) : (
+            )}
+            {step === 2 && (
                 <Button 
                     type="submit" 
                     className="w-full h-12 text-lg" 
