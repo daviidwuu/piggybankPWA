@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
@@ -49,10 +50,17 @@ const chartColors = [
   "#ef4444", // red-500
 ];
 
-const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
-  acc[category] = chartColors[index % chartColors.length];
-  return acc;
-}, {} as { [key: string]: string });
+const categoryColors: { [key: string]: string } = {
+  "Food & Drinks": chartColors[0],
+  "Gambling": chartColors[1],
+  "Drinks": chartColors[2],
+  "Girlfriend": chartColors[3],
+  "Entertainment": chartColors[4],
+  "Shopping": chartColors[5],
+  "Transport": chartColors[6],
+  "Dad": chartColors[7],
+  "Others": chartColors[8],
+};
 
 
 const CACHE_KEY = 'finTrackMiniCache';
@@ -285,16 +293,16 @@ export function Dashboard() {
     .sort((a, b) => b.amount - a.amount), [expenseTransactions]);
 
   useEffect(() => {
-    const newChartConfig = categories.reduce((acc, category) => {
+    const newChartConfig: ChartConfig = Object.keys(categoryColors).reduce((acc, category) => {
       acc[category] = {
         label: category,
-        color: categoryColors[category] || chartColors[chartColors.length - 1],
+        color: categoryColors[category],
       };
       return acc;
     }, {} as ChartConfig);
-  
+
     if (JSON.stringify(chartConfig) !== JSON.stringify(newChartConfig)) {
-      setChartConfig(newChartConfig);
+        setChartConfig(newChartConfig);
     }
   }, [chartConfig]);
 
@@ -392,4 +400,6 @@ export function Dashboard() {
 }
 
     
+    
+
     
