@@ -421,23 +421,6 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
-                   <Dialog open={isAddTransactionOpen} onOpenChange={setAddTransactionOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DialogTitle>
-                      </DialogHeader>
-                      <AddTransactionForm 
-                        userId={user?.uid}
-                        setOpen={setAddTransactionOpen}
-                        transactionToEdit={transactionToEdit}
-                      />
-                    </DialogContent>
-                  </Dialog>
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
                     <DialogTrigger asChild>
                       <Button variant="outline" size="icon" className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
@@ -451,7 +434,6 @@ export function Dashboard() {
                       <BudgetPage budgets={budgets || []} onUpdateBudget={handleUpdateBudget} />
                     </DialogContent>
                   </Dialog>
-                  <DateFilter value={dateRange} onValueChange={setDateRange} />
                   <Button variant="outline" size="icon" onClick={() => {}} disabled={true} className="focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
                     <RefreshCw className={cn("h-4 w-4", (isTransactionsLoading || isBudgetsLoading) && "animate-spin")} />
                   </Button>
@@ -459,9 +441,6 @@ export function Dashboard() {
                     <Settings className="h-4 w-4" />
                   </Button>
                 </div>
-                 <span className="text-xs text-muted-foreground mt-1 min-w-max">
-                  {displayDate}
-                </span>
               </div>
           </div>
           
@@ -470,6 +449,9 @@ export function Dashboard() {
             budget={scaledBudget}
             aggregatedData={aggregatedData}
             chartConfig={chartConfig}
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+            displayDate={displayDate}
           />
           <TransactionsTable 
             data={transactionsToShow} 
@@ -482,7 +464,31 @@ export function Dashboard() {
             onDelete={handleDeleteClick}
           />
         </main>
+
+        <Dialog open={isAddTransactionOpen} onOpenChange={setAddTransactionOpen}>
+            <DialogTrigger asChild>
+                <Button 
+                    variant="default"
+                    className="fixed bottom-6 right-6 h-16 w-16 rounded-full shadow-lg z-50 bg-primary hover:bg-primary/90"
+                >
+                    <Plus className="h-8 w-8" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                <DialogTitle>{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DialogTitle>
+                </DialogHeader>
+                <AddTransactionForm 
+                userId={user?.uid}
+                setOpen={setAddTransactionOpen}
+                transactionToEdit={transactionToEdit}
+                />
+            </DialogContent>
+        </Dialog>
+
       </div>
     </div>
   );
 }
+
+    

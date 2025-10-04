@@ -14,12 +14,16 @@ import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
 import { ChevronDown } from "lucide-react";
 import { type ChartConfig } from "../ui/chart";
+import { DateFilter, type DateRange } from "./date-filter";
 
 interface BalanceProps {
   totalSpending: number;
   budget: number;
   aggregatedData: { category: string; amount: number }[];
   chartConfig: ChartConfig;
+  dateRange: DateRange;
+  onDateRangeChange: (value: DateRange) => void;
+  displayDate: string;
 }
 
 export function Balance({
@@ -27,6 +31,9 @@ export function Balance({
   budget,
   aggregatedData,
   chartConfig,
+  dateRange,
+  onDateRangeChange,
+  displayDate
 }: BalanceProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const spendingPercentage = budget > 0 ? (totalSpending / budget) * 100 : 0;
@@ -34,9 +41,19 @@ export function Balance({
 
   return (
     <Card>
-      <CardHeader className="pb-2">
-        <CardTitle>Balance</CardTitle>
-        <CardDescription>Your spending vs. budget for this period.</CardDescription>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle>Balance</CardTitle>
+                <CardDescription>Your spending vs. budget for this period.</CardDescription>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+                <DateFilter value={dateRange} onValueChange={onDateRangeChange} />
+                <span className="text-xs text-muted-foreground min-w-max">
+                    {displayDate}
+                </span>
+            </div>
+        </div>
       </CardHeader>
       <CardContent className="space-y-2 pt-0">
         <div className="flex justify-between items-baseline">
@@ -82,3 +99,5 @@ export function Balance({
     </Card>
   );
 }
+
+    
