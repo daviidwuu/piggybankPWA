@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -91,7 +92,7 @@ export function SetupSheet({ onSave }: SetupSheetProps) {
                     </FormItem>
                 )}
                 />
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Button type="submit" className="w-full mb-4" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save and Continue
                 </Button>
