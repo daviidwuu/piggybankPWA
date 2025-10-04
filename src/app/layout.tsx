@@ -1,6 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { Roboto } from 'next/font/google';
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+
+const roboto = Roboto({
+  subsets: ['latin'],
+  weight: ['400', '500', '700'],
+  variable: '--font-roboto',
+});
 
 export const metadata: Metadata = {
   title: "FinTrack Mini",
@@ -19,20 +26,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="font-body antialiased" suppressHydrationWarning>
+      <body className={`${roboto.variable} font-body antialiased`} suppressHydrationWarning>
         {children}
         <Toaster />
       </body>

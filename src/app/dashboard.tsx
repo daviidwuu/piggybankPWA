@@ -139,8 +139,9 @@ export function Dashboard() {
         const { transactions, budgets } = JSON.parse(cachedData);
         setTransactions(transactions);
         setBudgets(budgets);
-        setLoading(false);
+        setLoading(false); // Instantly show cached data
       }
+      // Fetch fresh data in the background
       fetchData(!cachedData, storedUrl);
     } else {
       setLoading(false);
@@ -389,7 +390,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
-
-    
