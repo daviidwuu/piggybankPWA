@@ -150,7 +150,6 @@ export function BudgetPage({
                                         placeholder="New Category Name"
                                         className="h-9"
                                         onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
-                                        autoFocus
                                     />
                                     <Button size="sm" onClick={handleAddCategory}>
                                         <Plus className="h-4 w-4 mr-1"/>
