@@ -13,8 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Pencil, Trash2, Plus, DollarSign } from "lucide-react";
+import { Separator } from "../ui/separator";
 
 interface BudgetPageProps {
   user: User;
@@ -35,12 +35,19 @@ export function BudgetPage({
   onAddCategory, 
   onDeleteCategory 
 }: BudgetPageProps) {
-  const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [newBudgetValue, setNewBudgetValue] = useState<number | string>("");
   const [newCategory, setNewCategory] = useState("");
   
   const [currentIncome, setCurrentIncome] = useState(user?.income ?? 0);
   const [currentSavings, setCurrentSavings] = useState(user?.savings ?? 0);
+
+  const [budgetValues, setBudgetValues] = useState<Record<string, string>>(() => {
+    const initialState: Record<string, string> = {};
+    (user?.categories || []).forEach(category => {
+        const budget = budgets.find(b => b.Category === category);
+        initialState[category] = budget ? String(budget.MonthlyBudget) : '0';
+    });
+    return initialState;
+  });
 
   const categories = user?.categories || [];
   const income = user?.income ?? 0;
@@ -49,25 +56,6 @@ export function BudgetPage({
   const totalBudgeted = useMemo(() => budgets.reduce((sum, b) => sum + b.MonthlyBudget, 0), [budgets]);
   const leftToBudget = useMemo(() => income - savings - totalBudgeted, [income, savings, totalBudgeted]);
 
-  const handleEditClick = (budget: Budget) => {
-    setEditingCategory(budget.Category);
-    setNewBudgetValue(budget.MonthlyBudget);
-  };
-
-  const handleSaveClick = (category: string) => {
-    const budgetValue = typeof newBudgetValue === "string" ? parseFloat(newBudgetValue) : newBudgetValue;
-    if (!isNaN(budgetValue) && budgetValue >= 0) {
-      onUpdateBudget(category, budgetValue);
-      setEditingCategory(null);
-      setNewBudgetValue("");
-    }
-  };
-  
-  const handleCancelClick = () => {
-    setEditingCategory(null);
-    setNewBudgetValue("");
-  };
-
   const handleAddCategory = () => {
     if (newCategory.trim() !== "" && !categories.includes(newCategory.trim())) {
       onAddCategory(newCategory.trim());
@@ -75,23 +63,23 @@ export function BudgetPage({
     }
   };
 
-  const getBudgetForCategory = (category: string): Budget => {
-    return budgets.find(b => b.Category === category) || { id: category, Category: category, MonthlyBudget: 0 };
+  const handleBudgetChange = (category: string, value: string) => {
+    setBudgetValues(prev => ({ ...prev, [category]: value }));
   };
 
+  const handleBudgetBlur = (category: string) => {
+    const value = parseFloat(budgetValues[category] || '0');
+    if (!isNaN(value)) {
+      onUpdateBudget(category, value);
+    }
+  };
+
+
   return (
-    <Tabs defaultValue="overview" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="overview">Overview</TabsTrigger>
-        <TabsTrigger value="budgets">Budgets</TabsTrigger>
-        <TabsTrigger value="categories">Categories</TabsTrigger>
-      </TabsList>
-      
-      <TabsContent value="overview" className="mt-4">
+    <div className="w-full max-h-[70vh] overflow-y-auto px-1">
         <Card className="border-none shadow-none">
-          <CardHeader>
-            <CardTitle>Financial Overview</CardTitle>
-            <CardDescription>Your monthly income, savings, and budget summary.</CardDescription>
+          <CardHeader className="pt-2">
+            <CardTitle>Income & Savings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -123,63 +111,42 @@ export function BudgetPage({
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <div className="w-full flex justify-between items-center p-3 rounded-lg bg-muted">
+
+          <Separator className="my-4" />
+
+          <CardHeader>
+             <CardTitle>Category Budgets</CardTitle>
+             <CardDescription>Allocate your spending limits for each category.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 pr-2">
+            <div className="w-full flex justify-between items-center p-3 rounded-lg bg-muted mb-4">
                 <span className="font-medium text-muted-foreground">Left to Budget:</span>
                 <span className={`font-bold text-lg ${leftToBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
                     ${leftToBudget.toFixed(2)}
                 </span>
             </div>
-          </CardFooter>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="budgets" className="mt-4">
-        <Card className="border-none shadow-none">
-          <CardHeader>
-             <CardTitle>Category Budgets</CardTitle>
-            <CardDescription>Allocate your spending limits for each category.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 max-h-64 overflow-y-auto pr-2">
-            {categories.map((category) => {
-              const budget = getBudgetForCategory(category);
-              const isEditing = editingCategory === category;
-              return (
-                <div key={category} className="flex items-center justify-between">
+            {categories.map((category) => (
+                <div key={category} className="flex items-center justify-between gap-4">
                   <span className="font-medium truncate pr-2">{category}</span>
-                  {isEditing ? (
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                       <Input
                         type="number"
-                        value={newBudgetValue}
-                        onChange={(e) => setNewBudgetValue(e.target.value)}
-                        className="h-8 w-24"
-                        autoFocus
-                        onKeyDown={(e) => e.key === 'Enter' && handleSaveClick(category)}
+                        value={budgetValues[category] ?? ''}
+                        onChange={(e) => handleBudgetChange(category, e.target.value)}
+                        onBlur={() => handleBudgetBlur(category)}
+                        className="h-8 w-24 text-right"
+                        placeholder="0.00"
                       />
-                      <Button size="sm" onClick={() => handleSaveClick(category)}>Save</Button>
-                      <Button size="sm" variant="ghost" onClick={handleCancelClick}>Cancel</Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <span className="text-muted-foreground w-20 text-right">${budget.MonthlyBudget.toFixed(2)}</span>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditClick(budget)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
+                  </div>
                 </div>
-              );
-            })}
+              )
+            )}
           </CardContent>
-        </Card>
-      </TabsContent>
 
-      <TabsContent value="categories" className="mt-4">
-        <Card className="border-none shadow-none">
+            <Separator className="my-4" />
+            
           <CardHeader>
             <CardTitle>Manage Categories</CardTitle>
-            <CardDescription>Add or remove spending categories.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
              <div className="flex items-center gap-2">
@@ -195,7 +162,7 @@ export function BudgetPage({
                 Add
               </Button>
             </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+            <div className="space-y-2 pt-2">
                 {categories.map((category) => (
                     <div key={category} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                         <span className="font-medium">{category}</span>
@@ -207,7 +174,6 @@ export function BudgetPage({
             </div>
           </CardContent>
         </Card>
-      </TabsContent>
-    </Tabs>
+    </div>
   );
 }
