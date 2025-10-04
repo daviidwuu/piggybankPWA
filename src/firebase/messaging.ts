@@ -8,7 +8,7 @@ import { type FirebaseApp } from "firebase/app";
 // This is a placeholder for your VAPID key.
 // You need to generate this in your Firebase project settings.
 // Go to Project settings > Cloud Messaging > Web configuration > Generate key pair
-const VAPID_KEY = "YOUR_VAPID_KEY_HERE"; 
+const VAPID_KEY = "BBglrgnvLgJ4NVE_A8YSYoIAG9lvRVYQQaZanKuyiDyNzzhlIyQ39lES8VsePTKekVsrczEO2KlBf37JOFlD-RY"; 
 
 /**
  * Requests permission to send push notifications and saves the token to Firestore.
