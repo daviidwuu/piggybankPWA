@@ -9,7 +9,6 @@ import { type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { BudgetPage } from "@/components/dashboard/budget-page";
 import { ReportsPage } from "@/components/dashboard/reports-page";
-import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
 import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog";
@@ -46,13 +45,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
-import { doc, collection, query, orderBy } from "firebase/firestore";
+import { doc, collection, query, orderBy, limit, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
-import { setDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -65,17 +62,13 @@ const chartColors = [
   "#78350f", "#ec4899", "#64748b", "#f59e0b"
 ];
 
-const defaultCategories = [
-  "F&B", "Shopping", "Transport", "Bills",
-];
-
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 const USER_ID_COPIED_KEY = 'userIdCopied';
 
 export function Dashboard() {
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
-  const [visibleTransactions, setVisibleTransactions] = useState(5);
+  const [visibleTransactions, setVisibleTransactions] = useState(20);
   const [sortOption, setSortOption] = useState<SortOption>('latest');
   const [isClient, setIsClient] = useState(false);
   const [displayDate, setDisplayDate] = useState<string>("Loading...");
@@ -93,7 +86,7 @@ export function Dashboard() {
   
   const { toast } = useToast();
   const auth = useAuth();
-  const { user, isUserLoading } = useUser();
+  const { user } = useUser();
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
   const router = useRouter();
@@ -103,21 +96,21 @@ export function Dashboard() {
     [firestore, user]
   );
   
-  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserData>(userDocRef);
+  const { data: userData } = useDoc<UserData>(userDocRef);
 
   const transactionsQuery = useMemoFirebase(
-    () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc')) : null),
-    [firestore, user]
+    () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc'), limit(visibleTransactions)) : null),
+    [firestore, user, visibleTransactions]
   );
-  const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsQuery);
+  const { data: transactions } = useCollection<Transaction>(transactionsQuery);
 
   const budgetsQuery = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/budgets`) : null),
     [firestore, user]
   );
-  const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
+  const { data: budgets } = useCollection<Budget>(budgetsQuery);
   
-  const categories = userData?.categories || defaultCategories;
+  const categories = userData?.categories || [];
 
   const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
     acc[category] = chartColors[index % chartColors.length];
@@ -134,28 +127,6 @@ export function Dashboard() {
       }
     }
   }, [userData]);
-
-
-  const handleSetupSave = (data: { name: string; }) => {
-    if (!userDocRef) return;
-    const newUserData = { 
-      name: data.name, 
-      categories: defaultCategories,
-      income: 0,
-      savings: 0,
-    };
-    setDocumentNonBlocking(userDocRef, newUserData, { merge: true });
-    
-    // Add default budgets
-    if (firestore && user) {
-        const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
-        defaultCategories.forEach(category => {
-            setDocumentNonBlocking(doc(budgetsCollection, category), { Category: category, MonthlyBudget: 0 }, { merge: true });
-        })
-    }
-    // Open the budget page for new users
-    setBudgetOpen(true);
-  };
 
   const handleEditClick = (transaction: Transaction) => {
     setTransactionToEdit(transaction);
@@ -191,15 +162,15 @@ export function Dashboard() {
   };
 
   const handleAddCategory = (category: string) => {
-    if (!userDocRef) return;
-    const updatedCategories = [...categories, category];
+    if (!userDocRef || !userData) return;
+    const updatedCategories = [...(userData.categories || []), category];
     updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
     handleUpdateBudget(category, 0); // Initialize with 0 budget
   };
 
   const handleDeleteCategory = (category: string) => {
-    if (!userDocRef || !user || !firestore) return;
-    const updatedCategories = categories.filter(c => c !== category);
+    if (!userDocRef || !user || !firestore || !userData) return;
+    const updatedCategories = (userData.categories || []).filter(c => c !== category);
     updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
 
     // Also delete the budget associated with the category
@@ -247,6 +218,10 @@ export function Dashboard() {
     if (!user) return;
     navigator.clipboard.writeText(user.uid);
     localStorage.setItem(USER_ID_COPIED_KEY, 'true');
+    toast({
+        title: "User ID Copied!",
+        description: "You can now paste this into your Apple Shortcut.",
+    });
   };
 
   const dateFilterRange = useMemo(() => {
@@ -265,9 +240,9 @@ export function Dashboard() {
         return { start: null, end: null };
     }
   }, [dateRange]);
-
-  const getDisplayDate = (range: DateRange): string => {
-    if (!transactions?.length && range !== 'all') return "No data";
+  
+    const getDisplayDate = (range: DateRange): string => {
+    if (!transactions?.length && range !== 'all') return "No data for this period";
     
     const { start, end } = dateFilterRange;
 
@@ -283,17 +258,17 @@ export function Dashboard() {
       case 'all':
       default:
         if (!transactions?.length) return "All Time";
-        const oldestDate = transactions.reduce((min, t) => {
-            if (!t.Date) return min;
-            const current = toDate(t.Date.seconds * 1000);
-            return current < min ? current : min;
-        }, new Date());
-        const mostRecentDate = transactions.reduce((max, t) => {
-            if (!t.Date) return max;
-            const current = toDate(t.Date.seconds * 1000);
-            return current > max ? current : max;
-        }, new Date(0));
+        // Use only the currently loaded transactions for date range display
+        const oldestLoaded = transactions[transactions.length - 1]?.Date;
+        const mostRecentLoaded = transactions[0]?.Date;
+
+        if (!oldestLoaded || !mostRecentLoaded) return "All Time";
+        
+        const oldestDate = toDate(oldestLoaded.seconds * 1000);
+        const mostRecentDate = toDate(mostRecentLoaded.seconds * 1000);
+
         if (isNaN(oldestDate.getTime()) || isNaN(mostRecentDate.getTime())) return "All Time";
+        
         return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
     }
   };
@@ -339,12 +314,11 @@ export function Dashboard() {
       case 'yearly':
         return monthlyBudget * 12;
       case 'all':
-        if (!transactions || transactions.length === 0) return monthlyBudget;
-        const oldestDate = transactions.reduce((min, t) => {
-          if (!t.Date) return min;
-          const current = toDate(t.Date.seconds * 1000);
-          return current < min ? current : min;
-        }, new Date());
+         if (!transactions || transactions.length === 0) return monthlyBudget;
+        // This is still an estimation, as we don't have all transactions
+        const oldestLoaded = transactions[transactions.length - 1]?.Date;
+        if (!oldestLoaded) return monthlyBudget;
+        const oldestDate = toDate(oldestLoaded.seconds * 1000);
         const monthSpan = differenceInMonths(now, oldestDate) + 1;
         return monthlyBudget * Math.max(1, monthSpan);
       default:
@@ -403,15 +377,11 @@ export function Dashboard() {
         return sorted.sort((a, b) => a.Category.localeCompare(b.Category));
       case 'latest':
       default:
-        return sorted.sort((a, b) => {
-          if (a.Date === null) return 1;
-          if (b.Date === null) return -1;
-          return b.Date.seconds - a.Date.seconds;
-        });
+        // The data is already sorted by date descending from Firestore
+        return sorted;
     }
   }, [expenseTransactions, sortOption]);
 
-  const transactionsToShow = sortedTransactions.slice(0, visibleTransactions);
 
   useEffect(() => {
     // When the dialog closes, reset the transaction to edit
@@ -420,24 +390,8 @@ export function Dashboard() {
     }
   }, [isAddTransactionOpen]);
 
-  const isLoading = isUserLoading || isUserDataLoading;
-
-  if (isLoading) {
+  if (!userData) {
     return <SkeletonLoader />;
-  }
-  
-  if (!userData?.name) {
-    return (
-        <div className="flex flex-col min-h-screen bg-background items-center">
-            <div className="w-full max-w-[428px] p-6">
-                <SetupSheet 
-                  onSave={handleSetupSave} 
-                  onCopyUserId={handleCopyUserId}
-                  userId={user?.uid}
-                />
-            </div>
-        </div>
-    );
   }
 
   return (
@@ -543,10 +497,10 @@ export function Dashboard() {
             displayDate={displayDate}
           />
           <TransactionsTable 
-            data={transactionsToShow} 
+            data={sortedTransactions} 
             chartConfig={chartConfig}
-            hasMore={visibleTransactions < sortedTransactions.length}
-            onLoadMore={() => setVisibleTransactions(v => v + 5)}
+            hasMore={transactions ? transactions.length === visibleTransactions : false}
+            onLoadMore={() => setVisibleTransactions(v => v + 20)}
             sortOption={sortOption}
             onSortChange={setSortOption}
             onEdit={handleEditClick}
@@ -584,5 +538,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    

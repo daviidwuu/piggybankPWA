@@ -32,7 +32,7 @@ const formSchema = z.object({
 });
 
 interface SetupSheetProps {
-  onSave: (data: { name: string; }) => void;
+  onSave: (data: { name: string; }) => Promise<void>;
   onCopyUserId: () => void;
   userId?: string;
 }
@@ -50,8 +50,9 @@ export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    onSave({ name: values.name });
-    // This will likely unmount the component, so loading state might not be seen
+    await onSave({ name: values.name });
+    // This will likely unmount the component, so loading state might not be seen if successful
+    setIsLoading(false);
   }
 
   const handleCopy = () => {
@@ -63,7 +64,7 @@ export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
   }
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md border-none shadow-none">
         <CardHeader>
             <CardTitle>Welcome to piggybank</CardTitle>
             <CardDescription>
@@ -111,7 +112,7 @@ export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
                 <p className="text-sm text-muted-foreground">2. Add the Shortcut to your iPhone:</p>
                 <Button asChild className="w-full">
                     <Link href="https://www.icloud.com/shortcuts/df270514bb1a48ee8ff5bcaa9e685df3" target="_blank">
-                        <LinkIcon className="mr-2" />
+                        <LinkIcon className="mr-2 h-4 w-4" />
                         Add Apple Shortcut
                     </Link>
                 </Button>
