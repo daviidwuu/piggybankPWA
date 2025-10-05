@@ -106,7 +106,7 @@ export function TransactionsTable({
             <Table>
               <caption className="sr-only">Recent Transactions</caption>
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead scope="col" className="p-1 pl-0">Date</TableHead>
                   <TableHead scope="col" className="p-1 text-left">Amount</TableHead>
                   <TableHead scope="col" className="p-1">Description</TableHead>
