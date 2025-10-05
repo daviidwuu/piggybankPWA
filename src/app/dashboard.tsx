@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -516,7 +515,7 @@ export function Dashboard() {
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
                   <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
-                    <DialogContent className="max-w-[400px]">
+                    <DialogContent className="max-w-[400px]" onOpenAutoFocus={(e) => e.preventDefault()}>
                        <DialogHeader>
                         <DialogTitle>Wallet</DialogTitle>
                       </DialogHeader>
@@ -613,3 +612,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    

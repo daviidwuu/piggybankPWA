@@ -137,7 +137,7 @@ export function BudgetPage({
                                 <Pencil className="h-4 w-4" />
                             </Button>
                         </DrawerTrigger>
-                        <DrawerContent>
+                        <DrawerContent onOpenAutoFocus={(e) => e.preventDefault()}>
                             <DrawerHeader>
                                 <DrawerTitle>Manage Categories</DrawerTitle>
                                 <DrawerDescription>Add new spending categories or remove ones you no longer need.</DrawerDescription>
@@ -203,3 +203,5 @@ export function BudgetPage({
     </ScrollArea>
   );
 }
+
+    

@@ -67,7 +67,7 @@ export function UserSettingsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>User Profile</DialogTitle>
           <DialogDescription>
@@ -112,3 +112,5 @@ export function UserSettingsDialog({
     </Dialog>
   );
 }
+
+    
