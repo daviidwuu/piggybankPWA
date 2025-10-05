@@ -117,7 +117,7 @@ export function TransactionsTable({
                 {data.map((transaction) => {
                     const { date, time } = formatDate(transaction.Date);
                     return (
-                      <TableRow key={transaction.id}>
+                      <TableRow key={transaction.id} className="hover:bg-transparent">
                         <TableCell className="font-medium text-sm p-1 pl-0">
                             <div>{date}</div>
                             <div className="text-muted-foreground">{time}</div>
