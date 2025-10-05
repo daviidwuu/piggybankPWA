@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useUser, useDoc, useMemoFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { SkeletonLoader } from '@/components/dashboard/skeleton-loader';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, collection } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { type User as UserData } from '@/lib/data';
 import { SetupSheet } from '@/components/dashboard/setup-sheet';
@@ -56,9 +57,9 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     navigator.clipboard.writeText(user.uid);
   };
 
-  // Show a skeleton loader while either the user authentication or the user data is loading.
   // This is the key change to prevent the flicker.
-  if (isUserLoading || isUserDataLoading) {
+  // We show the skeleton loader if the user object isn't available yet OR if the user data is still loading.
+  if (isUserLoading || (user && isUserDataLoading)) {
     return <SkeletonLoader />;
   }
   
