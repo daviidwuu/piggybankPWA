@@ -53,6 +53,7 @@ import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlo
 import { requestNotificationPermission } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
+import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -538,3 +539,5 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
