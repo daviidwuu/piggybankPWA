@@ -1,54 +1,77 @@
 
 'use client';
 
-import { getMessaging, getToken, isSupported } from "firebase/messaging";
-import { collection, addDoc, serverTimestamp, Firestore } from "firebase/firestore";
-import { type FirebaseApp } from "firebase/app";
-
-// This is the VAPID key for your Firebase project. It is required for Web Push notifications.
-const VAPID_KEY = "BBglrgnvLgJ4NVE_A8YSYoIAG9lvRVYQQaZanKuyiDyNzzhlIyQ39lES8VsePTKekVsrczEO2KlBf37JOFlD-RY"; 
+import { collection, doc, setDoc, serverTimestamp, Firestore } from "firebase/firestore";
 
 /**
- * Requests permission to send push notifications and saves the token to Firestore.
+ * Converts a VAPID key from a URL-safe base64 string to a Uint8Array.
+ */
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+/**
+ * Requests permission for push notifications and saves the subscription to Firestore.
+ * This function is designed to work with the standard Web Push API for PWA compatibility.
  * @param userId The ID of the current user.
  * @param firestore The Firestore instance.
- * @param app The FirebaseApp instance.
  */
-export async function requestNotificationPermission(userId: string, firestore: Firestore, app: FirebaseApp) {
+export async function requestNotificationPermission(userId: string, firestore: Firestore) {
+  // Check if Push Notifications are supported
+  if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.warn("Push notifications are not supported in this browser.");
+    alert("Push notifications are not supported on this device or browser.");
+    return;
+  }
+  
   try {
-    const supported = await isSupported();
-    if (!supported) {
-        console.log("Firebase Messaging is not supported in this browser.");
-        return;
-    }
+    // Register the service worker
+    const swRegistration = await navigator.serviceWorker.register('/sw.js');
+    console.log('Service Worker registered:', swRegistration);
+    
+    // Wait for the service worker to be ready
+    await navigator.serviceWorker.ready;
+    console.log('Service Worker is ready.');
 
     const permission = await Notification.requestPermission();
-    
-    if (permission === "granted") {
-      console.log("Notification permission granted.");
-      
-      const messaging = getMessaging(app);
-
-      // Get the token, providing the VAPID key which is crucial for web push.
-      const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY });
-
-      if (currentToken) {
-        console.log("Push token received:", currentToken);
-        // Save the token to Firestore
-        const subscriptionsRef = collection(firestore, "users", userId, "pushSubscriptions");
-        await addDoc(subscriptionsRef, {
-          token: currentToken,
-          createdAt: serverTimestamp(),
-        });
-        console.log("Push token saved to Firestore.");
-      } else {
-        // This can happen if the service worker isn't ready or there's a configuration issue.
-        console.log("No registration token available. Request permission to generate one or check service worker.");
-      }
-    } else {
-      console.log("Unable to get permission to notify.");
+    if (permission !== "granted") {
+      throw new Error("Push notification permission not granted.");
     }
+
+    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidPublicKey) {
+      throw new Error("VAPID public key is not defined in environment variables.");
+    }
+
+    const subscription = await swRegistration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+    });
+
+    console.log("Push subscription successful:", subscription);
+
+    // Save the subscription to Firestore. Using the endpoint as the document ID prevents duplicates.
+    const subscriptionEndpoint = subscription.endpoint;
+    const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, btoa(subscriptionEndpoint));
+    
+    await setDoc(subscriptionRef, {
+      endpoint: subscription.endpoint,
+      keys: subscription.toJSON().keys,
+      createdAt: serverTimestamp(),
+    });
+
+    console.log("Push subscription saved to Firestore.");
+    alert("Push notifications have been enabled!");
+
   } catch (error) {
-    console.error("An error occurred while requesting notification permission.", error);
+    console.error("An error occurred during push notification setup:", error);
+    alert(`Failed to enable push notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

@@ -48,7 +48,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
+import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
 import { signOut, type User } from "firebase/auth";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -94,7 +94,6 @@ export function Dashboard() {
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
-  const firebaseApp = useFirebaseApp();
   const router = useRouter();
 
   const userDocRef = useMemoFirebase(
@@ -119,7 +118,7 @@ export function Dashboard() {
   
   useEffect(() => {
     setIsClient(true);
-    if (finalUserData && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+    if (finalUserData && typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && Notification.permission === 'default') {
       const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
       if (!alreadyPrompted) {
           setTimeout(() => setShowNotificationDialog(true), 2000);
@@ -222,8 +221,8 @@ export function Dashboard() {
   };
   
   const handlePermissionRequest = async () => {
-    if (user && firestore && firebaseApp) {
-      await requestNotificationPermission(user.uid, firestore, firebaseApp);
+    if (user && firestore) {
+      await requestNotificationPermission(user.uid, firestore);
     }
     setShowNotificationDialog(false);
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');

@@ -4,73 +4,69 @@
 import { type NextRequest, NextResponse } from "next/server";
 import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import webpush from 'web-push';
+import { type PushSubscription } from "web-push";
 
 // Initialize Firebase Admin SDK if not already initialized
 if (admin.apps.length === 0) {
-  // This will use the GOOGLE_APPLICATION_CREDENTIALS environment variable
-  // or the default service account in the App Hosting environment.
   admin.initializeApp();
 }
 
 const firestore = admin.firestore();
-const messaging = admin.messaging();
 
-async function sendPushNotification(userId: string, message: string) {
-    // 1. Get push tokens from Firestore
-    const tokens: string[] = [];
-    const subscriptionsSnapshot = await firestore
-      .collection('users')
-      .doc(userId)
-      .collection('pushSubscriptions')
-      .get();
-      
-    if (subscriptionsSnapshot.empty) {
-      console.log("No push subscription tokens found for user:", userId);
-      return { success: false, error: "No push subscription tokens found for user." };
+// Configure web-push with VAPID details from environment variables
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT) {
+    webpush.setVapidDetails(
+        process.env.VAPID_SUBJECT,
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+    );
+} else {
+    console.warn("VAPID keys not configured. Push notifications will not work.");
+}
+
+async function sendPushNotification(userId: string, messageBody: string, url: string) {
+    try {
+        const subscriptionsSnapshot = await firestore
+            .collection('users')
+            .doc(userId)
+            .collection('pushSubscriptions')
+            .get();
+
+        if (subscriptionsSnapshot.empty) {
+            console.log("No push subscriptions found for user:", userId);
+            return;
+        }
+        
+        const payload = JSON.stringify({
+            title: 'piggybank',
+            body: messageBody,
+            url: url,
+        });
+
+        const sendPromises = subscriptionsSnapshot.docs.map(doc => {
+            const subscription = doc.data() as PushSubscription;
+            return webpush.sendNotification(subscription, payload).catch(error => {
+                // If subscription is expired or invalid, delete it
+                if (error.statusCode === 410 || error.statusCode === 404) {
+                    console.log("Subscription expired or invalid, deleting:", doc.id);
+                    return doc.ref.delete();
+                } else {
+                    console.error("Error sending push notification, status code:", error.statusCode, error.body);
+                }
+            });
+        });
+
+        await Promise.all(sendPromises);
+
+    } catch (error) {
+        console.error("Failed to send push notifications:", error);
     }
-      
-    subscriptionsSnapshot.forEach(doc => {
-      tokens.push(doc.data().token);
-    });
-
-    if (tokens.length === 0) {
-      console.log("No valid tokens found for user:", userId);
-      return { success: false, error: "No valid tokens found." };
-    }
-
-    // 2. Construct the push message payload
-    const payload: admin.messaging.MessagingPayload = {
-      notification: {
-        title: 'piggybank',
-        body: message,
-        icon: '/icon.png',
-      },
-    };
-
-    // 3. Send the message to all tokens
-    const response = await messaging.sendToDevice(tokens, payload);
-
-    const errors = response.results
-      .map((r, i) => r.error ? `Token ${i}: ${r.error.message}`: null)
-      .filter((e): e is string => e !== null);
-      
-    if (errors.length > 0) {
-        console.error("Push notification failures:", errors);
-    }
-
-    return {
-      successCount: response.successCount,
-      failureCount: response.failureCount,
-      errors: errors,
-    };
 }
 
 
 export async function POST(request: NextRequest) {
   try {
-    // Note: We are not validating the user with a token here.
-    // This is a simplified example. In a production app, you would
-    // verify an auth token from the Apple Shortcut.
     const { userId, ...newEntry } = await request.json();
 
     if (!userId) {
@@ -120,15 +116,14 @@ export async function POST(request: NextRequest) {
       .collection('transactions')
       .add(transactionData);
 
-    // Send a push notification
+    // Send a web push notification
     try {
-        const message = `New transaction added: ${transactionData.Notes} for $${transactionData.Amount.toFixed(2)}`;
-        await sendPushNotification(userId, message);
+        const message = `New transaction: ${transactionData.Notes} for $${transactionData.Amount.toFixed(2)}`;
+        await sendPushNotification(userId, message, '/');
     } catch (pushError) {
         // Log the error but don't fail the transaction request
-        console.error("Failed to send push notification:", pushError);
+        console.error("Failed to send web push notification:", pushError);
     }
-
 
     return NextResponse.json({ success: true, id: docRef.id });
 
