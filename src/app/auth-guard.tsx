@@ -1,13 +1,11 @@
-
 'use client';
 
-import { useUser, useDoc, useMemoFirebase } from '@/firebase';
+import { useUser, useDoc, useCollection, useMemoFirebase, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { SkeletonLoader } from '@/components/dashboard/skeleton-loader';
-import { doc, setDoc, collection } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
-import { type User as UserData } from '@/lib/data';
+import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
+import { type User as UserData, type Budget, type Transaction } from '@/lib/data';
 import { SetupSheet } from '@/components/dashboard/setup-sheet';
 import { Dashboard } from './dashboard';
 
@@ -15,7 +13,7 @@ const defaultCategories = [
   "F&B", "Shopping", "Transport", "Bills",
 ];
 
-export function AuthGuard({ children }: { children: ReactNode }) {
+export function AuthGuard() {
   const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const router = useRouter();
@@ -25,6 +23,19 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     [firestore, user]
   );
   const { data: userData, isLoading: isUserDataLoading } = useDoc<UserData>(userDocRef);
+
+  const transactionsQuery = useMemoFirebase(
+    () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc'), limit(20)) : null),
+    [firestore, user]
+  );
+  const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsQuery);
+
+  const budgetsQuery = useMemoFirebase(
+    () => (firestore && user ? collection(firestore, `users/${user.uid}/budgets`) : null),
+    [firestore, user]
+  );
+  const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
+
 
   useEffect(() => {
     // If the initial auth check is done and there's no user, redirect to login.
@@ -56,12 +67,10 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     if (!user) return;
     navigator.clipboard.writeText(user.uid);
   };
+  
+  const isLoading = isUserLoading || isUserDataLoading || (user && (isTransactionsLoading || isBudgetsLoading));
 
-  // This condition is the key to fixing the flicker.
-  // It ensures we show the loader until we have a definitive answer on userData.
-  // We check `userData === undefined` because the `useDoc` hook initializes data to `undefined`.
-  // This prevents the brief moment where `isUserDataLoading` is false but `userData` is not yet `null` or an object.
-  if (isUserLoading || (user && userData === undefined)) {
+  if (isLoading) {
     return <SkeletonLoader />;
   }
   
@@ -81,8 +90,13 @@ export function AuthGuard({ children }: { children: ReactNode }) {
   }
 
   // If the user is logged in and has data, render the main application.
-  if (user && userData) {
-    return <>{children}</>;
+  if (user && userData && transactions !== undefined && budgets !== undefined) {
+    return <Dashboard 
+            user={user}
+            userData={userData} 
+            initialTransactions={transactions || []}
+            initialBudgets={budgets || []}
+           />;
   }
 
   // Fallback loader if the user is not yet redirected.

@@ -24,6 +24,11 @@ export interface UseDocResult<T> {
   error: FirestoreError | Error | null; // Error object, or null.
 }
 
+export interface UseDocOptions<T> {
+    initialData?: WithId<T>;
+}
+
+
 /**
  * React hook to subscribe to a single Firestore document in real-time.
  * Handles nullable references.
@@ -40,10 +45,11 @@ export interface UseDocResult<T> {
  */
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
+  options?: UseDocOptions<T>
 ): UseDocResult<T> {
   // Initialize data to `undefined` to represent the "not yet loaded" state.
-  const [data, setData] = useState<WithId<T> | null | undefined>(undefined);
-  const [isLoading, setIsLoading] = useState<boolean>(true); // Start in loading state
+  const [data, setData] = useState<WithId<T> | null | undefined>(options?.initialData ?? undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(!options?.initialData); // Start in loading state
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
@@ -56,8 +62,13 @@ export function useDoc<T = any>(
     }
 
     // Start loading when a valid docRef is provided.
-    setIsLoading(true);
-    setData(undefined); // Reset data to undefined on new ref
+    if (!options?.initialData) {
+        setIsLoading(true);
+    }
+    // Reset data to undefined on new ref if no initial data
+    if (data !== undefined && !options?.initialData) {
+        setData(undefined);
+    }
     setError(null);
 
     const unsubscribe = onSnapshot(
@@ -88,7 +99,7 @@ export function useDoc<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedDocRef]); // Re-run if the memoizedDocRef changes.
+  }, [memoizedDocRef, options?.initialData]); // Re-run if the memoizedDocRef or initialData changes.
 
   return { data, isLoading, error };
 }

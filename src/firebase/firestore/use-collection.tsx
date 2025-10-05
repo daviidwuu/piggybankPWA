@@ -9,7 +9,6 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
-  DocumentSnapshot,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -22,9 +21,13 @@ export type WithId<T> = T & { id: string };
  * @template T Type of the document data.
  */
 export interface UseCollectionResult<T> {
-  data: WithId<T>[] | null; // Document data with ID, or null.
-  isLoading: boolean;       // True if loading.
-  error: FirestoreError | Error | null; // Error object, or null.
+  data: WithId<T>[] | null | undefined;
+  isLoading: boolean;
+  error: FirestoreError | Error | null;
+}
+
+export interface UseCollectionOptions<T> {
+    initialData?: WithId<T>[];
 }
 
 /* Internal implementation of Query:
@@ -55,12 +58,13 @@ export interface InternalQuery extends Query<DocumentData> {
  */
 export function useCollection<T = any>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
+    options?: UseCollectionOptions<T>
 ): UseCollectionResult<T> {
   type ResultItemType = WithId<T>;
-  type StateDataType = ResultItemType[] | null;
+  type StateDataType = ResultItemType[] | null | undefined;
 
-  const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [data, setData] = useState<StateDataType>(options?.initialData ?? undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(!options?.initialData);
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
@@ -71,7 +75,10 @@ export function useCollection<T = any>(
       return;
     }
 
-    setIsLoading(true);
+    // If we have initial data, we're not in the initial loading state for this effect.
+    if (!options?.initialData) {
+        setIsLoading(true);
+    }
     setError(null);
 
     // This is a type guard to check if we are dealing with a single document.
@@ -128,7 +135,7 @@ export function useCollection<T = any>(
     );
 
     return () => unsubscribe();
-  }, [memoizedTargetRefOrQuery]); // Re-run if the target query/reference changes.
+  }, [memoizedTargetRefOrQuery, options?.initialData]); // Re-run if the target query/reference changes.
   
   if(memoizedTargetRefOrQuery && !(memoizedTargetRefOrQuery as any).__memo) {
     // This check is problematic because useMemo doesn't add a property.

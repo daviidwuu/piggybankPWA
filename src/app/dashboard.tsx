@@ -46,14 +46,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
+import { useAuth, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
 import { doc, collection, query, orderBy, limit, setDoc } from "firebase/firestore";
-import { signOut } from "firebase/auth";
+import { signOut, type User } from "firebase/auth";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
-import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -66,7 +65,14 @@ const chartColors = [
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 const USER_ID_COPIED_KEY = 'userIdCopied';
 
-export function Dashboard() {
+interface DashboardProps {
+  user: User;
+  userData: UserData;
+  initialTransactions: Transaction[];
+  initialBudgets: Budget[];
+}
+
+export function Dashboard({ user, userData, initialTransactions, initialBudgets }: DashboardProps) {
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(20);
@@ -87,7 +93,6 @@ export function Dashboard() {
   
   const { toast } = useToast();
   const auth = useAuth();
-  const { user } = useUser();
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
   const router = useRouter();
@@ -97,21 +102,29 @@ export function Dashboard() {
     [firestore, user]
   );
   
-  const { data: userData } = useDoc<UserData>(userDocRef);
+  // Data is now passed via props, but we can still fetch updates
+  const { data: updatedUserData } = useDoc<UserData>(userDocRef, {
+    initialData: userData,
+  });
+  const finalUserData = updatedUserData || userData;
 
   const transactionsQuery = useMemoFirebase(
     () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc'), limit(visibleTransactions)) : null),
     [firestore, user, visibleTransactions]
   );
-  const { data: transactions } = useCollection<Transaction>(transactionsQuery);
+  const { data: transactions } = useCollection<Transaction>(transactionsQuery, {
+    initialData: initialTransactions
+  });
 
   const budgetsQuery = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/budgets`) : null),
     [firestore, user]
   );
-  const { data: budgets } = useCollection<Budget>(budgetsQuery);
+  const { data: budgets } = useCollection<Budget>(budgetsQuery, {
+    initialData: initialBudgets
+  });
   
-  const categories = userData?.categories || [];
+  const categories = finalUserData?.categories || [];
 
   const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
     acc[category] = chartColors[index % chartColors.length];
@@ -121,13 +134,13 @@ export function Dashboard() {
   
   useEffect(() => {
     setIsClient(true);
-    if (userData && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+    if (finalUserData && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
       const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
       if (!alreadyPrompted) {
           setTimeout(() => setShowNotificationDialog(true), 2000);
       }
     }
-  }, [userData]);
+  }, [finalUserData]);
 
   const handleEditClick = (transaction: Transaction) => {
     setTransactionToEdit(transaction);
@@ -163,15 +176,15 @@ export function Dashboard() {
   };
 
   const handleAddCategory = (category: string) => {
-    if (!userDocRef || !userData) return;
-    const updatedCategories = [...(userData.categories || []), category];
+    if (!userDocRef || !finalUserData) return;
+    const updatedCategories = [...(finalUserData.categories || []), category];
     updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
     handleUpdateBudget(category, 0); // Initialize with 0 budget
   };
 
   const handleDeleteCategory = (category: string) => {
-    if (!userDocRef || !user || !firestore || !userData) return;
-    const updatedCategories = (userData.categories || []).filter(c => c !== category);
+    if (!userDocRef || !user || !firestore || !finalUserData) return;
+    const updatedCategories = (finalUserData.categories || []).filter(c => c !== category);
     updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
 
     // Also delete the budget associated with the category
@@ -301,8 +314,8 @@ export function Dashboard() {
   }, [isClient, transactions, dateRange, dateFilterRange]);
   
   const totalBudget = useMemo(() => {
-    if (!userData) return 0;
-    const monthlyBudget = (userData.income || 0) - (userData.savings || 0);
+    if (!finalUserData) return 0;
+    const monthlyBudget = (finalUserData.income || 0) - (finalUserData.savings || 0);
     const now = new Date();
 
     switch (dateRange) {
@@ -325,7 +338,7 @@ export function Dashboard() {
       default:
         return monthlyBudget;
     }
-  }, [userData, dateRange, transactions]);
+  }, [finalUserData, dateRange, transactions]);
 
   const expenseTransactions = useMemo(() => 
     filteredTransactions.filter(t => t.Type === 'Expense'),
@@ -391,10 +404,6 @@ export function Dashboard() {
     }
   }, [isAddTransactionOpen]);
 
-  if (!userData) {
-    return <SkeletonLoader />;
-  }
-
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
       <div className="w-full max-w-[428px] pt-[env(safe-area-inset-top)]">
@@ -413,7 +422,7 @@ export function Dashboard() {
            <UserSettingsDialog
               open={isUserSettingsOpen}
               onOpenChange={setUserSettingsOpen}
-              user={userData}
+              user={finalUserData}
               userId={user?.uid}
               onSave={handleUpdateUser}
               onCopyUserId={handleCopyUserId}
@@ -437,7 +446,7 @@ export function Dashboard() {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-2xl font-bold">Welcome,</h1>
-              <h1 className="text-primary text-3xl font-bold">{userData.name}</h1>
+              <h1 className="text-primary text-3xl font-bold">{finalUserData.name}</h1>
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
@@ -447,7 +456,7 @@ export function Dashboard() {
                         <DialogTitle>Wallet</DialogTitle>
                       </DialogHeader>
                       <BudgetPage 
-                        user={userData}
+                        user={finalUserData}
                         budgets={budgets || []} 
                         onUpdateIncome={handleUpdateIncome}
                         onUpdateSavings={handleUpdateSavings}
