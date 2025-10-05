@@ -73,10 +73,6 @@ export default function LoginPage() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       // onAuthStateChanged will handle redirection
-      toast({
-        title: 'Account Created',
-        description: "Welcome! Let's get you set up.",
-      });
     } catch (error) {
       handleAuthError(error as AuthError);
     } finally {
@@ -90,10 +86,6 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // onAuthStateChanged will handle redirection
-      toast({
-        title: 'Signed In',
-        description: 'Welcome back!',
-      });
     } catch (error) {
       handleAuthError(error as AuthError);
     } finally {

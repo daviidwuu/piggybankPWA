@@ -25,6 +25,7 @@ import {
   } from "@/components/ui/card";
 import { Loader2, Copy, Link as LinkIcon } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   name: z.string().min(1, { message: "Please enter your name." }),
@@ -38,6 +39,7 @@ interface SetupSheetProps {
 
 export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,6 +51,15 @@ export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     onSave({ name: values.name });
+    // This will likely unmount the component, so loading state might not be seen
+  }
+
+  const handleCopy = () => {
+    onCopyUserId();
+    toast({
+        title: "User ID Copied!",
+        description: "You can now paste this into your Apple Shortcut.",
+    });
   }
 
   return (
@@ -91,7 +102,7 @@ export function SetupSheet({ onSave, onCopyUserId, userId }: SetupSheetProps) {
                 <p className="text-sm text-muted-foreground">1. Copy your unique User ID:</p>
                 <div className="flex items-center w-full gap-2">
                     <Input readOnly value={userId} className="text-xs" />
-                    <Button variant="outline" size="icon" onClick={onCopyUserId}>
+                    <Button variant="outline" size="icon" onClick={handleCopy}>
                         <Copy className="h-4 w-4" />
                     </Button>
                 </div>

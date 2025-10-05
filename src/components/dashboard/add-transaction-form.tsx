@@ -102,21 +102,22 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         userId,
     };
     
-    if (transactionToEdit) {
-        const transactionRef = doc(firestore, `users/${userId}/transactions`, transactionToEdit.id);
-        updateDocumentNonBlocking(transactionRef, transactionData);
+    try {
+        if (transactionToEdit) {
+            const transactionRef = doc(firestore, `users/${userId}/transactions`, transactionToEdit.id);
+            updateDocumentNonBlocking(transactionRef, transactionData);
+        } else {
+            const transactionsCollection = collection(firestore, `users/${userId}/transactions`);
+            await addDocumentNonBlocking(transactionsCollection, transactionData);
+        }
+    } catch(e) {
         toast({
-            title: "Success",
-            description: "Transaction updated.",
-        });
-    } else {
-        const transactionsCollection = collection(firestore, `users/${userId}/transactions`);
-        addDocumentNonBlocking(transactionsCollection, transactionData);
-        toast({
-            title: "Success",
-            description: "New transaction added.",
+            variant: "destructive",
+            title: "Error adding transaction",
+            description: "There was an error adding the transaction.",
         });
     }
+
 
     setIsLoading(false);
     setOpen(false);

@@ -171,28 +171,16 @@ export function Dashboard() {
     const docRef = doc(firestore, `users/${user.uid}/transactions`, transactionToDelete.id);
     deleteDocumentNonBlocking(docRef);
     setTransactionToDelete(null);
-    toast({
-      title: "Transaction Deleted",
-      description: "The transaction has been successfully removed.",
-    });
   };
 
   const handleUpdateIncome = (newIncome: number) => {
     if (!userDocRef) return;
     updateDocumentNonBlocking(userDocRef, { income: newIncome });
-    toast({
-        title: "Income Updated",
-        description: `Your monthly income has been set to $${newIncome.toFixed(2)}.`,
-    });
   };
 
   const handleUpdateSavings = (newSavings: number) => {
     if (!userDocRef) return;
     updateDocumentNonBlocking(userDocRef, { savings: newSavings });
-     toast({
-        title: "Savings Goal Updated",
-        description: `Your monthly savings goal has been set to $${newSavings.toFixed(2)}.`,
-    });
   };
 
   const handleUpdateBudget = (category: string, newBudget: number) => {
@@ -200,10 +188,6 @@ export function Dashboard() {
     const budgetRef = doc(firestore, `users/${user.uid}/budgets`, category);
     const budgetData = { Category: category, MonthlyBudget: newBudget };
     setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
-    toast({
-        title: "Budget Updated",
-        description: `Budget for ${category} has been set to $${newBudget.toFixed(2)}.`,
-    });
   };
 
   const handleAddCategory = (category: string) => {
@@ -227,10 +211,6 @@ export function Dashboard() {
   const handleUpdateUser = (name: string) => {
     if (userDocRef) {
       updateDocumentNonBlocking(userDocRef, { name });
-      toast({
-        title: "User Updated",
-        description: "Your name has been updated.",
-      });
       setUserSettingsOpen(false);
     }
   };
@@ -240,10 +220,6 @@ export function Dashboard() {
     try {
       await signOut(auth);
       router.push('/login');
-      toast({
-        title: "Logged Out",
-        description: "You have been successfully signed out.",
-      });
     } catch (error) {
       console.error("Logout Error: ", error);
       toast({
@@ -270,10 +246,6 @@ export function Dashboard() {
   const handleCopyUserId = () => {
     if (!user) return;
     navigator.clipboard.writeText(user.uid);
-    toast({
-        title: "User ID Copied!",
-        description: "You can now paste this into your Apple Shortcut.",
-    });
     localStorage.setItem(USER_ID_COPIED_KEY, 'true');
   };
 
