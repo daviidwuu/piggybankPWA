@@ -9,6 +9,7 @@ import { type DateRange } from "@/components/dashboard/date-filter";
 import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
 import { BudgetPage } from "@/components/dashboard/budget-page";
 import { ReportsPage } from "@/components/dashboard/reports-page";
+import { SetupSheet } from "@/components/dashboard/setup-sheet";
 import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
 import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog";
@@ -45,9 +46,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
+import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
-import { doc, collection, query, orderBy, limit, setDoc } from "firebase/firestore";
+import { useAuth, useUser, useFirestore, useMemoFirebase, useFirebaseApp, useCollection, useDoc } from "@/firebase";
+import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
 import { signOut, type User } from "firebase/auth";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { requestNotificationPermission } from "@/firebase/messaging";
@@ -62,17 +64,14 @@ const chartColors = [
   "#78350f", "#ec4899", "#64748b", "#f59e0b"
 ];
 
+const defaultCategories = [
+  "F&B", "Shopping", "Transport", "Bills",
+];
+
 const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 const USER_ID_COPIED_KEY = 'userIdCopied';
 
-interface DashboardProps {
-  user: User;
-  userData: UserData;
-  initialTransactions: Transaction[];
-  initialBudgets: Budget[];
-}
-
-export function Dashboard({ user, userData, initialTransactions, initialBudgets }: DashboardProps) {
+export function Dashboard() {
   const [dateRange, setDateRange] = useState<DateRange>('month');
   const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(20);
@@ -93,44 +92,30 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
   
   const { toast } = useToast();
   const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const firestore = useFirestore();
   const firebaseApp = useFirebaseApp();
   const router = useRouter();
 
   const userDocRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, "users", user.uid) : null),
+    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
     [firestore, user]
   );
-  
-  // Data is now passed via props, but we can still fetch updates
-  const { data: updatedUserData } = useDoc<UserData>(userDocRef, {
-    initialData: userData,
-  });
-  const finalUserData = updatedUserData || userData;
+  const { data: userData, isLoading: isUserDataLoading } = useDoc<UserData>(userDocRef);
 
   const transactionsQuery = useMemoFirebase(
     () => (firestore && user ? query(collection(firestore, `users/${user.uid}/transactions`), orderBy('Date', 'desc'), limit(visibleTransactions)) : null),
     [firestore, user, visibleTransactions]
   );
-  const { data: transactions } = useCollection<Transaction>(transactionsQuery, {
-    initialData: initialTransactions
-  });
+  const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsQuery);
 
   const budgetsQuery = useMemoFirebase(
     () => (firestore && user ? collection(firestore, `users/${user.uid}/budgets`) : null),
     [firestore, user]
   );
-  const { data: budgets } = useCollection<Budget>(budgetsQuery, {
-    initialData: initialBudgets
-  });
-  
-  const categories = finalUserData?.categories || [];
+  const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
 
-  const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
-    acc[category] = chartColors[index % chartColors.length];
-    return acc;
-  }, {} as { [key: string]: string });
-  
+  const finalUserData = userData;
   
   useEffect(() => {
     setIsClient(true);
@@ -141,6 +126,28 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
       }
     }
   }, [finalUserData]);
+
+  const handleSetupSave = async (data: { name: string }) => {
+    if (!userDocRef || !firestore || !user) return;
+    const newUserData = {
+      name: data.name,
+      categories: defaultCategories,
+      income: 0,
+      savings: 0,
+    };
+    await setDoc(userDocRef, newUserData, { merge: true });
+
+    const budgetsCollection = collection(firestore, `users/${user.uid}/budgets`);
+    const budgetPromises = defaultCategories.map(category =>
+      setDoc(doc(budgetsCollection, category), { Category: category, MonthlyBudget: 0 }, { merge: true })
+    );
+    await Promise.all(budgetPromises);
+  };
+  
+  const handleCopyUserId = () => {
+    if (!user) return;
+    navigator.clipboard.writeText(user.uid);
+  };
 
   const handleEditClick = (transaction: Transaction) => {
     setTransactionToEdit(transaction);
@@ -172,7 +179,7 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
     if (!user || !firestore) return;
     const budgetRef = doc(firestore, `users/${user.uid}/budgets`, category);
     const budgetData = { Category: category, MonthlyBudget: newBudget };
-    setDocumentNonBlocking(budgetRef, budgetData, { merge: true });
+    setDoc(budgetRef, budgetData, { merge: true });
   };
 
   const handleAddCategory = (category: string) => {
@@ -187,7 +194,6 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
     const updatedCategories = (finalUserData.categories || []).filter(c => c !== category);
     updateDocumentNonBlocking(userDocRef, { categories: updatedCategories });
 
-    // Also delete the budget associated with the category
     const budgetRef = doc(firestore, `users/${user.uid}/budgets`, category);
     deleteDocumentNonBlocking(budgetRef);
   };
@@ -228,7 +234,7 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
   }
 
-  const handleCopyUserId = () => {
+  const handleCopyUserIdToast = () => {
     if (!user) return;
     navigator.clipboard.writeText(user.uid);
     localStorage.setItem(USER_ID_COPIED_KEY, 'true');
@@ -272,7 +278,6 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
       case 'all':
       default:
         if (!transactions?.length) return "All Time";
-        // Use only the currently loaded transactions for date range display
         const oldestLoaded = transactions[transactions.length - 1]?.Date;
         const mostRecentLoaded = transactions[0]?.Date;
 
@@ -329,7 +334,6 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
         return monthlyBudget * 12;
       case 'all':
          if (!transactions || transactions.length === 0) return monthlyBudget;
-        // This is still an estimation, as we don't have all transactions
         const oldestLoaded = transactions[transactions.length - 1]?.Date;
         if (!oldestLoaded) return monthlyBudget;
         const oldestDate = toDate(oldestLoaded.seconds * 1000);
@@ -349,6 +353,12 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
     expenseTransactions.reduce((sum, t) => sum + t.Amount, 0),
     [expenseTransactions]
   );
+
+  const categories = finalUserData?.categories || [];
+  const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
+    acc[category] = chartColors[index % chartColors.length];
+    return acc;
+  }, {} as { [key: string]: string });
 
   const aggregatedData = useMemo(() => expenseTransactions
     .reduce((acc, transaction) => {
@@ -391,11 +401,10 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
         return sorted.sort((a, b) => a.Category.localeCompare(b.Category));
       case 'latest':
       default:
-        // The data is already sorted by date descending from Firestore
+        // Data is already sorted by date descending from Firestore
         return sorted;
     }
   }, [expenseTransactions, sortOption]);
-
 
   useEffect(() => {
     // When the dialog closes, reset the transaction to edit
@@ -403,6 +412,31 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
       setTransactionToEdit(null);
     }
   }, [isAddTransactionOpen]);
+
+  const isLoading = isUserLoading || isUserDataLoading || (user && finalUserData !== null && (isTransactionsLoading || isBudgetsLoading));
+
+  if (isLoading) {
+    return <SkeletonLoader />;
+  }
+
+  // If user is authenticated but has no profile data (it's null after loading), show setup sheet
+  if (user && finalUserData === null) {
+    return (
+      <div className="flex flex-col min-h-screen bg-background items-center justify-center">
+          <div className="w-full max-w-[428px] p-6">
+              <SetupSheet 
+                onSave={handleSetupSave} 
+                onCopyUserId={handleCopyUserId}
+                userId={user.uid}
+              />
+          </div>
+      </div>
+    );
+  }
+
+  if (!user || !finalUserData || transactions === undefined || budgets === undefined) {
+    return <SkeletonLoader />;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center">
@@ -425,7 +459,7 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
               user={finalUserData}
               userId={user?.uid}
               onSave={handleUpdateUser}
-              onCopyUserId={handleCopyUserId}
+              onCopyUserId={handleCopyUserIdToast}
             />
             <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
               <AlertDialogContent>
@@ -548,5 +582,3 @@ export function Dashboard({ user, userData, initialTransactions, initialBudgets 
     </div>
   );
 }
-
-    
