@@ -24,7 +24,7 @@ interface DeleteTransactionDialogProps {
 export function DeleteTransactionDialog({ open, onOpenChange, onConfirm, transaction }: DeleteTransactionDialogProps) {
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent className="rounded-[var(--radius)]">
         <AlertDialogHeader>
           <AlertDialogTitle>Are you sure?</AlertDialogTitle>
           <AlertDialogDescription>
