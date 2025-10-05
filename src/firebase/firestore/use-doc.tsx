@@ -19,7 +19,7 @@ type WithId<T> = T & { id: string };
  * @template T Type of the document data.
  */
 export interface UseDocResult<T> {
-  data: WithId<T> | null; // Document data with ID, or null.
+  data: WithId<T> | null | undefined; // Document data with ID, or null, or undefined when loading.
   isLoading: boolean;       // True if loading.
   error: FirestoreError | Error | null; // Error object, or null.
 }
@@ -41,13 +41,13 @@ export interface UseDocResult<T> {
 export function useDoc<T = any>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
 ): UseDocResult<T> {
-  type StateDataType = WithId<T> | null;
-
-  const [data, setData] = useState<StateDataType>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  // Initialize data to `undefined` to represent the "not yet loaded" state.
+  const [data, setData] = useState<WithId<T> | null | undefined>(undefined);
+  const [isLoading, setIsLoading] = useState<boolean>(true); // Start in loading state
   const [error, setError] = useState<FirestoreError | Error | null>(null);
 
   useEffect(() => {
+    // If there's no docRef, we are not loading and there's no data.
     if (!memoizedDocRef) {
       setData(null);
       setIsLoading(false);
@@ -55,9 +55,10 @@ export function useDoc<T = any>(
       return;
     }
 
+    // Start loading when a valid docRef is provided.
     setIsLoading(true);
+    setData(undefined); // Reset data to undefined on new ref
     setError(null);
-    // Optional: setData(null); // Clear previous data instantly
 
     const unsubscribe = onSnapshot(
       memoizedDocRef,
@@ -65,10 +66,10 @@ export function useDoc<T = any>(
         if (snapshot.exists()) {
           setData({ ...(snapshot.data() as T), id: snapshot.id });
         } else {
-          // Document does not exist
+          // Document does not exist, set data to `null` to indicate this.
           setData(null);
         }
-        setError(null); // Clear any previous error on successful snapshot (even if doc doesn't exist)
+        setError(null);
         setIsLoading(false);
       },
       (error: FirestoreError) => {
@@ -78,7 +79,7 @@ export function useDoc<T = any>(
         })
 
         setError(contextualError)
-        setData(null)
+        setData(null) // On error, data is null
         setIsLoading(false)
 
         // trigger global error propagation

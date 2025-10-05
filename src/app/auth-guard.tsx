@@ -57,14 +57,16 @@ export function AuthGuard({ children }: { children: ReactNode }) {
     navigator.clipboard.writeText(user.uid);
   };
 
-  // This is the key change to prevent the flicker.
-  // We show the skeleton loader if the user object isn't available yet OR if the user data is still loading.
-  if (isUserLoading || (user && isUserDataLoading)) {
+  // This condition is the key to fixing the flicker.
+  // It ensures we show the loader until we have a definitive answer on userData.
+  // We check `userData === undefined` because the `useDoc` hook initializes data to `undefined`.
+  // This prevents the brief moment where `isUserDataLoading` is false but `userData` is not yet `null` or an object.
+  if (isUserLoading || (user && userData === undefined)) {
     return <SkeletonLoader />;
   }
   
-  // If the user is logged in but has no user data (i.e., no 'name'), show the setup sheet.
-  if (user && !userData) {
+  // If the user is logged in but has no user data document (it's null after loading), show the setup sheet.
+  if (user && userData === null) {
     return (
       <div className="flex flex-col min-h-screen bg-background items-center justify-center">
           <div className="w-full max-w-[428px] p-6">
