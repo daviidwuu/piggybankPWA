@@ -12,14 +12,14 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "FinTrack Mini",
+  title: "piggybank",
   description: "An application to track and analyze your finances.",
   manifest: "/manifest.json",
-  applicationName: "FinTrack Mini",
+  applicationName: "piggybank",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "FinTrack Mini",
+    title: "piggybank",
   },
   formatDetection: {
     telephone: false,
