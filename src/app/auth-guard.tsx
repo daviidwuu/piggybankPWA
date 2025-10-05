@@ -68,7 +68,7 @@ export function AuthGuard() {
     navigator.clipboard.writeText(user.uid);
   };
   
-  const isLoading = isUserLoading || isUserDataLoading || (user && (isTransactionsLoading || isBudgetsLoading));
+  const isLoading = isUserLoading || isUserDataLoading || (user && userData !== null && (isTransactionsLoading || isBudgetsLoading));
 
   if (isLoading) {
     return <SkeletonLoader />;
