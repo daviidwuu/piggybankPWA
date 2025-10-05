@@ -57,9 +57,10 @@ export async function requestNotificationPermission(userId: string, firestore: F
 
     console.log("Push subscription successful:", subscription);
 
-    // Save the subscription to Firestore. Using the endpoint as the document ID prevents duplicates.
-    const subscriptionEndpoint = subscription.endpoint;
-    const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, btoa(subscriptionEndpoint));
+    // Use a stable identifier for the document ID. The endpoint is a good candidate.
+    // Use btoa to create a filesystem-safe ID from the endpoint URL.
+    const subscriptionId = btoa(subscription.endpoint);
+    const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
     
     await setDoc(subscriptionRef, {
       endpoint: subscription.endpoint,

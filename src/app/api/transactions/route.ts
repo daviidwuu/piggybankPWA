@@ -15,10 +15,10 @@ if (admin.apps.length === 0) {
 const firestore = admin.firestore();
 
 // Configure web-push with VAPID details from environment variables
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT) {
+if (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT) {
     webpush.setVapidDetails(
         process.env.VAPID_SUBJECT,
-        process.env.VAPID_PUBLIC_KEY,
+        process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
         process.env.VAPID_PRIVATE_KEY
     );
 } else {
