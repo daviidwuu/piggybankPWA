@@ -1,6 +1,5 @@
 
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -57,6 +56,7 @@ import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlo
 import { requestNotificationPermission } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -493,15 +493,17 @@ export function Dashboard() {
                        <DrawerHeader>
                         <DrawerTitle>Wallet</DrawerTitle>
                       </DrawerHeader>
-                      <BudgetPage 
-                        user={finalUserData}
-                        budgets={budgets || []} 
-                        onUpdateIncome={handleUpdateIncome}
-                        onUpdateSavings={handleUpdateSavings}
-                        onUpdateBudget={handleUpdateBudget} 
-                        onAddCategory={handleAddCategory}
-                        onDeleteCategory={handleDeleteCategory}
-                      />
+                      <ScrollArea className="h-[70vh]">
+                        <BudgetPage 
+                          user={finalUserData}
+                          budgets={budgets || []} 
+                          onUpdateIncome={handleUpdateIncome}
+                          onUpdateSavings={handleUpdateSavings}
+                          onUpdateBudget={handleUpdateBudget} 
+                          onAddCategory={handleAddCategory}
+                          onDeleteCategory={handleDeleteCategory}
+                        />
+                      </ScrollArea>
                     </DrawerContent>
                   </Drawer>
                   <DropdownMenu>
@@ -586,6 +588,8 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
 
     
 
