@@ -1,97 +1,81 @@
-// Listen for the 'install' event, which fires when the service worker is installing.
-self.addEventListener('install', (event) => {
-  // skipWaiting() forces the waiting service worker to become the active service worker.
-  // This is crucial for ensuring updates are applied quickly.
+
+// Listen to install event
+self.addEventListener('install', event => {
+  console.log('Service Worker: Installing...');
+  // Activate the new service worker immediately
   self.skipWaiting();
-  console.log('Service Worker: Installed');
 });
 
-// Listen for the 'activate' event, which fires when the service worker is activated.
-self.addEventListener('activate', (event) => {
-  // clients.claim() allows an active service worker to take control of all clients
-  // (open tabs/windows) that are in its scope. This ensures that the updated
-  // service worker is active for all open pages of your app.
+// Listen to activate event
+self.addEventListener('activate', event => {
+  console.log('Service Worker: Activating...');
+  // Take immediate control of all open pages
   event.waitUntil(self.clients.claim());
-  console.log('Service Worker: Activated and claimed clients');
 });
 
-// Listen for the 'push' event, which is triggered when a push message is received from a server.
-self.addEventListener('push', (event) => {
+// Listen to push event
+self.addEventListener('push', event => {
   console.log('Service Worker: Push Received.');
 
-  // The data sent from the server is in event.data. We try to parse it as JSON.
-  let pushData;
+  let payload;
   try {
-    pushData = event.data.json();
+    payload = event.data.json();
   } catch (e) {
-    console.error('Push event data parsing error:', e);
-    pushData = {
+    console.error('Service Worker: Could not parse push data.', e);
+    payload = {
       title: 'piggybank',
       body: 'You have a new notification.',
+      url: '/',
+      requireInteraction: false,
     };
   }
-  
-  const { title, body, url, interaction = false } = pushData;
 
+  const { title, body, url, requireInteraction } = payload;
+  
   const options = {
     body: body,
-    // Use an absolute path for the icon, using self.location.origin to be safe.
-    icon: self.location.origin + '/icon-192.png',
-    badge: self.location.origin + '/icon-192.png',
-    vibrate: [100, 50, 100], // Vibration pattern
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    vibrate: [100, 50, 100],
     data: { 
-      url: url || '/', // Store the URL to open on click
-      dateOfArrival: Date.now() 
+      url: url || '/' // Fallback to root URL
     },
-    // On desktop, this makes the notification stay until the user interacts with it.
-    requireInteraction: interaction,
-    // Add actions for more interactivity
     actions: [
       { action: 'open_app', title: 'View App' },
       { action: 'dismiss', title: 'Dismiss' },
-    ]
+    ],
+    requireInteraction: !!requireInteraction,
   };
 
-  // waitUntil() ensures that the browser does not terminate the service worker
-  // until the promise passed to it has resolved. Here, it waits for the notification to be shown.
   event.waitUntil(
     self.registration.showNotification(title, options)
   );
 });
 
-// Listen for the 'notificationclick' event, which fires when a user clicks on a notification.
-self.addEventListener('notificationclick', (event) => {
+// Listen to notification click event
+self.addEventListener('notificationclick', event => {
   console.log('Service Worker: Notification clicked.');
+  
+  const notificationUrl = event.notification.data.url || '/';
 
-  const notification = event.notification;
-  const action = event.action;
-
-  // Close the notification
-  notification.close();
-
-  if (action === 'dismiss') {
-    // If dismiss was clicked, do nothing further.
+  // Dismiss the notification
+  event.notification.close();
+  
+  if (event.action === 'dismiss') {
     return;
   }
-
-  // This code handles opening the app. It checks if there's already an open window
-  // for your app. If so, it focuses it. If not, it opens a new one.
-  const urlToOpen = notification.data.url || '/';
-
+  
+  // This looks for an existing window and focuses it.
   event.waitUntil(
-    self.clients.matchAll({
-      type: 'window',
-      includeUncontrolled: true,
-    }).then((clientList) => {
-      // Check if there's a window open with the same URL.
-      for (const client of clientList) {
-        if (client.url === urlToOpen && 'focus' in client) {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      for (let i = 0; i < clientList.length; i++) {
+        let client = clientList[i];
+        if (client.url === self.location.origin + notificationUrl && 'focus' in client) {
           return client.focus();
         }
       }
-      // If no window is found, open a new one.
-      if (self.clients.openWindow) {
-        return self.clients.openWindow(urlToOpen);
+      if (clients.openWindow) {
+        return clients.openWindow(notificationUrl);
       }
     })
   );
