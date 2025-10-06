@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { type Transaction, type Budget, type User as UserData } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
@@ -52,6 +53,7 @@ import {
   requestNotificationPermission,
   unsubscribeFromNotifications,
   getSubscription,
+  syncSubscriptionWithFirestore,
 } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -210,6 +212,8 @@ export function Dashboard() {
   const [isUserSettingsOpen, setUserSettingsOpen] = useState(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [displayDate, setDisplayDate] = useState('');
+  const [isClient, setIsClient] = useState(false);
   
   const { toast } = useToast();
   const auth = useAuth();
@@ -236,6 +240,10 @@ export function Dashboard() {
   const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
 
   const finalUserData = userData;
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -813,3 +821,6 @@ export function Dashboard() {
     </div>
   );
 }
+
+
+    
