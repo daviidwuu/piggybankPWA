@@ -1,7 +1,7 @@
 
 'use client';
 
-import { doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
 
 /**
@@ -31,6 +31,18 @@ export async function getSubscription(): Promise<PushSubscription | null> {
 }
 
 /**
+ * Creates a Firestore-safe document ID from a subscription endpoint.
+ * Replaces illegal characters like '/' with a safe character.
+ * @param endpoint The subscription endpoint URL.
+ */
+function createSubscriptionId(endpoint: string): string {
+    // btoa can produce characters that are illegal in Firestore document paths ('/').
+    // We replace them with a safe character.
+    return btoa(endpoint).replace(/\//g, '_');
+}
+
+
+/**
  * Requests permission for push notifications and saves the subscription to Firestore.
  * This function is designed to work with the standard Web Push API for PWA compatibility.
  * @param userId The ID of the current user.
@@ -45,9 +57,9 @@ export async function requestNotificationPermission(userId: string, firestore: F
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn("Push notifications are not supported in this browser.");
     toast({
-      variant: "destructive",
-      title: "Notifications unsupported",
-      description: "This browser does not support push notifications.",
+        variant: "destructive",
+        title: "Unsupported Browser",
+        description: "Push notifications are not supported on this device or browser.",
     });
     return;
   }
@@ -80,9 +92,7 @@ export async function requestNotificationPermission(userId: string, firestore: F
 
     console.log("Push subscription successful:", subscription);
 
-    // Use a stable identifier for the document ID. The endpoint is a good candidate.
-    // Replace slashes so the ID remains Firestore-safe while preserving readability.
-    const subscriptionId = buildSubscriptionId(subscription.endpoint);
+    const subscriptionId = createSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
 
     await setDoc(subscriptionRef, {
@@ -93,16 +103,16 @@ export async function requestNotificationPermission(userId: string, firestore: F
 
     console.log("Push subscription saved to Firestore.");
     toast({
-      title: "Notifications enabled",
-      description: "You'll receive alerts on this device.",
+        title: "Notifications Enabled!",
+        description: "You will now receive alerts for new transactions.",
     });
 
   } catch (error) {
     console.error("An error occurred during push notification setup:", error);
     toast({
-      variant: "destructive",
-      title: "Failed to enable notifications",
-      description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+        title: "Subscription Failed",
+        description: error instanceof Error ? error.message : 'Could not enable push notifications.',
     });
     // Re-throw the error so the calling component can handle UI state if needed
     throw error;
@@ -122,7 +132,7 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
       return;
     }
 
-    const subscriptionId = buildSubscriptionId(subscription.endpoint);
+    const subscriptionId = createSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
 
     // Unsubscribe the user first
@@ -133,8 +143,8 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
       await deleteDoc(subscriptionRef);
       console.log("Successfully removed subscription from Firestore.");
       toast({
-        title: "Notifications disabled",
-        description: "You will no longer receive alerts on this device.",
+        title: "Notifications Disabled",
+        description: "You will no longer receive push notifications.",
       });
     } else {
       console.error("Failed to unsubscribe.");
@@ -143,9 +153,9 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
   } catch (error) {
     console.error("Error unsubscribing from push notifications:", error);
     toast({
-      variant: "destructive",
-      title: "Failed to disable notifications",
-      description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+        title: "Unsubscribe Failed",
+        description: error instanceof Error ? error.message : 'Could not disable notifications.',
     });
     // Re-throw so the UI can revert its state
     throw error;
