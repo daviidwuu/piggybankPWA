@@ -52,7 +52,6 @@ import {
   requestNotificationPermission,
   unsubscribeFromNotifications,
   getSubscription,
-  registerSubscriptionChangeListener,
 } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -136,11 +135,6 @@ export function Dashboard() {
     };
     checkSubscription();
   }, []);
-
-  useEffect(() => {
-    if (!isClient || !user || !firestore) return;
-    registerSubscriptionChangeListener(user.uid, firestore);
-  }, [isClient, user, firestore]);
   
   const handleSetupSave = async (data: { name: string }) => {
     if (!userDocRef || !firestore || !user) return;
