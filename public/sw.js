@@ -48,3 +48,44 @@ self.addEventListener('notificationclick', e => {
     })
   );
 });
+
+// --- SUBSCRIPTION ROTATION ---
+self.addEventListener('pushsubscriptionchange', event => {
+  event.waitUntil(
+    (async () => {
+      let refreshedSubscription = event.newSubscription || null;
+
+      if (!refreshedSubscription) {
+        try {
+          const applicationServerKey = event.oldSubscription?.options?.applicationServerKey;
+          refreshedSubscription = await self.registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: applicationServerKey || undefined,
+          });
+        } catch (error) {
+          console.error('Failed to automatically resubscribe after pushsubscriptionchange.', error);
+        }
+      }
+
+      const serializedSubscription = refreshedSubscription ? refreshedSubscription.toJSON() : null;
+      const oldEndpoint = event.oldSubscription?.endpoint || null;
+      const shouldResubscribe = !serializedSubscription;
+
+      try {
+        const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of clientsArr) {
+          client.postMessage({
+            type: 'PUSH_SUBSCRIPTION_CHANGE',
+            payload: {
+              newSubscription: serializedSubscription,
+              oldEndpoint,
+              shouldResubscribe,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to broadcast push subscription change to clients.', error);
+      }
+    })()
+  );
+});
