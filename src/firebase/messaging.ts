@@ -35,10 +35,10 @@ export async function getSubscription(): Promise<PushSubscription | null> {
  * Replaces illegal characters like '/' with a safe character.
  * @param endpoint The subscription endpoint URL.
  */
-function createSubscriptionId(endpoint: string): string {
+function buildSubscriptionId(endpoint: string): string {
     // btoa can produce characters that are illegal in Firestore document paths ('/').
     // We replace them with a safe character.
-    return btoa(endpoint).replace(/\//g, '_');
+    return endpoint.replace(/\//g, '_');
 }
 
 
@@ -48,10 +48,6 @@ function createSubscriptionId(endpoint: string): string {
  * @param userId The ID of the current user.
  * @param firestore The Firestore instance.
  */
-function buildSubscriptionId(endpoint: string) {
-  return endpoint.replace(/\//g, "_");
-}
-
 export async function requestNotificationPermission(userId: string, firestore: Firestore) {
   // Check if Push Notifications are supported
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -64,11 +60,18 @@ export async function requestNotificationPermission(userId: string, firestore: F
     return;
   }
   
-  try {
-    // Register the service worker. The browser will handle updates.
-    await navigator.serviceWorker.register('/sw.js');
-    console.log('Service Worker registered.');
+  const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!publicVapidKey) {
+      console.error("VAPID public key is not defined. Push notifications cannot be enabled.");
+      toast({
+          variant: "destructive",
+          title: "Configuration Error",
+          description: "Push notification setup is missing a required key.",
+      });
+      throw new Error("VAPID public key is not defined.");
+  }
 
+  try {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       throw new Error("Push notification permission not granted.");
@@ -79,10 +82,6 @@ export async function requestNotificationPermission(userId: string, firestore: F
     const swRegistration = await navigator.serviceWorker.ready;
     console.log('Service Worker is ready and active:', swRegistration.active);
 
-    const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!publicVapidKey) {
-        throw new Error("VAPID public key is not defined.");
-    }
     const applicationServerKey = urlBase64ToUint8Array(publicVapidKey);
 
     const subscription = await swRegistration.pushManager.subscribe({
@@ -127,11 +126,10 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
     const subscription = await getSubscription();
     if (!subscription) {
       console.log("No active subscription to unsubscribe from.");
-      await clearServiceWorkerMetadata();
       return;
     }
 
-    const subscriptionId = createSubscriptionId(subscription.endpoint);
+    const subscriptionId = buildSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
 
     // Unsubscribe the user first
