@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -22,6 +21,7 @@ import {
   DrawerTrigger,
   DrawerHeader,
   DrawerTitle,
+  DrawerDescription
 } from "@/components/ui/drawer";
 import {
   Dialog,
@@ -37,14 +37,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
@@ -84,6 +76,7 @@ export function Dashboard() {
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
   const [isBudgetOpen, setBudgetOpen] = useState(false);
   const [isReportsOpen, setReportsOpen] = useState(false);
+  const [isSettingsOpen, setSettingsOpen] = useState(false);
 
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
@@ -466,7 +459,7 @@ export function Dashboard() {
             </DialogContent>
           </Dialog>
             <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-              <AlertDialogContent className="rounded-[var(--radius)]">
+              <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -506,33 +499,66 @@ export function Dashboard() {
                       </ScrollArea>
                     </DrawerContent>
                   </Drawer>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
-                        <Settings className="h-4 w-4 text-primary" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Settings</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onSelect={() => setUserSettingsOpen(true)}>
-                        <UserIcon className="mr-2 h-4 w-4" />
-                        <span>User Profile</span>
-                      </DropdownMenuItem>
-                       <DropdownMenuItem onSelect={() => setBudgetOpen(true)}>
-                        <Wallet className="mr-2 h-4 w-4" />
-                        <span>Wallet</span>
-                      </DropdownMenuItem>
-                       <DropdownMenuItem onSelect={() => setReportsOpen(true)}>
-                        <FileText className="mr-2 h-4 w-4" />
-                        <span>Reports</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => setShowLogoutConfirm(true)} className="text-destructive">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log Out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  
+                  <Drawer open={isSettingsOpen} onOpenChange={setSettingsOpen}>
+                      <DrawerTrigger asChild>
+                           <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
+                              <Settings className="h-4 w-4 text-primary" />
+                           </Button>
+                      </DrawerTrigger>
+                      <DrawerContent>
+                          <DrawerHeader>
+                              <DrawerTitle>Settings</DrawerTitle>
+                              <DrawerDescription>Manage your account and app preferences.</DrawerDescription>
+                          </DrawerHeader>
+                          <div className="p-4 pb-0">
+                            <div className="flex flex-col space-y-2">
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start p-4 h-auto"
+                                  onClick={() => { setSettingsOpen(false); setUserSettingsOpen(true); }}
+                                >
+                                  <UserIcon className="mr-4 h-5 w-5" />
+                                  <div className="text-left">
+                                      <p className="font-semibold">User Profile</p>
+                                      <p className="text-xs text-muted-foreground">Update your name and user ID.</p>
+                                  </div>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start p-4 h-auto"
+                                  onClick={() => { setSettingsOpen(false); setBudgetOpen(true); }}
+                                >
+                                  <Wallet className="mr-4 h-5 w-5" />
+                                  <div className="text-left">
+                                      <p className="font-semibold">Wallet</p>
+                                      <p className="text-xs text-muted-foreground">Manage income, savings, and budgets.</p>
+                                  </div>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  className="justify-start p-4 h-auto"
+                                  onClick={() => { setSettingsOpen(false); setReportsOpen(true); }}
+                                >
+                                  <FileText className="mr-4 h-5 w-5" />
+                                  <div className="text-left">
+                                      <p className="font-semibold">Reports</p>
+                                      <p className="text-xs text-muted-foreground">Generate spending reports.</p>
+                                  </div>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    className="justify-start p-4 h-auto text-destructive hover:text-destructive mt-4"
+                                    onClick={() => { setSettingsOpen(false); setShowLogoutConfirm(true); }}
+                                >
+                                    <LogOut className="mr-4 h-5 w-5" />
+                                    <p className="font-semibold">Log Out</p>
+                                </Button>
+                            </div>
+                          </div>
+                      </DrawerContent>
+                  </Drawer>
+
                 </div>
               </div>
           </div>
@@ -588,6 +614,8 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
 
     
 
