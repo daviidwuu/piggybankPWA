@@ -2,7 +2,6 @@
 "use client";
 
 import { useCallback, useEffect, useState, useMemo } from "react";
-import dynamic from "next/dynamic";
 import { type Transaction, type Budget, type User as UserData } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
@@ -47,13 +46,12 @@ import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
-import { signOut } from "firebase/auth";
-import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { signOut, type User } from "firebase/auth";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   requestNotificationPermission,
   unsubscribeFromNotifications,
   getSubscription,
-  syncSubscriptionWithFirestore,
 } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -431,10 +429,6 @@ export function Dashboard() {
   }, [dateRange]);
 
   const getDisplayDate = useCallback((range: DateRange): string => {
-    if (transactions === undefined) {
-      return "Loading...";
-    }
-
     if (!transactions?.length && range !== 'all') return "No data for this period";
 
     const { start, end } = dateFilterRange;
@@ -465,7 +459,10 @@ export function Dashboard() {
     }
   }, [dateFilterRange, transactions]);
 
-  const displayDate = useMemo(() => getDisplayDate(dateRange), [dateRange, getDisplayDate]);
+  useEffect(() => {
+    if (!isClient) return;
+    setDisplayDate(getDisplayDate(dateRange));
+  }, [dateRange, getDisplayDate, isClient]);
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
