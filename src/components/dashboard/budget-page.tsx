@@ -51,7 +51,7 @@ function BudgetEditDrawer({ category, currentBudget, onUpdateBudget }: BudgetEdi
     };
 
     return (
-        <DrawerContent onOpenAutoFocus={(e) => e.preventDefault()}>
+        <DrawerContent>
             <DrawerHeader>
                 <DrawerTitle>Edit Budget: {category}</DrawerTitle>
             </DrawerHeader>
@@ -66,7 +66,7 @@ function BudgetEditDrawer({ category, currentBudget, onUpdateBudget }: BudgetEdi
                         onChange={(e) => setBudgetValue(e.target.value)}
                         onBlur={handleUpdate}
                         placeholder="0.00"
-                        className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:outline-none"
+                        className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold"
                     />
                 </div>
             </div>
@@ -136,7 +136,7 @@ export function BudgetPage({
                             onBlur={(e) => onUpdateIncome(parseFloat(e.target.value) || 0)}
                             onChange={(e) => setCurrentIncome(parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
-                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:outline-none"
+                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold"
                         />
                     </div>
                 </div>
@@ -152,7 +152,7 @@ export function BudgetPage({
                             onBlur={(e) => onUpdateSavings(parseFloat(e.target.value) || 0)}
                             onChange={(e) => setCurrentSavings(parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
-                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:outline-none"
+                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold"
                         />
                     </div>
                 </div>
@@ -181,42 +181,48 @@ export function BudgetPage({
                 </div>
                 <Drawer open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
                     <DrawerTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0 focus-visible:outline-none">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0">
                             <Pencil className="h-4 w-4" />
                         </Button>
                     </DrawerTrigger>
-                    <DrawerContent onOpenAutoFocus={(e) => e.preventDefault()}>
+                    <DrawerContent>
                         <DrawerHeader>
                             <DrawerTitle>Manage Categories</DrawerTitle>
-                            <DrawerDescription>Add new spending categories or remove ones you no longer need.</DrawerDescription>
+                            <DrawerDescription>Add or remove spending categories.</DrawerDescription>
                         </DrawerHeader>
-                        <div className="space-y-4 pt-4 px-4">
-                            <div className="flex items-center gap-2">
+                        <div className="px-4">
+                            <div className="flex w-full items-center space-x-2">
                                 <Input 
                                     value={newCategory}
                                     onChange={(e) => setNewCategory(e.target.value)}
-                                    placeholder="New Category Name"
-                                    className="h-9"
+                                    placeholder="New category name..."
+                                    className="h-10"
                                     onKeyDown={(e) => e.key === 'Enter' && handleAddCategory()}
                                 />
-                                <Button size="sm" onClick={handleAddCategory}>
+                                <Button size="sm" onClick={handleAddCategory} className="h-10">
                                     <Plus className="h-4 w-4 mr-1"/>
                                     Add
                                 </Button>
                             </div>
-                            <ScrollArea className="h-64">
-                                <div className="space-y-2 pr-4">
-                                    {categories.map((category) => (
-                                        <div key={category} className="flex items-center justify-between p-2 rounded-md">
-                                            <span className="font-medium">{category}</span>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive focus-visible:outline-none" onClick={() => onDeleteCategory(category)}>
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    ))}
-                                </div>
-                            </ScrollArea>
                         </div>
+                        <ScrollArea className="h-64 mt-4">
+                            <div className="space-y-2 px-4">
+                                {categories.map((category) => (
+                                    <div key={category} className="flex items-center justify-between rounded-md border p-3">
+                                        <span className="font-medium text-sm">{category}</span>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => onDeleteCategory(category)}>
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                {categories.length === 0 && (
+                                    <div className="text-center text-muted-foreground pt-8">
+                                        <p>No categories found.</p>
+                                        <p className="text-xs">Add one using the form above.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </ScrollArea>
                     </DrawerContent>
                 </Drawer>
             </CardHeader>
@@ -249,3 +255,5 @@ export function BudgetPage({
     </div>
   );
 }
+
+    
