@@ -146,7 +146,7 @@ export function TransactionsTable({
                         <TableCell className="p-1 pr-0 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0 focus-visible:ring-offset-0" aria-label={`More options for transaction of $${transaction.Amount.toFixed(2)} on ${date}`}>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent" aria-label={`More options for transaction of $${transaction.Amount.toFixed(2)} on ${date}`}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
