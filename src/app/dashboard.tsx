@@ -38,17 +38,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText } from "lucide-react";
+import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText, Bell } from "lucide-react";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
 import { signOut, type User } from "firebase/auth";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { requestNotificationPermission } from "@/firebase/messaging";
+import { requestNotificationPermission, unsubscribeFromNotifications, getSubscription } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -84,6 +86,7 @@ export function Dashboard() {
   const [showNotificationDialog, setShowNotificationDialog] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isUserSettingsOpen, setUserSettingsOpen] = useState(false);
+  const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   
   const { toast } = useToast();
   const auth = useAuth();
@@ -110,9 +113,20 @@ export function Dashboard() {
   const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
 
   const finalUserData = userData;
-  
+
   useEffect(() => {
     setIsClient(true);
+    const checkSubscription = async () => {
+        const sub = await getSubscription();
+        setIsPushSubscribed(!!sub);
+    };
+
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+      checkSubscription();
+    }
+  }, []);
+  
+  useEffect(() => {
     if (finalUserData && typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && Notification.permission === 'default') {
       const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
       if (!alreadyPrompted) {
@@ -219,6 +233,7 @@ export function Dashboard() {
   const handlePermissionRequest = async () => {
     if (user && firestore) {
       await requestNotificationPermission(user.uid, firestore);
+      setIsPushSubscribed(true);
     }
     setShowNotificationDialog(false);
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
@@ -237,6 +252,18 @@ export function Dashboard() {
         title: "User ID Copied!",
         description: "You can now paste this into your Apple Shortcut.",
     });
+  };
+
+  const handleNotificationToggle = async (checked: boolean) => {
+    if (!user || !firestore) return;
+    
+    if (checked) {
+      await requestNotificationPermission(user.uid, firestore);
+      setIsPushSubscribed(true);
+    } else {
+      await unsubscribeFromNotifications(user.uid, firestore);
+      setIsPushSubscribed(false);
+    }
   };
 
   const dateFilterRange = useMemo(() => {
@@ -546,6 +573,20 @@ export function Dashboard() {
                                       <p className="text-xs text-muted-foreground">Generate spending reports.</p>
                                   </div>
                                 </Button>
+                                <div className="flex items-center justify-between p-4 h-auto">
+                                    <div className="flex items-center space-x-4">
+                                      <Bell className="h-5 w-5" />
+                                      <div className="text-left">
+                                        <p className="font-semibold">Push Notifications</p>
+                                        <p className="text-xs text-muted-foreground">Enable or disable transaction alerts.</p>
+                                      </div>
+                                    </div>
+                                    <Switch
+                                        checked={isPushSubscribed}
+                                        onCheckedChange={handleNotificationToggle}
+                                        aria-label="Toggle push notifications"
+                                    />
+                                </div>
                                 <Button
                                     variant="ghost"
                                     className="justify-start p-4 h-auto text-destructive hover:text-destructive mt-4"
@@ -614,11 +655,3 @@ export function Dashboard() {
     </div>
   );
 }
-
-    
-
-    
-
-    
-
-    

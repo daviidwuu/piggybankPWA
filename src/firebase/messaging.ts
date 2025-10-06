@@ -1,7 +1,7 @@
 
 'use client';
 
-import { collection, doc, setDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
 
 /**
  * Converts a VAPID key from a URL-safe base64 string to a Uint8Array.
@@ -15,6 +15,15 @@ function urlBase64ToUint8Array(base64String: string) {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+/**
+ * Gets the current push subscription.
+ */
+export async function getSubscription(): Promise<PushSubscription | null> {
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return null;
+    return registration.pushManager.getSubscription();
 }
 
 /**
@@ -74,5 +83,37 @@ export async function requestNotificationPermission(userId: string, firestore: F
   } catch (error) {
     console.error("An error occurred during push notification setup:", error);
     alert(`Failed to enable push notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+/**
+ * Unsubscribes the user from push notifications and removes the subscription from Firestore.
+ * @param userId The ID of the current user.
+ * @param firestore The Firestore instance.
+ */
+export async function unsubscribeFromNotifications(userId: string, firestore: Firestore) {
+  try {
+    const subscription = await getSubscription();
+    if (!subscription) {
+      console.log("No active subscription to unsubscribe from.");
+      return;
+    }
+
+    const subscriptionId = btoa(subscription.endpoint);
+    const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
+
+    // Unsubscribe the user first
+    const unsubscribed = await subscription.unsubscribe();
+    if (unsubscribed) {
+      // If successful, remove from Firestore
+      await deleteDoc(subscriptionRef);
+      console.log("Successfully unsubscribed and removed from Firestore.");
+      alert("Push notifications have been disabled.");
+    } else {
+      console.error("Failed to unsubscribe.");
+    }
+  } catch (error) {
+    console.error("Error unsubscribing from push notifications:", error);
+    alert(`Failed to disable push notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }

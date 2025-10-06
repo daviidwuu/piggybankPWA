@@ -1,45 +1,40 @@
 
-self.addEventListener('push', event => {
-  const data = event.data.json();
-  const { title, body, url } = data;
-
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : { title: 'piggybank', body: 'You have a new notification.' };
+  
   const options = {
-    body: body,
-    icon: '/icon.png', // App icon
-    badge: '/icon.png', // Icon for notification tray
+    body: data.body,
+    icon: '/icon.png',
+    badge: '/icon.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
-      url: url || '/', // Fallback to the root URL
+      url: data.url || '/',
     },
     actions: [
-      {
-        action: 'open_url',
-        title: 'View Details'
-      },
-      {
-        action: 'close',
-        title: 'Close'
-      },
+      { action: 'open_url', title: 'View' },
+      { action: 'close', title: 'Dismiss' },
     ],
-    requireInteraction: true, // Make notification persistent
+    requireInteraction: true, 
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(data.title, options)
   );
 });
 
-self.addEventListener('notificationclick', event => {
-  event.notification.close(); // Close the notification
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
 
   if (event.action === 'open_url') {
-    // Open the URL specified in the push data
-    clients.openWindow(event.notification.data.url);
-  } else if (event.action === 'close') {
-    // Just close the notification, do nothing else
+    event.waitUntil(
+      clients.openWindow(event.notification.data.url)
+    );
   } else {
-    // Default action (if user clicks the notification body)
-    clients.openWindow(event.notification.data.url);
+    // Default action (if no button is clicked) or 'close' action
+    // You can add logic here if you want the default click to also open a window
+    if(event.notification.data.url) {
+        clients.openWindow(event.notification.data.url);
+    }
   }
 }, false);
