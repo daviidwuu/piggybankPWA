@@ -236,7 +236,7 @@ export function Dashboard() {
     if (!user || !firestore || !isClient) return;
 
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+    const isStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone;
 
     if (checked) {
         if (isIos && !isStandalone) {
@@ -247,31 +247,17 @@ export function Dashboard() {
         setIsPushSubscribed(true); // Optimistically update UI
         try {
             await requestNotificationPermission(user.uid, firestore);
-            const sub = await getSubscription();
-            if (!sub) throw new Error("Subscription failed.");
-            setIsPushSubscribed(true);
         } catch (error) {
+            console.error("Failed to subscribe:", error);
             setIsPushSubscribed(false); // Revert on failure
-            toast({
-                variant: "destructive",
-                title: "Failed to Enable Notifications",
-                description: error instanceof Error ? error.message : "An unexpected error occurred.",
-            });
         }
     } else {
         setIsPushSubscribed(false); // Optimistically update UI
         try {
             await unsubscribeFromNotifications(user.uid, firestore);
-            const sub = await getSubscription();
-            if (sub) throw new Error("Unsubscription failed.");
-             setIsPushSubscribed(false);
         } catch (error) {
+            console.error("Failed to unsubscribe:", error);
             setIsPushSubscribed(true); // Revert on failure
-             toast({
-                variant: "destructive",
-                title: "Failed to Disable Notifications",
-                description: error instanceof Error ? error.message : "An unexpected error occurred.",
-            });
         }
     }
   };

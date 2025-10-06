@@ -21,6 +21,9 @@ function urlBase64ToUint8Array(base64String: string) {
  * Gets the current push subscription.
  */
 export async function getSubscription(): Promise<PushSubscription | null> {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+        return null;
+    }
     const registration = await navigator.serviceWorker.getRegistration();
     if (!registration) return null;
     return registration.pushManager.getSubscription();
@@ -41,23 +44,21 @@ export async function requestNotificationPermission(userId: string, firestore: F
   }
   
   try {
-    // Register the service worker
-    const swRegistration = await navigator.serviceWorker.register('/sw.js');
-    console.log('Service Worker registered:', swRegistration);
-    
-    // Wait for the service worker to be ready
-    await navigator.serviceWorker.ready;
-    console.log('Service Worker is ready.');
+    // Await the service worker to be ready
+    const swRegistration = await navigator.serviceWorker.ready;
+    console.log('Service Worker is ready and active:', swRegistration.active);
 
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       throw new Error("Push notification permission not granted.");
     }
+    console.log('Notification permission granted.');
 
     const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!vapidPublicKey) {
       throw new Error("VAPID public key is not defined in environment variables.");
     }
+    console.log('VAPID key found.');
 
     const subscription = await swRegistration.pushManager.subscribe({
       userVisibleOnly: true,
@@ -83,6 +84,8 @@ export async function requestNotificationPermission(userId: string, firestore: F
   } catch (error) {
     console.error("An error occurred during push notification setup:", error);
     alert(`Failed to enable push notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Re-throw the error so the calling component can handle UI state if needed
+    throw error;
   }
 }
 
@@ -105,15 +108,19 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
     // Unsubscribe the user first
     const unsubscribed = await subscription.unsubscribe();
     if (unsubscribed) {
+      console.log("Successfully unsubscribed from push manager.");
       // If successful, remove from Firestore
       await deleteDoc(subscriptionRef);
-      console.log("Successfully unsubscribed and removed from Firestore.");
+      console.log("Successfully removed subscription from Firestore.");
       alert("Push notifications have been disabled.");
     } else {
       console.error("Failed to unsubscribe.");
+      throw new Error("The unsubscribe operation failed.");
     }
   } catch (error) {
     console.error("Error unsubscribing from push notifications:", error);
     alert(`Failed to disable push notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    // Re-throw so the UI can revert its state
+    throw error;
   }
 }
