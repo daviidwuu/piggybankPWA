@@ -1,126 +1,143 @@
 /**
- * @fileoverview Firestore Security Rules for the Piggybank app.
+ * @fileoverview Firestore Security Rules for Piggybank App
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model.  Each user can only
- * access their own data stored under their unique user ID. Data validation
- * is relaxed to allow for rapid prototyping and schema iteration.
+ * This ruleset enforces a strict user-ownership model. Users can only
+ * access data associated with their own user ID. All data is nested under
+ * `/users/{userId}`.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profile information.
- * - /users/{userId}/transactions/{transactionId}: Stores individual transaction records.
- * - /users/{userId}/budgets/{budgetId}: Stores budget information for each category.
- * - /users/{userId}/pushSubscriptions/{subscriptionId}: Stores web push subscription details.
+ * - /users/{userId}: User profile data, including name and categories.
+ * - /users/{userId}/transactions/{transactionId}: Individual transactions.
+ * - /users/{userId}/budgets/{budgetId}: Budget configurations.
+ * - /users/{userId}/pushSubscriptions/{subscriptionId}: Push notification subscriptions.
  *
  * Key Security Decisions:
- * - Users can only access their own data.
- * - Listing of all users is disallowed.
- * - Basic validation is performed to ensure data consistency between paths and document content.
- * - Write operations are restricted to signed-in users with matching user IDs.
+ * - Users can only create, read, update, and delete data under their own user ID.
+ * - Listing of user documents is disallowed for security.
+ * - Data schema is not strictly enforced in this prototyping phase, except for fields
+ *   critical for authorization (e.g., userId).
+ * - User profile updates enforce immutability of the `id` field.  Categories can be updated.
  *
  * Denormalization for Authorization:
- *  - The 'userId' field on Transaction documents is used to enforce ownership, avoiding the need for complex queries.
+ *  - The `userId` field is present in the `/transactions` collection to avoid costly `get()` operations and enforce ownership.
+ *
+ * Structural Segregation:
+ *  - Private user data is stored under the `/users/{userId}` collection, ensuring
+ *    it is not mixed with public data, simplifying security rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to user profile documents.
+     * @description Checks if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's ID matches the provided userId.
+     */
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the existing document.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Security rules for user profiles.
      * @path /users/{userId}
-     * @allow (create) - Authenticated user can create their own profile.
-     * @allow (get, update, delete) - Authenticated user can access their own profile.
-     * @deny (create) - Creating a profile with an ID that doesn't match the authenticated user.
-     * @deny (get, update, delete) - Accessing another user's profile.
-     * @principle Enforces document ownership based on user ID.
+     * @allow (create) User 'david' with ID 'david' can create their profile.
+     * @deny (create) User 'eve' with ID 'david' cannot create a profile with ID 'david'.
+     * @allow (get) User 'david' with ID 'david' can get their profile.
+     * @deny (get) User 'eve' with ID 'david' cannot get profile with ID 'david'.
+     * @deny (list) No one can list the users collection.
+     * @allow (update) User 'david' with ID 'david' can update their profile.
+     * @deny (update) User 'eve' with ID 'david' cannot update profile with ID 'david'.
+     * @allow (delete) User 'david' with ID 'david' can delete their profile.
+     * @deny (delete) User 'eve' with ID 'david' cannot delete profile with ID 'david'.
+     * @principle Enforces document ownership for all operations.  Validates that the 'id' field matches the document ID on creation. Enforces immutability of the 'id' field on updates.
      */
     match /users/{userId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow update: if isExistingOwner(userId) && resource.data.id == request.resource.data.id;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to transaction documents.
+     * @description Security rules for user transactions.
      * @path /users/{userId}/transactions/{transactionId}
-     * @allow (create) - Authenticated user can create transactions under their ID.
-     * @allow (get, list, update, delete) - Authenticated user can access their own transactions.
-     * @deny (create) - Creating transactions under someone else's ID.
-     * @deny (get, list, update, delete) - Accessing another user's transactions.
-     * @principle Enforces document ownership based on user ID in the path.
+     * @allow (create) User 'david' can create a transaction under their profile.
+     * @deny (create) User 'eve' cannot create a transaction under user 'david''s profile.
+     * @allow (get) User 'david' can get a transaction under their profile.
+     * @deny (get) User 'eve' cannot get a transaction under user 'david''s profile.
+     * @allow (list) User 'david' can list transactions under their profile.
+     * @deny (list) User 'eve' cannot list transactions under user 'david''s profile.
+     * @allow (update) User 'david' can update a transaction under their profile.
+     * @deny (update) User 'eve' cannot update a transaction under user 'david''s profile.
+     * @allow (delete) User 'david' can delete a transaction under their profile.
+     * @deny (delete) User 'eve' cannot delete a transaction under user 'david''s profile.
+     * @principle Enforces document ownership for all operations. Validates the userId on create and update.
      */
     match /users/{userId}/transactions/{transactionId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
       allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to budget documents.
+     * @description Security rules for user budgets.
      * @path /users/{userId}/budgets/{budgetId}
-     * @allow (create) - Authenticated user can create budgets under their ID.
-     * @allow (get, list, update, delete) - Authenticated user can access their own budgets.
-     * @deny (create) - Creating budgets under someone else's ID.
-     * @deny (get, list, update, delete) - Accessing another user's budgets.
-     * @principle Enforces document ownership based on user ID in the path.
+     * @allow (create) User 'david' can create a budget under their profile.
+     * @deny (create) User 'eve' cannot create a budget under user 'david''s profile.
+     * @allow (get) User 'david' can get a budget under their profile.
+     * @deny (get) User 'eve' cannot get a budget under user 'david''s profile.
+     * @allow (list) User 'david' can list budgets under their profile.
+     * @deny (list) User 'eve' cannot list budgets under user 'david''s profile.
+     * @allow (update) User 'david' can update a budget under their profile.
+     * @deny (update) User 'eve' cannot update a budget under user 'david''s profile.
+     * @allow (delete) User 'david' can delete a budget under their profile.
+     * @deny (delete) User 'eve' cannot delete a budget under user 'david''s profile.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Controls access to push subscription documents.
+     * @description Security rules for user push subscriptions.
      * @path /users/{userId}/pushSubscriptions/{subscriptionId}
-     * @allow (create) - Authenticated user can create push subscriptions under their ID.
-     * @allow (get, list, update, delete) - Authenticated user can access their own push subscriptions.
-     * @deny (create) - Creating push subscriptions under someone else's ID.
-     * @deny (get, list, update, delete) - Accessing another user's push subscriptions.
-     * @principle Enforces document ownership based on user ID in the path.
+     * @allow (create) User 'david' can create a push subscription under their profile.
+     * @deny (create) User 'eve' cannot create a push subscription under user 'david''s profile.
+     * @allow (get) User 'david' can get a push subscription under their profile.
+     * @deny (get) User 'eve' cannot get a push subscription under user 'david''s profile.
+     * @allow (list) User 'david' can list push subscriptions under their profile.
+     * @deny (list) User 'eve' cannot list push subscriptions under user 'david''s profile.
+     * @allow (update) User 'david' can update a push subscription under their profile.
+     * @deny (update) User 'eve' cannot update a push subscription under user 'david''s profile.
+     * @allow (delete) User 'david' can delete a push subscription under their profile.
+     * @deny (delete) User 'eve' cannot delete a push subscription under user 'david''s profile.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/pushSubscriptions/{subscriptionId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
-      }
-
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
       allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
