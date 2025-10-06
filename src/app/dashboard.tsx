@@ -1,20 +1,21 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { type Transaction, type Budget, type User as UserData } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
 import { type DateRange } from "@/components/dashboard/date-filter";
-import { AddTransactionForm } from "@/components/dashboard/add-transaction-form";
-import { BudgetPage } from "@/components/dashboard/budget-page";
-import { ReportsPage } from "@/components/dashboard/reports-page";
-import { SetupSheet } from "@/components/dashboard/setup-sheet";
-import { NotificationPermissionDialog } from "@/components/dashboard/notification-permission-dialog";
-import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
-import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog";
+import type { AddTransactionFormProps } from "@/components/dashboard/add-transaction-form";
+import type { BudgetPageProps } from "@/components/dashboard/budget-page";
+import type { ReportsPageProps } from "@/components/dashboard/reports-page";
+import type { SetupSheetProps } from "@/components/dashboard/setup-sheet";
+import type { NotificationPermissionDialogProps } from "@/components/dashboard/notification-permission-dialog";
+import type { DeleteTransactionDialogProps } from "@/components/dashboard/delete-transaction-dialog";
+import type { UserSettingsDialogProps } from "@/components/dashboard/user-settings-dialog";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth, differenceInMonths, addMonths } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth, differenceInMonths } from 'date-fns';
 import {
   Drawer,
   DrawerContent,
@@ -46,14 +47,18 @@ import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
-import { signOut, type User } from "firebase/auth";
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { requestNotificationPermission, unsubscribeFromNotifications, getSubscription } from "@/firebase/messaging";
+import { signOut } from "firebase/auth";
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import {
+  requestNotificationPermission,
+  unsubscribeFromNotifications,
+  getSubscription,
+  syncSubscriptionWithFirestore,
+} from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -67,16 +72,132 @@ const defaultCategories = [
   "F&B", "Shopping", "Transport", "Bills",
 ];
 
+function DrawerContentFallback() {
+  return (
+    <div className="p-4 text-center text-sm text-muted-foreground">
+      Loading...
+    </div>
+  );
+}
+
+function SetupSheetFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center p-6 text-sm text-muted-foreground">
+      Preparing your dashboard...
+    </div>
+  );
+}
+
+const AddTransactionForm = dynamic<AddTransactionFormProps>(
+  () =>
+    import("@/components/dashboard/add-transaction-form").then(
+      (mod) => mod.AddTransactionForm
+    ),
+  { loading: DrawerContentFallback, ssr: false }
+);
+
+const BudgetPage = dynamic<BudgetPageProps>(
+  () =>
+    import("@/components/dashboard/budget-page").then(
+      (mod) => mod.BudgetPage
+    ),
+  { loading: DrawerContentFallback, ssr: false }
+);
+
+const ReportsPage = dynamic<ReportsPageProps>(
+  () =>
+    import("@/components/dashboard/reports-page").then(
+      (mod) => mod.ReportsPage
+    ),
+  { loading: DrawerContentFallback, ssr: false }
+);
+
+const SetupSheet = dynamic<SetupSheetProps>(
+  () =>
+    import("@/components/dashboard/setup-sheet").then(
+      (mod) => mod.SetupSheet
+    ),
+  { loading: SetupSheetFallback, ssr: false }
+);
+
+const NotificationPermissionDialog = dynamic<NotificationPermissionDialogProps>(
+  () =>
+    import("@/components/dashboard/notification-permission-dialog").then(
+      (mod) => mod.NotificationPermissionDialog
+    ),
+  {
+    ssr: false,
+    loading: (props) => {
+      const { open = false, onDeny } = props as NotificationPermissionDialogProps;
+      return (
+        <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onDeny?.()}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Loading...</AlertDialogTitle>
+              <AlertDialogDescription>
+                Preparing notification prompt.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      );
+    },
+  }
+);
+
+const DeleteTransactionDialog = dynamic<DeleteTransactionDialogProps>(
+  () =>
+    import("@/components/dashboard/delete-transaction-dialog").then(
+      (mod) => mod.DeleteTransactionDialog
+    ),
+  {
+    ssr: false,
+    loading: (props) => {
+      const { open = false, onOpenChange } = props as DeleteTransactionDialogProps;
+      return (
+        <AlertDialog open={open} onOpenChange={onOpenChange}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Loading...</AlertDialogTitle>
+              <AlertDialogDescription>
+                Fetching transaction details.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Close</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      );
+    },
+  }
+);
+
+const UserSettingsDialog = dynamic<UserSettingsDialogProps>(
+  () =>
+    import("@/components/dashboard/user-settings-dialog").then(
+      (mod) => mod.UserSettingsDialog
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="py-6 text-center text-sm text-muted-foreground">
+        Loading profile...
+      </div>
+    ),
+  }
+);
+
 const USER_ID_COPIED_KEY = 'userIdCopied';
 const NOTIFICATION_PROMPT_KEY = 'notificationPromptShown';
 
 export function Dashboard() {
   const [dateRange, setDateRange] = useState<DateRange>('month');
-  const [chartConfig, setChartConfig] = useState<ChartConfig>({});
   const [visibleTransactions, setVisibleTransactions] = useState(20);
   const [sortOption, setSortOption] = useState<SortOption>('latest');
-  const [isClient, setIsClient] = useState(false);
-  const [displayDate, setDisplayDate] = useState<string>("Loading...");
   
   const [isAddTransactionOpen, setAddTransactionOpen] = useState(false);
   const [isBudgetOpen, setBudgetOpen] = useState(false);
@@ -119,19 +240,27 @@ export function Dashboard() {
   const finalUserData = userData;
 
   useEffect(() => {
-    setIsClient(true);
     const checkSubscription = async () => {
-      if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
-        const sub = await getSubscription();
-        setIsPushSubscribed(!!sub);
-        const promptShown = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
-        if (!promptShown && !sub) {
-            setShowNotificationPrompt(true);
-        }
+      if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+        return;
+      }
+
+      const sub = await getSubscription();
+      setIsPushSubscribed(!!sub);
+      const promptShown = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
+      if (!promptShown && !sub) {
+        setShowNotificationPrompt(true);
       }
     };
-    checkSubscription();
+
+    void checkSubscription();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !user || !firestore) return;
+
+    void syncSubscriptionWithFirestore(user.uid, firestore);
+  }, [user, firestore]);
   
   const handleSetupSave = async (data: { name: string }) => {
     if (!userDocRef || !firestore || !user) return;
@@ -247,7 +376,7 @@ export function Dashboard() {
   };
 
   const handleAllowNotifications = async () => {
-    if (!user || !firestore || !isClient) return;
+    if (!user || !firestore || typeof window === 'undefined') return;
 
     localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
     setShowNotificationPrompt(false);
@@ -300,10 +429,14 @@ export function Dashboard() {
         return { start: null, end: null };
     }
   }, [dateRange]);
-  
-    const getDisplayDate = (range: DateRange): string => {
+
+  const getDisplayDate = useCallback((range: DateRange): string => {
+    if (transactions === undefined) {
+      return "Loading...";
+    }
+
     if (!transactions?.length && range !== 'all') return "No data for this period";
-    
+
     const { start, end } = dateFilterRange;
 
     switch (range) {
@@ -330,16 +463,13 @@ export function Dashboard() {
         
         return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
     }
-  };
+  }, [dateFilterRange, transactions]);
 
-  useEffect(() => {
-    if (!isClient) return;
-    setDisplayDate(getDisplayDate(dateRange));
-  }, [dateRange, transactions, isClient, dateFilterRange]);
+  const displayDate = useMemo(() => getDisplayDate(dateRange), [dateRange, getDisplayDate]);
 
   const filteredTransactions = useMemo(() => {
-    if (!isClient || !transactions) return [];
-    
+    if (!transactions) return [];
+
     const { start, end } = dateFilterRange;
 
     if (dateRange === 'all' || !start || !end) {
@@ -356,7 +486,7 @@ export function Dashboard() {
       
       return isAfterStart && isBeforeEnd;
     });
-  }, [isClient, transactions, dateRange, dateFilterRange]);
+  }, [transactions, dateRange, dateFilterRange]);
   
   const totalBudget = useMemo(() => {
     if (!finalUserData) return 0;
@@ -395,10 +525,12 @@ export function Dashboard() {
   );
 
   const categories = finalUserData?.categories || [];
-  const categoryColors: { [key: string]: string } = categories.reduce((acc, category, index) => {
-    acc[category] = chartColors[index % chartColors.length];
-    return acc;
-  }, {} as { [key: string]: string });
+  const categoryColors = useMemo(() => {
+    return categories.reduce((acc, category, index) => {
+      acc[category] = chartColors[index % chartColors.length];
+      return acc;
+    }, {} as Record<string, string>);
+  }, [categories]);
 
   const aggregatedData = useMemo(() => expenseTransactions
     .reduce((acc, transaction) => {
@@ -417,19 +549,15 @@ export function Dashboard() {
     }, [] as { category: string; amount: number }[])
     .sort((a, b) => b.amount - a.amount), [expenseTransactions]);
 
-  useEffect(() => {
-    const newChartConfig: ChartConfig = Object.keys(categoryColors).reduce((acc, category) => {
+  const chartConfig = useMemo(() => {
+    return Object.keys(categoryColors).reduce((acc, category) => {
       acc[category] = {
         label: category,
         color: categoryColors[category],
       };
       return acc;
     }, {} as ChartConfig);
-
-    if (JSON.stringify(chartConfig) !== JSON.stringify(newChartConfig)) {
-        setChartConfig(newChartConfig);
-    }
-  }, [chartConfig, categoryColors]);
+  }, [categoryColors]);
 
   const sortedTransactions = useMemo(() => {
     if (!expenseTransactions) return [];
@@ -497,7 +625,7 @@ export function Dashboard() {
                 <DialogDescription className="text-center pt-2">
                   To enable push notifications on iOS, you must first add this app to your Home Screen.
                   <br /><br />
-                  Tap the <span className="font-bold">Share</span> icon in Safari, then scroll down and select <span className="font-bold">"Add to Home Screen"</span>.
+                  Tap the <span className="font-bold">Share</span> icon in Safari, then scroll down and select <span className="font-bold">&quot;Add to Home Screen&quot;</span>.
                 </DialogDescription>
               </DialogHeader>
             </DialogContent>

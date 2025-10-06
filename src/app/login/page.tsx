@@ -40,7 +40,7 @@ export default function LoginPage() {
   }, [isUserLoading, user, router]);
 
   const handleAuthError = (error: AuthError) => {
-    let title = 'Authentication Failed';
+    const title = 'Authentication Failed';
     let description = 'An unexpected error occurred. Please try again.';
 
     switch (error.code) {

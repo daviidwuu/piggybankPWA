@@ -9,6 +9,7 @@ import {
   FirestoreError,
   QuerySnapshot,
   CollectionReference,
+  DocumentReference,
 } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -51,12 +52,12 @@ export interface InternalQuery extends Query<DocumentData> {
  * use useMemo to memoize it per React guidence.  Also make sure that it's dependencies are stable
  * references
  *  
- * @template T Optional type for document data. Defaults to any.
+ * @template T Optional type for document data. Defaults to DocumentData.
  * @param {CollectionReference<DocumentData> | Query<DocumentData> | null | undefined} targetRefOrQuery -
  * The Firestore CollectionReference or Query. Waits if null/undefined.
  * @returns {UseCollectionResult<T>} Object with data, isLoading, error.
  */
-export function useCollection<T = any>(
+export function useCollection<T = DocumentData>(
     memoizedTargetRefOrQuery: ((CollectionReference<DocumentData> | Query<DocumentData>) & {__memo?: boolean})  | null | undefined,
     options?: UseCollectionOptions<T>
 ): UseCollectionResult<T> {
@@ -84,8 +85,10 @@ export function useCollection<T = any>(
     // This is a type guard to check if we are dealing with a single document.
     if ('path' in memoizedTargetRefOrQuery && !('where' in memoizedTargetRefOrQuery)) {
         // It looks like a DocumentReference, which is not supported by useCollection.
-        if ((memoizedTargetRefOrQuery as any).type !== 'collection') {
-             const docPath = (memoizedTargetRefOrQuery as DocumentReference).path;
+        const candidate = memoizedTargetRefOrQuery as { type?: string };
+        if (candidate.type !== 'collection') {
+             const docRef = memoizedTargetRefOrQuery as unknown as DocumentReference<DocumentData>;
+             const docPath = docRef.path;
              const errorMessage = `useCollection was called with a DocumentReference (path: ${docPath}), but it only supports CollectionReference or Query. Use the useDoc hook for single documents.`;
              console.error(errorMessage);
              const callError = new Error(errorMessage);
@@ -115,9 +118,10 @@ export function useCollection<T = any>(
       },
       (error: FirestoreError) => {
         // This logic extracts the path from either a ref or a query
+        const collectionCandidate = memoizedTargetRefOrQuery as { type?: string };
         const path: string =
-          memoizedTargetRefOrQuery.type === 'collection'
-            ? (memoizedTargetRefOrQuery as CollectionReference).path
+          collectionCandidate.type === 'collection'
+            ? (memoizedTargetRefOrQuery as CollectionReference<DocumentData>).path
             : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
 
         const contextualError = new FirestorePermissionError({
@@ -136,12 +140,6 @@ export function useCollection<T = any>(
 
     return () => unsubscribe();
   }, [memoizedTargetRefOrQuery, options?.initialData]); // Re-run if the target query/reference changes.
-  
-  if(memoizedTargetRefOrQuery && !(memoizedTargetRefOrQuery as any).__memo) {
-    // This check is problematic because useMemo doesn't add a property.
-    // Consider removing or finding a better way to enforce memoization if it remains an issue.
-    // For now, we rely on developer discipline.
-  }
   
   return { data, isLoading, error };
 }
