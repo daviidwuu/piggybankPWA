@@ -59,6 +59,31 @@
             "MonthlyBudget": { "type": "number" }
         },
         "required": ["Category", "MonthlyBudget"]
+    },
+    "PushSubscription": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "PushSubscription",
+      "type": "object",
+      "description": "Represents a web push subscription for a user's device.",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "keys": {
+          "type": "object",
+          "properties": {
+            "p256dh": { "type": "string" },
+            "auth": { "type": "string" }
+          },
+          "required": ["p256dh", "auth"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["endpoint", "keys"]
     }
   },
   "auth": {
@@ -78,6 +103,10 @@
     "/users/{userId}/budgets/{budgetId}": {
       "schema": { "$ref": "#/entities/Budget" },
       "description": "Stores budget configurations for a user. Only the user can access their own budgets."
+    },
+    "/users/{userId}/pushSubscriptions/{subscriptionId}": {
+      "schema": { "$ref": "#/entities/PushSubscription" },
+      "description": "Stores push notification subscriptions for a user's devices. Only the user can manage their own subscriptions."
     }
   }
 }
