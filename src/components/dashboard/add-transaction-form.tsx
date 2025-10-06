@@ -138,10 +138,10 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         )}
         <DrawerTitle className="text-center">{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DrawerTitle>
       </DrawerHeader>
-      <div className="p-4">
+      <div className="p-4 space-y-8">
         <Form {...form}>
           <form onSubmit={form. handleSubmit(onSubmit)} className="space-y-4">
-              <div className={`transition-opacity duration-300 ${step === 0 ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+              <div className={`transition-transform duration-300 ${step === 0 ? 'translate-x-0' : 'hidden'}`}>
                 <FormField
                     control={form.control}
                     name="Amount"
@@ -164,8 +164,8 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                 />
               </div>
 
-              <div className={`transition-opacity duration-300 ${step === 1 ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
-                  <fieldset className="space-y-2">
+              <div className={`transition-transform duration-300 ${step === 1 ? 'translate-x-0' : 'hidden'}`}>
+                  <fieldset className="space-y-4">
                       <legend className="text-sm font-medium">Category</legend>
                       <div className="flex flex-wrap gap-2">
                           {categories.map((cat) => (
@@ -183,7 +183,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                   </fieldset>
               </div>
 
-              <div className={`transition-opacity duration-300 ${step === 2 ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+              <div className={`transition-transform duration-300 ${step === 2 ? 'translate-x-0' : 'hidden'}`}>
                 <FormField
                     control={form.control}
                     name="Notes"
@@ -204,7 +204,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                     <Button 
                         type="button"
                         onClick={() => nextStep('Amount')} 
-                        className="w-full h-12 text-lg"
+                        className="w-full"
                         disabled={!form.watch('Amount')}
                     >
                         Next
@@ -213,7 +213,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                 {step === 2 && (
                     <Button 
                         type="submit" 
-                        className="w-full h-12 text-lg" 
+                        className="w-full" 
                         disabled={isLoading || !form.formState.isValid}
                     >
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
