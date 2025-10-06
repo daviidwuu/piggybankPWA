@@ -14,7 +14,7 @@ const roboto = Roboto({
 export const metadata: Metadata = {
   title: "piggybank",
   description: "An application to track and analyze your finances.",
-  manifest: "/manifest.json",
+  manifest: "/manifest.json?v=1",
   applicationName: "piggybank",
   appleWebApp: {
     capable: true,
@@ -41,9 +41,18 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <head>
-        <link rel="manifest" href="/manifest.json" />
+        <link rel="manifest" href="/manifest.json?v=1" />
+        
+        {/* PWA Icons */}
         <link rel="icon" href="/icon.png" type="image/png" sizes="any" />
-        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="apple-touch-icon" href="/icon-512.png" />
+
+        {/* Apple Meta Tags for PWA */}
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="piggybank" />
+
+        {/* iOS Splash Screens */}
         <link rel="apple-touch-startup-image" href="/splash/iphone5_splash.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" />
         <link rel="apple-touch-startup-image" href="/splash/iphone6_splash.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" />
         <link rel="apple-touch-startup-image" href="/splash/iphoneplus_splash.png" media="(device-width: 414px) and (device-height: 736px) and (-webkit-device-pixel-ratio: 3)" />
