@@ -142,6 +142,7 @@ export function Dashboard() {
       setDoc(doc(budgetsCollection, category), { Category: category, MonthlyBudget: 0 }, { merge: true })
     );
     await Promise.all(budgetPromises);
+    setBudgetOpen(true);
   };
   
   const handleCopyUserId = () => {
