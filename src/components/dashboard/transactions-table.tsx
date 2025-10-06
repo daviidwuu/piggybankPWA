@@ -74,7 +74,7 @@ export function TransactionsTable({
 
   return (
     <Card className="rounded-[var(--radius)]">
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-center justify-between p-4">
         <div>
           <CardTitle>Recent Transactions</CardTitle>
           <CardDescription>
@@ -186,3 +186,5 @@ export function TransactionsTable({
     </Card>
   );
 }
+
+    

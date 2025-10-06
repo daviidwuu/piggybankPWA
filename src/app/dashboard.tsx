@@ -465,7 +465,7 @@ export function Dashboard() {
             </DialogContent>
           </Dialog>
             <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
-              <AlertDialogContent>
+              <AlertDialogContent className="rounded-[var(--radius)]">
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure you want to log out?</AlertDialogTitle>
                   <AlertDialogDescription>
@@ -505,8 +505,8 @@ export function Dashboard() {
                   </Drawer>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">
-                        <Settings className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
+                        <Settings className="h-4 w-4 text-primary" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
@@ -585,5 +585,7 @@ export function Dashboard() {
     </div>
   );
 }
+
+    
 
     
