@@ -109,8 +109,8 @@ export function TransactionsTable({
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead scope="col" className="p-1 pl-0">Date</TableHead>
-                  <TableHead scope="col" className="p-1 text-left">Amount</TableHead>
-                  <TableHead scope="col" className="p-1">Description</TableHead>
+                  <TableHead scope="col" className="p-1 text-left">Description</TableHead>
+                  <TableHead scope="col" className="p-1 text-right">Amount</TableHead>
                   <TableHead scope="col" className="p-1 pr-0 text-right"><span className="sr-only">Actions</span></TableHead>
                 </TableRow>
               </TableHeader>
@@ -123,15 +123,10 @@ export function TransactionsTable({
                             <div>{date}</div>
                             <div className="text-muted-foreground">{time}</div>
                         </TableCell>
-                        <TableCell className="font-medium text-sm p-1 text-left">
-                          <div className="flex items-center">
-                            <span>$</span>
-                            <span>{transaction.Amount.toFixed(2)}</span>
-                          </div>
-                        </TableCell>
                         <TableCell className="p-1">
-                          <div className="flex items-center gap-2">
-                            <Badge
+                          <div className="flex flex-col items-start gap-1">
+                            <span className="font-medium truncate block max-w-[120px] text-sm">{transaction.Notes}</span>
+                             <Badge
                               className="whitespace-nowrap px-1.5 py-0.5 font-semibold text-xs"
                               style={{
                                 backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820', // 12.5% opacity
@@ -140,7 +135,12 @@ export function TransactionsTable({
                             >
                               {transaction.Category}
                             </Badge>
-                            <span className="font-medium truncate block max-w-[100px] text-sm">{transaction.Notes}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-sm p-1 text-right">
+                          <div className="flex items-center justify-end">
+                            <span>$</span>
+                            <span>{transaction.Amount.toFixed(2)}</span>
                           </div>
                         </TableCell>
                         <TableCell className="p-1 pr-0 text-right">
