@@ -14,7 +14,7 @@ import {
 import { type Transaction } from "@/lib/data";
 import { format, toDate } from "date-fns";
 
-interface DeleteTransactionDialogProps {
+export interface DeleteTransactionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;

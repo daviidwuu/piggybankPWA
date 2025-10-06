@@ -2,11 +2,11 @@
 
 import { useUser } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { useEffect, type ReactNode } from 'react';
+import { useEffect } from 'react';
 import { SkeletonLoader } from '@/components/dashboard/skeleton-loader';
 import { Dashboard } from './dashboard';
 
-export function AuthGuard({ children }: { children: ReactNode }) {
+export function AuthGuard() {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
 

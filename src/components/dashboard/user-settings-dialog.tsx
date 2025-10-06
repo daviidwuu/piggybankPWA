@@ -29,7 +29,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: "Please enter your name." }),
 });
 
-interface UserSettingsDialogProps {
+export interface UserSettingsDialogProps {
   user: UserData | null;
   userId?: string;
   onSave: (name: string) => void;
