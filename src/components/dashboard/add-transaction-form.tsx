@@ -68,8 +68,11 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         Notes: "",
       });
     }
-    // Reset step to 0 whenever the form is opened/re-opened
     setStep(0);
+    // Auto-focus amount input when drawer opens
+    setTimeout(() => {
+      amountInputRef.current?.focus();
+    }, 100);
   }, [transactionToEdit, form, setOpen]);
 
   const nextStep = async (field?: keyof FormValues) => {
@@ -138,89 +141,86 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         )}
         <DrawerTitle className="text-center">{transactionToEdit ? 'Edit Transaction' : 'Add New Transaction'}</DrawerTitle>
       </DrawerHeader>
-      <div className="p-4 space-y-8">
+      <div className="p-4 h-[35vh]">
         <Form {...form}>
-          <form onSubmit={form. handleSubmit(onSubmit)} className="space-y-4">
-              <div className={`transition-transform duration-300 ${step === 0 ? 'translate-x-0' : 'hidden'}`}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="h-full flex flex-col">
+              <div className={`flex-grow transition-transform duration-300 ${step === 0 ? 'flex flex-col' : 'hidden'}`}>
                 <FormField
                     control={form.control}
                     name="Amount"
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Amount</FormLabel>
+                    <FormItem className="flex-grow flex flex-col justify-center">
                         <FormControl>
-                        <Input 
-                          ref={amountInputRef}
-                          type="number" 
-                          step="0.01" 
-                          {...field} 
-                          placeholder="$0.00" 
-                          inputMode="decimal"
-                        />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-4xl text-muted-foreground">$</span>
+                            <Input 
+                              ref={amountInputRef}
+                              type="number" 
+                              step="0.01" 
+                              {...field} 
+                              placeholder="0.00" 
+                              inputMode="decimal"
+                              className="h-auto w-full border-none bg-transparent text-center text-6xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                            />
+                          </div>
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-center pt-2" />
                     </FormItem>
                     )}
                 />
+                 <Button 
+                    type="button"
+                    onClick={() => nextStep('Amount')} 
+                    className="w-full mt-auto"
+                    disabled={!form.watch('Amount')}
+                >
+                    Next
+                </Button>
               </div>
 
-              <div className={`transition-transform duration-300 ${step === 1 ? 'translate-x-0' : 'hidden'}`}>
+              <div className={`transition-transform duration-300 ${step === 1 ? '' : 'hidden'}`}>
                   <fieldset className="space-y-4">
-                      <legend className="text-sm font-medium">Category</legend>
-                      <div className="flex flex-wrap gap-2">
+                      <legend className="text-sm font-medium text-center mb-4">Category</legend>
+                      <div className="flex flex-wrap gap-2 justify-center">
                           {categories.map((cat) => (
                               <Button
                                   type="button"
                                   key={cat}
                                   variant={form.watch("Category") === cat ? "default" : "outline"}
                                   onClick={() => handleCategorySelect(cat)}
+                                  className="h-auto py-3 px-4"
                               >
                                   {cat}
                               </Button>
                           ))}
                       </div>
-                      <FormMessage>{form.formState.errors.Category?.message}</FormMessage>
+                      <FormMessage className="text-center">{form.formState.errors.Category?.message}</FormMessage>
                   </fieldset>
               </div>
 
-              <div className={`transition-transform duration-300 ${step === 2 ? 'translate-x-0' : 'hidden'}`}>
+              <div className={`h-full flex flex-col transition-transform duration-300 ${step === 2 ? '' : 'hidden'}`}>
                 <FormField
                     control={form.control}
                     name="Notes"
                     render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Notes</FormLabel>
+                    <FormItem className="flex-grow flex flex-col">
+                        <FormLabel className="text-center mb-4">Notes</FormLabel>
                         <FormControl>
-                        <Textarea {...field} placeholder="e.g., Coffee" />
+                        <Textarea {...field} placeholder="e.g., Coffee" className="flex-grow text-base" />
                         </FormControl>
-                        <FormMessage />
+                        <FormMessage className="text-center pt-2"/>
                     </FormItem>
                     )}
                 />
+                 <Button 
+                    type="submit" 
+                    className="w-full mt-4" 
+                    disabled={isLoading || !form.formState.isValid}
+                >
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {transactionToEdit ? 'Update Transaction' : 'Add Transaction'}
+                </Button>
               </div>
-            
-            <div className="pt-4">
-                {step === 0 && (
-                    <Button 
-                        type="button"
-                        onClick={() => nextStep('Amount')} 
-                        className="w-full"
-                        disabled={!form.watch('Amount')}
-                    >
-                        Next
-                    </Button>
-                )}
-                {step === 2 && (
-                    <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={isLoading || !form.formState.isValid}
-                    >
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        {transactionToEdit ? 'Update Transaction' : 'Add Transaction'}
-                    </Button>
-                )}
-            </div>
           </form>
         </Form>
       </div>
