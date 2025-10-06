@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { type Budget, type User } from "@/lib/data";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
   DrawerDescription,
+  DrawerClose,
 } from "@/components/ui/drawer";
 import {
   Card,
@@ -21,7 +22,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Pencil, Trash2, Plus, DollarSign } from "lucide-react";
+import { Pencil, Trash2, Plus, X } from "lucide-react";
 
 interface BudgetPageProps {
   user: User;
@@ -31,6 +32,49 @@ interface BudgetPageProps {
   onUpdateBudget: (category: string, newBudget: number) => void;
   onAddCategory: (category: string) => void;
   onDeleteCategory: (category: string) => void;
+}
+
+interface BudgetEditDrawerProps {
+  category: string;
+  currentBudget: number;
+  onUpdateBudget: (category: string, newBudget: number) => void;
+}
+
+function BudgetEditDrawer({ category, currentBudget, onUpdateBudget }: BudgetEditDrawerProps) {
+    const [budgetValue, setBudgetValue] = useState(String(currentBudget));
+
+    const handleUpdate = () => {
+        const newValue = parseFloat(budgetValue);
+        if (!isNaN(newValue)) {
+            onUpdateBudget(category, newValue);
+        }
+    };
+
+    return (
+        <DrawerContent onOpenAutoFocus={(e) => e.preventDefault()}>
+            <DrawerHeader>
+                <DrawerTitle>Edit Budget: {category}</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4 h-[35vh] flex flex-col justify-center">
+                <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-5xl text-muted-foreground">$</span>
+                    <Input
+                        type="number"
+                        step="0.01"
+                        inputMode="decimal"
+                        value={budgetValue}
+                        onChange={(e) => setBudgetValue(e.target.value)}
+                        onBlur={handleUpdate}
+                        placeholder="0.00"
+                        className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                </div>
+            </div>
+             <DrawerClose asChild>
+                <Button className="w-full" onClick={handleUpdate}>Done</Button>
+            </DrawerClose>
+        </DrawerContent>
+    );
 }
 
 export function BudgetPage({ 
@@ -44,19 +88,11 @@ export function BudgetPage({
 }: BudgetPageProps) {
   const [newCategory, setNewCategory] = useState("");
   const [isCategoryManagerOpen, setCategoryManagerOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
   
   const [currentIncome, setCurrentIncome] = useState(user?.income ?? 0);
   const [currentSavings, setCurrentSavings] = useState(user?.savings ?? 0);
-
-  const [budgetValues, setBudgetValues] = useState<Record<string, string>>(() => {
-    const initialState: Record<string, string> = {};
-    (user?.categories || []).forEach(category => {
-        const budget = budgets.find(b => b.Category === category);
-        initialState[category] = budget ? String(budget.MonthlyBudget) : '0';
-    });
-    return initialState;
-  });
-
+  
   const categories = user?.categories || [];
   const income = user?.income ?? 0;
   const savings = user?.savings ?? 0;
@@ -71,17 +107,14 @@ export function BudgetPage({
     }
   };
 
-  const handleBudgetChange = (category: string, value: string) => {
-    setBudgetValues(prev => ({ ...prev, [category]: value }));
+  const getBudgetForCategory = (category: string) => {
+    return budgets.find(b => b.Category === category)?.MonthlyBudget ?? 0;
   };
-
-  const handleBudgetBlur = (category: string) => {
-    const value = parseFloat(budgetValues[category] || '0');
-    if (!isNaN(value)) {
-      onUpdateBudget(category, value);
-    }
-  };
-
+  
+  const handleUpdateAndCloseDrawer = (category: string, newBudget: number) => {
+    onUpdateBudget(category, newBudget);
+    setEditingCategory(null);
+  }
 
   return (
     <div className="space-y-6 px-4">
@@ -94,7 +127,7 @@ export function BudgetPage({
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-center block pb-2">Monthly Income</label>
                     <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-4xl text-muted-foreground">$</span>
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-5xl text-muted-foreground">$</span>
                         <Input
                             type="number"
                             step="0.01"
@@ -110,7 +143,7 @@ export function BudgetPage({
                  <div className="space-y-2 pt-4">
                     <label className="text-sm font-medium text-center block pb-2">Monthly Savings Goal</label>
                     <div className="relative">
-                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-4xl text-muted-foreground">$</span>
+                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-5xl text-muted-foreground">$</span>
                        <Input
                             type="number"
                             step="0.01"
@@ -180,22 +213,27 @@ export function BudgetPage({
                         ${leftToBudget.toFixed(2)}
                     </span>
                 </div>
+                <Drawer open={!!editingCategory} onOpenChange={(isOpen) => !isOpen && setEditingCategory(null)}>
+                    {editingCategory && (
+                        <BudgetEditDrawer 
+                            category={editingCategory}
+                            currentBudget={getBudgetForCategory(editingCategory)}
+                            onUpdateBudget={handleUpdateAndCloseDrawer}
+                        />
+                    )}
+                </Drawer>
                 <div className="space-y-3 pt-2">
                     {categories.map((category) => (
-                        <div key={category} className="flex items-center justify-between gap-4">
+                        <button 
+                            key={category} 
+                            onClick={() => setEditingCategory(category)}
+                            className="flex items-center justify-between gap-4 w-full p-2 rounded-md hover:bg-muted/50"
+                        >
                             <span className="font-medium truncate pr-2">{category}</span>
                             <div className="flex items-center gap-2 flex-shrink-0">
-                                <Input
-                                    type="number"
-                                    value={budgetValues[category] ?? ''}
-                                    onChange={(e) => handleBudgetChange(category, e.target.value)}
-                                    onBlur={() => handleBudgetBlur(category)}
-                                    className="h-8 w-24 text-right"
-                                    placeholder="0.00"
-                                    inputMode="decimal"
-                                />
+                                <span className="text-muted-foreground">${getBudgetForCategory(category).toFixed(2)}</span>
                             </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
             </CardContent>
@@ -203,5 +241,3 @@ export function BudgetPage({
     </div>
   );
 }
-
-    
