@@ -38,12 +38,12 @@ export interface UseDocOptions<T> {
  * references
  *
  *
- * @template T Optional type for document data. Defaults to any.
+ * @template T Optional type for document data. Defaults to DocumentData.
  * @param {DocumentReference<DocumentData> | null | undefined} docRef -
  * The Firestore DocumentReference. Waits if null/undefined.
  * @returns {UseDocResult<T>} Object with data, isLoading, error.
  */
-export function useDoc<T = any>(
+export function useDoc<T = DocumentData>(
   memoizedDocRef: DocumentReference<DocumentData> | null | undefined,
   options?: UseDocOptions<T>
 ): UseDocResult<T> {
@@ -64,9 +64,6 @@ export function useDoc<T = any>(
     // Start loading when a valid docRef is provided.
     if (!options?.initialData) {
         setIsLoading(true);
-    }
-    // Reset data to undefined on new ref if no initial data
-    if (data !== undefined && !options?.initialData) {
         setData(undefined);
     }
     setError(null);
@@ -83,7 +80,7 @@ export function useDoc<T = any>(
         setError(null);
         setIsLoading(false);
       },
-      (error: FirestoreError) => {
+      (_error: FirestoreError) => {
         const contextualError = new FirestorePermissionError({
           operation: 'get',
           path: memoizedDocRef.path,

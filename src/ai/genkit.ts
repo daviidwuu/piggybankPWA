@@ -6,8 +6,6 @@ export const ai = genkit({
     // Specify a different model, e.g.
     // model: 'gemini-1.5-flash',
   })],
-  // Log developer-friendly errors to the console.
-  logLevel: 'debug',
   // Omit this to disable trace collection.
   // GKE and other GCP environments will containerize and auto-configure auth.
   // To run locally, you need to authenticate with `gcloud auth application-default login`.

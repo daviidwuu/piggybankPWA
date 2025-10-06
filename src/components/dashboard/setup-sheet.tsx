@@ -31,7 +31,7 @@ const formSchema = z.object({
   name: z.string().min(1, { message: "Please enter your name." }),
 });
 
-interface SetupSheetProps {
+export interface SetupSheetProps {
   onSave: (data: { name: string; }) => Promise<void>;
   onCopyUserId: () => void;
   userId?: string;
