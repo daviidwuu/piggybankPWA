@@ -1,91 +1,8 @@
 
 'use client';
 
-import { doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
-import {
-  buildSubscriptionId,
-  normalizeSubscriptionPayload,
-  type SubscriptionRecord,
-} from "@/lib/push-subscriptions";
-
-type SubscriptionLike = PushSubscription | PushSubscriptionJSON;
-
-let subscriptionChangeListener: ((event: MessageEvent) => void) | null = null;
-let subscriptionListenerUserId: string | null = null;
-
-async function sendMessageToServiceWorker(message: unknown) {
-  const registration = await navigator.serviceWorker.ready;
-  const recipient = registration.active || navigator.serviceWorker.controller;
-
-  if (!recipient) {
-    throw new Error('No active service worker available to receive messages.');
-  }
-
-  recipient.postMessage(message);
-}
-
-let cachedVapidKey: { raw: string; keyBytes: Uint8Array } | null = null;
-
-function sanitizeVapidKey(rawKey: string | undefined) {
-  return rawKey?.trim().replace(/^['"]|['"]$/g, '').replace(/\s+/g, '') ?? '';
-}
-
-function resolveVapidKey() {
-  if (cachedVapidKey) {
-    return cachedVapidKey;
-  }
-
-  const sanitized = sanitizeVapidKey(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY);
-
-  if (!sanitized) {
-    throw new Error('VAPID public key is not defined in environment variables.');
-  }
-
-  let keyBytes: Uint8Array;
-
-  try {
-    keyBytes = urlBase64ToUint8Array(sanitized);
-  } catch (error) {
-    console.error('Failed to decode the configured VAPID public key.', error);
-    throw new Error(
-      'The configured VAPID public key is malformed. Update NEXT_PUBLIC_VAPID_PUBLIC_KEY with a valid Base64 URL-encoded value.'
-    );
-  }
-
-  if (keyBytes.length < 32) {
-    console.warn(
-      `The decoded VAPID public key is unexpectedly short (length: ${keyBytes.length}). Double-check that NEXT_PUBLIC_VAPID_PUBLIC_KEY is correct.`
-    );
-  }
-
-  cachedVapidKey = { raw: sanitized, keyBytes };
-
-  return cachedVapidKey;
-}
-
-async function syncServiceWorkerMetadata(userId: string) {
-  if (!userId) return;
-
-  try {
-    const { raw } = resolveVapidKey();
-
-    await sendMessageToServiceWorker({
-      type: 'STORE_PUSH_METADATA',
-      payload: { userId, vapidPublicKey: raw },
-    });
-  } catch (error) {
-    console.error('Failed to propagate push metadata to the service worker.', error);
-  }
-}
-
-async function clearServiceWorkerMetadata() {
-  try {
-    await sendMessageToServiceWorker({ type: 'CLEAR_PUSH_METADATA' });
-  } catch (error) {
-    console.error('Failed to clear push metadata from the service worker.', error);
-  }
-}
 
 /**
  * Converts a VAPID key from a URL-safe base64 string to a Uint8Array.
@@ -118,6 +35,18 @@ export async function getSubscription(): Promise<PushSubscription | null> {
       return null;
     }
 }
+
+/**
+ * Creates a Firestore-safe document ID from a subscription endpoint.
+ * Replaces illegal characters like '/' with a safe character.
+ * @param endpoint The subscription endpoint URL.
+ */
+function buildSubscriptionId(endpoint: string): string {
+    // btoa can produce characters that are illegal in Firestore document paths ('/').
+    // We replace them with a safe character.
+    return endpoint.replace(/\//g, '_');
+}
+
 
 /**
  * Requests permission for push notifications and saves the subscription to Firestore.
@@ -213,11 +142,14 @@ async function subscribeWithRegistration(
   userId: string,
   firestore: Firestore
 ) {
-  const { keyBytes } = resolveVapidKey();
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidPublicKey) {
+    throw new Error("VAPID public key is not defined in environment variables.");
+  }
 
   const subscription = await pushManager.subscribe({
     userVisibleOnly: true,
-    applicationServerKey: keyBytes,
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
   });
 
   await persistSubscription(userId, firestore, subscription);
@@ -283,18 +215,25 @@ export async function requestNotificationPermission(userId: string, firestore: F
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn("Push notifications are not supported in this browser.");
     toast({
-      variant: "destructive",
-      title: "Notifications unsupported",
-      description: "This browser does not support push notifications.",
+        variant: "destructive",
+        title: "Unsupported Browser",
+        description: "Push notifications are not supported on this device or browser.",
     });
     return;
   }
   
-  try {
-    // Register the service worker. The browser will handle updates.
-    await navigator.serviceWorker.register('/sw.js');
-    console.log('Service Worker registered.');
+  const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!publicVapidKey) {
+      console.error("VAPID public key is not defined. Push notifications cannot be enabled.");
+      toast({
+          variant: "destructive",
+          title: "Configuration Error",
+          description: "Push notification setup is missing a required key.",
+      });
+      throw new Error("VAPID public key is not defined.");
+  }
 
+  try {
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       throw new Error("Push notification permission not granted.");
@@ -303,37 +242,36 @@ export async function requestNotificationPermission(userId: string, firestore: F
 
     // Await the service worker to be ready and active. This is crucial for iOS.
     const swRegistration = await navigator.serviceWorker.ready;
-    assertPushManager(swRegistration);
     console.log('Service Worker is ready and active:', swRegistration.active);
 
-    registerSubscriptionChangeListener(userId, firestore);
-    await syncServiceWorkerMetadata(userId);
+    const applicationServerKey = urlBase64ToUint8Array(publicVapidKey);
 
-    const subscription = await ensureActiveSubscription(userId, firestore, swRegistration);
+    const subscription = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+    });
 
-    console.log("Push subscription synchronized:", subscription);
+    const subscriptionId = buildSubscriptionId(subscription.endpoint);
+    const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
+
+    await setDoc(subscriptionRef, {
+      endpoint: subscription.endpoint,
+      keys: subscription.toJSON().keys,
+      createdAt: serverTimestamp(),
+    });
+
+    console.log("Push subscription saved to Firestore.");
     toast({
-      title: "Notifications enabled",
-      description: "You'll receive alerts on this device.",
+        title: "Notifications Enabled!",
+        description: "You will now receive alerts for new transactions.",
     });
 
   } catch (error) {
     console.error("An error occurred during push notification setup:", error);
-    const isPushServiceError =
-      error instanceof DOMException &&
-      typeof error.message === 'string' &&
-      /push service error/i.test(error.message);
-
-    const description = isPushServiceError
-      ? 'The push service rejected the registration. Verify that your VAPID public key matches the server configuration and try again.'
-      : error instanceof Error
-        ? error.message
-        : 'Unknown error';
-
     toast({
-      variant: "destructive",
-      title: "Failed to enable notifications",
-      description,
+        variant: "destructive",
+        title: "Subscription Failed",
+        description: error instanceof Error ? error.message : 'Could not enable push notifications.',
     });
     // Re-throw the error so the calling component can handle UI state if needed
     throw error;
@@ -364,10 +302,9 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
       // If successful, remove from Firestore
       await deleteDoc(subscriptionRef);
       console.log("Successfully removed subscription from Firestore.");
-      await clearServiceWorkerMetadata();
       toast({
-        title: "Notifications disabled",
-        description: "You will no longer receive alerts on this device.",
+        title: "Notifications Disabled",
+        description: "You will no longer receive push notifications.",
       });
     } else {
       console.error("Failed to unsubscribe.");
@@ -376,9 +313,9 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
   } catch (error) {
     console.error("Error unsubscribing from push notifications:", error);
     toast({
-      variant: "destructive",
-      title: "Failed to disable notifications",
-      description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+        title: "Unsubscribe Failed",
+        description: error instanceof Error ? error.message : 'Could not disable notifications.',
     });
     // Re-throw so the UI can revert its state
     throw error;
@@ -390,9 +327,18 @@ export async function syncSubscriptionWithFirestore(userId: string, firestore: F
   if (!userId) return;
 
   try {
-    registerSubscriptionChangeListener(userId, firestore);
-    await ensureActiveSubscription(userId, firestore);
-    await syncServiceWorkerMetadata(userId);
+    const swRegistration = await navigator.serviceWorker.ready;
+    const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!publicVapidKey) {
+        throw new Error("VAPID public key is not defined.");
+    }
+    const applicationServerKey = urlBase64ToUint8Array(publicVapidKey);
+
+    await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+    });
+
   } catch (error) {
     console.error('Failed to synchronize push subscription with Firestore on load.', error);
   }
