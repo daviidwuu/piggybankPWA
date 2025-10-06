@@ -160,6 +160,20 @@ export function BudgetPage({
         </Card>
 
         <Card className="border-none shadow-none">
+             <CardHeader>
+                <CardTitle>Amount Left to Budget</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="relative text-center">
+                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-5xl ${leftToBudget < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>$</span>
+                    <div className={`h-auto w-full text-5xl font-bold ${leftToBudget < 0 ? 'text-destructive' : ''}`}>
+                        {Math.abs(leftToBudget).toFixed(2)}
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        <Card className="border-none shadow-none">
             <CardHeader className="flex-row items-center justify-between">
                 <div className="space-y-1.5">
                     <CardTitle>Category Budgets</CardTitle>
@@ -207,12 +221,6 @@ export function BudgetPage({
                 </Drawer>
             </CardHeader>
             <CardContent className="space-y-4 pb-4">
-                <div className="w-full flex justify-between items-center py-4 border-b">
-                    <span className="font-medium text-muted-foreground">Left to Budget:</span>
-                    <span className={`font-bold text-lg ${leftToBudget < 0 ? 'text-destructive' : 'text-primary'}`}>
-                        ${leftToBudget.toFixed(2)}
-                    </span>
-                </div>
                 <Drawer open={!!editingCategory} onOpenChange={(isOpen) => !isOpen && setEditingCategory(null)}>
                     {editingCategory && (
                         <BudgetEditDrawer 
