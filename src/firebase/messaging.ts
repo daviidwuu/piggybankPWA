@@ -1,55 +1,8 @@
 
 'use client';
 
-import { doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
 import { toast } from "@/hooks/use-toast";
-import {
-  buildSubscriptionId,
-  normalizeSubscriptionPayload,
-  type SubscriptionRecord,
-} from "@/lib/push-subscriptions";
-
-type SubscriptionLike = PushSubscription | PushSubscriptionJSON;
-
-let subscriptionChangeListener: ((event: MessageEvent) => void) | null = null;
-let subscriptionListenerUserId: string | null = null;
-
-async function sendMessageToServiceWorker(message: unknown) {
-  const registration = await navigator.serviceWorker.ready;
-  const recipient = registration.active || navigator.serviceWorker.controller;
-
-  if (!recipient) {
-    throw new Error('No active service worker available to receive messages.');
-  }
-
-  recipient.postMessage(message);
-}
-
-async function syncServiceWorkerMetadata(userId: string) {
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-
-  if (!vapidPublicKey) {
-    console.warn('Cannot sync push metadata: VAPID public key is missing.');
-    return;
-  }
-
-  try {
-    await sendMessageToServiceWorker({
-      type: 'STORE_PUSH_METADATA',
-      payload: { userId, vapidPublicKey },
-    });
-  } catch (error) {
-    console.error('Failed to propagate push metadata to the service worker.', error);
-  }
-}
-
-async function clearServiceWorkerMetadata() {
-  try {
-    await sendMessageToServiceWorker({ type: 'CLEAR_PUSH_METADATA' });
-  } catch (error) {
-    console.error('Failed to clear push metadata from the service worker.', error);
-  }
-}
 
 /**
  * Converts a VAPID key from a URL-safe base64 string to a Uint8Array.
@@ -78,151 +31,25 @@ export async function getSubscription(): Promise<PushSubscription | null> {
 }
 
 /**
+ * Creates a Firestore-safe document ID from a subscription endpoint.
+ * Replaces illegal characters like '/' with a safe character.
+ * @param endpoint The subscription endpoint URL.
+ */
+function createSubscriptionId(endpoint: string): string {
+    // btoa can produce characters that are illegal in Firestore document paths ('/').
+    // We replace them with a safe character.
+    return btoa(endpoint).replace(/\//g, '_');
+}
+
+
+/**
  * Requests permission for push notifications and saves the subscription to Firestore.
  * This function is designed to work with the standard Web Push API for PWA compatibility.
  * @param userId The ID of the current user.
  * @param firestore The Firestore instance.
  */
-function normalizeSubscription(subscription: SubscriptionLike | null | undefined): SubscriptionRecord | null {
-  if (!subscription) return null;
-
-  const json = typeof (subscription as PushSubscription).toJSON === 'function'
-    ? (subscription as PushSubscription).toJSON()
-    : (subscription as PushSubscriptionJSON);
-
-  return normalizeSubscriptionPayload(json);
-}
-
-async function persistSubscription(userId: string, firestore: Firestore, subscription: SubscriptionLike) {
-  const normalized = normalizeSubscription(subscription);
-
-  if (!normalized) {
-    throw new Error('Received an invalid push subscription payload.');
-  }
-
-  const subscriptionRef = doc(
-    firestore,
-    `users/${userId}/pushSubscriptions`,
-    buildSubscriptionId(normalized.endpoint)
-  );
-
-  await setDoc(subscriptionRef, {
-    endpoint: normalized.endpoint,
-    keys: normalized.keys,
-    createdAt: serverTimestamp(),
-  });
-}
-
-async function removeSubscription(userId: string, firestore: Firestore, endpoint: string | null | undefined) {
-  if (!endpoint) return;
-
-  const subscriptionRef = doc(
-    firestore,
-    `users/${userId}/pushSubscriptions`,
-    buildSubscriptionId(endpoint)
-  );
-
-  await deleteDoc(subscriptionRef);
-}
-
-async function ensureActiveSubscription(
-  userId: string,
-  firestore: Firestore,
-  registration?: ServiceWorkerRegistration
-) {
-  const swRegistration = registration ?? (await navigator.serviceWorker.ready);
-  let subscription = await swRegistration.pushManager.getSubscription();
-
-  const permission = typeof Notification !== 'undefined' ? Notification.permission : 'default';
-
-  if (permission !== 'granted') {
-    if (subscription) {
-      await persistSubscription(userId, firestore, subscription);
-    }
-
-    return subscription;
-  }
-
-  if (!subscription) {
-    subscription = await subscribeWithRegistration(swRegistration, userId, firestore);
-  } else {
-    await persistSubscription(userId, firestore, subscription);
-  }
-
-  return subscription;
-}
-
-async function subscribeWithRegistration(
-  registration: ServiceWorkerRegistration,
-  userId: string,
-  firestore: Firestore
-) {
-  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  if (!vapidPublicKey) {
-    throw new Error("VAPID public key is not defined in environment variables.");
-  }
-
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-  });
-
-  await persistSubscription(userId, firestore, subscription);
-  return subscription;
-}
-
-export function registerSubscriptionChangeListener(userId: string, firestore: Firestore) {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-  if (!userId) return;
-
-  if (subscriptionChangeListener && subscriptionListenerUserId === userId) {
-    return;
-  }
-
-  if (subscriptionChangeListener) {
-    navigator.serviceWorker.removeEventListener('message', subscriptionChangeListener);
-    subscriptionChangeListener = null;
-    subscriptionListenerUserId = null;
-  }
-
-  const handler = async (event: MessageEvent) => {
-    const { data } = event;
-    if (!data || data.type !== 'PUSH_SUBSCRIPTION_CHANGE') return;
-
-    const { newSubscription, oldEndpoint, shouldResubscribe, autoPersisted } = data.payload ?? {};
-    const newEndpoint =
-      newSubscription && typeof newSubscription.endpoint === 'string'
-        ? newSubscription.endpoint
-        : null;
-
-    try {
-      if (oldEndpoint && (!newEndpoint || oldEndpoint !== newEndpoint)) {
-        await removeSubscription(userId, firestore, oldEndpoint);
-      }
-
-      if (newSubscription) {
-        await persistSubscription(userId, firestore, newSubscription as SubscriptionLike);
-        return;
-      }
-
-      if (autoPersisted) {
-        await ensureActiveSubscription(userId, firestore);
-        return;
-      }
-
-      if (shouldResubscribe !== false) {
-        await ensureActiveSubscription(userId, firestore);
-      }
-    } catch (error) {
-      console.error('Failed to synchronize push subscription change.', error);
-    }
-  };
-
-  navigator.serviceWorker.addEventListener('message', handler);
-  subscriptionChangeListener = handler;
-  subscriptionListenerUserId = userId;
-
-  void syncServiceWorkerMetadata(userId);
+function buildSubscriptionId(endpoint: string) {
+  return endpoint.replace(/\//g, "_");
 }
 
 export async function requestNotificationPermission(userId: string, firestore: Firestore) {
@@ -230,9 +57,9 @@ export async function requestNotificationPermission(userId: string, firestore: F
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn("Push notifications are not supported in this browser.");
     toast({
-      variant: "destructive",
-      title: "Notifications unsupported",
-      description: "This browser does not support push notifications.",
+        variant: "destructive",
+        title: "Unsupported Browser",
+        description: "Push notifications are not supported on this device or browser.",
     });
     return;
   }
@@ -253,22 +80,30 @@ export async function requestNotificationPermission(userId: string, firestore: F
     console.log('Service Worker is ready and active:', swRegistration.active);
 
     registerSubscriptionChangeListener(userId, firestore);
-    await syncServiceWorkerMetadata(userId);
 
     const subscription = await ensureActiveSubscription(userId, firestore, swRegistration);
 
-    console.log("Push subscription synchronized:", subscription);
+    const subscriptionId = createSubscriptionId(subscription.endpoint);
+    const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
+
+    await setDoc(subscriptionRef, {
+      endpoint: subscription.endpoint,
+      keys: subscription.toJSON().keys,
+      createdAt: serverTimestamp(),
+    });
+
+    console.log("Push subscription saved to Firestore.");
     toast({
-      title: "Notifications enabled",
-      description: "You'll receive alerts on this device.",
+        title: "Notifications Enabled!",
+        description: "You will now receive alerts for new transactions.",
     });
 
   } catch (error) {
     console.error("An error occurred during push notification setup:", error);
     toast({
-      variant: "destructive",
-      title: "Failed to enable notifications",
-      description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+        title: "Subscription Failed",
+        description: error instanceof Error ? error.message : 'Could not enable push notifications.',
     });
     // Re-throw the error so the calling component can handle UI state if needed
     throw error;
@@ -289,7 +124,7 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
       return;
     }
 
-    const subscriptionId = buildSubscriptionId(subscription.endpoint);
+    const subscriptionId = createSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
 
     // Unsubscribe the user first
@@ -299,10 +134,9 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
       // If successful, remove from Firestore
       await deleteDoc(subscriptionRef);
       console.log("Successfully removed subscription from Firestore.");
-      await clearServiceWorkerMetadata();
       toast({
-        title: "Notifications disabled",
-        description: "You will no longer receive alerts on this device.",
+        title: "Notifications Disabled",
+        description: "You will no longer receive push notifications.",
       });
     } else {
       console.error("Failed to unsubscribe.");
@@ -311,9 +145,9 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
   } catch (error) {
     console.error("Error unsubscribing from push notifications:", error);
     toast({
-      variant: "destructive",
-      title: "Failed to disable notifications",
-      description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+        title: "Unsubscribe Failed",
+        description: error instanceof Error ? error.message : 'Could not disable notifications.',
     });
     // Re-throw so the UI can revert its state
     throw error;

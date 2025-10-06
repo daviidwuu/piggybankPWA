@@ -46,14 +46,13 @@ import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
-import { signOut } from "firebase/auth";
-import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { signOut, type User } from "firebase/auth";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   requestNotificationPermission,
   unsubscribeFromNotifications,
   getSubscription,
   registerSubscriptionChangeListener,
-  syncSubscriptionWithFirestore,
 } from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -141,7 +140,6 @@ export function Dashboard() {
   useEffect(() => {
     if (!isClient || !user || !firestore) return;
     registerSubscriptionChangeListener(user.uid, firestore);
-    void syncSubscriptionWithFirestore(user.uid, firestore);
   }, [isClient, user, firestore]);
   
   const handleSetupSave = async (data: { name: string }) => {
