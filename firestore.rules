@@ -7,7 +7,7 @@
  * `/users/{userId}`.
  *
  * Data Structure:
- * - /users/{userId}: User profile data.
+ * - /users/{userId}: User profile data (name, categories, income, savings).
  * - /users/{userId}/transactions/{transactionId}: Individual transactions.
  * - /users/{userId}/budgets/{budgetId}: Budget configurations.
  * - /users/{userId}/pushSubscriptions/{subscriptionId}: Push notification subscriptions.
@@ -16,11 +16,12 @@
  * - Users can only create, read, update, and delete data under their own user ID.
  * - Listing of user documents is disallowed for security.
  * - Data schema is not strictly enforced in this prototyping phase, except for fields
- *   critical for authorization (e.g., userId).
+ *   critical for authorization (e.g., userId, id).
+ * - Profile updates are allowed to modify name, categories, income and savings.
  *
  * Denormalization for Authorization:
- *  - The `userId` field is present in the `/transactions`, `/budgets`, and `/pushSubscriptions`
- *    collections to avoid costly `get()` operations and enforce ownership.
+ *  - The `userId` field is present in the `/transactions` collection
+ *    to avoid costly `get()` operations and enforce ownership.
  *
  * Structural Segregation:
  *  - Private user data is stored under the `/users/{userId}` collection, ensuring
