@@ -15,7 +15,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft } from "lucide-react";
 import { addDocumentNonBlocking, useFirestore, updateDocumentNonBlocking } from "@/firebase";
@@ -44,6 +43,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
   const { toast } = useToast();
   const firestore = useFirestore();
   const amountInputRef = useRef<HTMLInputElement>(null);
+  const notesInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -69,7 +69,6 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
       });
     }
     setStep(0);
-    // Auto-focus amount input when drawer opens
     setTimeout(() => {
       amountInputRef.current?.focus();
     }, 100);
@@ -81,6 +80,12 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
         if (!isValid) return;
     }
     setStep((s) => s + 1);
+
+    if (field === 'Category') {
+      setTimeout(() => {
+        notesInputRef.current?.focus();
+      }, 100);
+    }
   };
 
   const prevStep = () => {
@@ -128,7 +133,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
 
   const handleCategorySelect = (category: string) => {
     form.setValue("Category", category, { shouldValidate: true });
-    nextStep();
+    nextStep('Category');
   };
 
   return (
@@ -171,7 +176,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                  <Button 
                     type="button"
                     onClick={() => nextStep('Amount')} 
-                    className="w-full mt-auto"
+                    className="w-full"
                     disabled={!form.watch('Amount')}
                 >
                     Next
@@ -198,23 +203,27 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                   </fieldset>
               </div>
 
-              <div className={`h-full flex flex-col transition-transform duration-300 ${step === 2 ? '' : 'hidden'}`}>
+              <div className={`h-full flex flex-col transition-transform duration-300 ${step === 2 ? 'flex flex-col' : 'hidden'}`}>
                 <FormField
                     control={form.control}
                     name="Notes"
                     render={({ field }) => (
-                    <FormItem className="flex-grow flex flex-col">
-                        <FormLabel className="text-center mb-4">Notes</FormLabel>
-                        <FormControl>
-                        <Textarea {...field} placeholder="e.g., Coffee" className="flex-grow text-base" />
-                        </FormControl>
-                        <FormMessage className="text-center pt-2"/>
-                    </FormItem>
+                      <FormItem className="flex-grow flex flex-col justify-center">
+                          <FormControl>
+                              <Input
+                                  ref={notesInputRef}
+                                  {...field}
+                                  placeholder="e.g., Coffee"
+                                  className="h-auto w-full border-none bg-transparent text-center text-4xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                              />
+                          </FormControl>
+                          <FormMessage className="text-center pt-2" />
+                      </FormItem>
                     )}
                 />
                  <Button 
                     type="submit" 
-                    className="w-full mt-4" 
+                    className="w-full mt-auto" 
                     disabled={isLoading || !form.formState.isValid}
                 >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
