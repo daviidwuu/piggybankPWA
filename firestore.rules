@@ -38,6 +38,88 @@ service cloud.firestore {
     }
 
     /**
+     * @description Returns true when the value is either an integer or a float.
+     */
+    function isNumber(value) {
+      return value is int || value is float;
+    }
+
+    /**
+     * @description Returns true when the value is a non-negative number.
+     */
+    function isNonNegativeNumber(value) {
+      return isNumber(value) && value >= 0;
+    }
+
+    /**
+     * @description Ensures the provided value is a non-empty string.
+     */
+    function isNonEmptyString(value) {
+      return value is string && value.size() > 0;
+    }
+
+    /**
+     * @description Allows timestamp literals or server timestamp sentinels.
+     */
+    function isTimestampOrServerTime(value) {
+      return value is timestamp || value == request.time;
+    }
+
+    /**
+     * @description Validates a list that should only contain non-empty strings.
+     */
+    function isStringList(list) {
+      return list is list && list.where(item => item is string && item.size() > 0).size() == list.size();
+    }
+
+    /**
+     * @description Validates the payload written to a user profile document.
+     */
+    function isValidUserProfile(data) {
+      return data.keys().hasOnly(['name', 'categories', 'income', 'savings', 'id']) &&
+             (!('name' in data) || isNonEmptyString(data.name)) &&
+             (!('categories' in data) || isStringList(data.categories)) &&
+             (!('income' in data) || isNonNegativeNumber(data.income)) &&
+             (!('savings' in data) || isNonNegativeNumber(data.savings));
+    }
+
+    /**
+     * @description Validates the payload written to a transaction document.
+     */
+    function isValidTransaction(data, userId) {
+      return data.keys().hasOnly(['Amount', 'Category', 'Notes', 'Type', 'Date', 'userId']) &&
+             isNonNegativeNumber(data.Amount) &&
+             isNonEmptyString(data.Category) &&
+             isNonEmptyString(data.Notes) &&
+             isNonEmptyString(data.Type) &&
+             data.userId == userId &&
+             isTimestampOrServerTime(data.Date);
+    }
+
+    /**
+     * @description Validates the payload written to a budget document.
+     */
+    function isValidBudget(data, budgetId) {
+      return data.keys().hasOnly(['Category', 'MonthlyBudget']) &&
+             (!('Category' in data) || (isNonEmptyString(data.Category) && data.Category == budgetId)) &&
+             (!('MonthlyBudget' in data) || isNonNegativeNumber(data.MonthlyBudget));
+    }
+
+    /**
+     * @description Validates the payload written to a push subscription document.
+     */
+    function isValidPushSubscription(data) {
+      return data.keys().hasOnly(['endpoint', 'keys', 'createdAt', 'updatedAt']) &&
+             isNonEmptyString(data.endpoint) &&
+             data.keys is map &&
+             data.keys.keys().hasOnly(['auth', 'p256dh']) &&
+             isNonEmptyString(data.keys.auth) &&
+             isNonEmptyString(data.keys.p256dh) &&
+             (!('createdAt' in data) || isTimestampOrServerTime(data.createdAt)) &&
+             (!('updatedAt' in data) || isTimestampOrServerTime(data.updatedAt));
+    }
+
+    /**
      * @description Checks if the authenticated user's ID matches the provided userId.
      */
     function isOwner(userId) {
@@ -66,10 +148,11 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidUserProfile(request.resource.data);
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
       allow update: if isExistingOwner(userId) &&
+                       isValidUserProfile(request.resource.data) &&
                        // Ensure the id is not being changed in the update
                        (!('id' in request.resource.data) || request.resource.data.id == resource.data.id);
       allow delete: if isExistingOwner(userId);
@@ -91,10 +174,12 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/transactions/{transactionId} {
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow create: if isSignedIn() && isOwner(userId) && isValidTransaction(request.resource.data, userId);
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if isSignedIn() && isOwner(userId);
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow update: if isExistingOwner(userId) &&
+                       isValidTransaction(request.resource.data, userId) &&
+                       request.resource.data.userId == resource.data.userId;
       allow delete: if isExistingOwner(userId);
     }
 
@@ -114,10 +199,10 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidBudget(request.resource.data, budgetId);
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if isSignedIn() && isOwner(userId);
-      allow update: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) && isValidBudget(request.resource.data, budgetId);
       allow delete: if isExistingOwner(userId);
     }
 
@@ -137,10 +222,10 @@ service cloud.firestore {
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/pushSubscriptions/{subscriptionId} {
-      allow create: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && isValidPushSubscription(request.resource.data);
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if isSignedIn() && isOwner(userId);
-      allow update: if isExistingOwner(userId);
+      allow update: if isExistingOwner(userId) && isValidPushSubscription(request.resource.data);
       allow delete: if isExistingOwner(userId);
     }
   }

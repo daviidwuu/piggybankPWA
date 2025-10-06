@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { type Transaction, type Budget, type User as UserData } from "@/lib/data";
 import { Balance } from "@/components/dashboard/balance";
 import { TransactionsTable } from "@/components/dashboard/transactions-table";
@@ -14,7 +14,7 @@ import { NotificationPermissionDialog } from "@/components/dashboard/notificatio
 import { DeleteTransactionDialog } from "@/components/dashboard/delete-transaction-dialog";
 import { UserSettingsDialog } from "@/components/dashboard/user-settings-dialog";
 import { type ChartConfig } from "@/components/ui/chart";
-import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth, differenceInMonths, addMonths } from 'date-fns';
+import { startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear, format, getDaysInMonth, differenceInMonths } from 'date-fns';
 import {
   Drawer,
   DrawerContent,
@@ -46,14 +46,18 @@ import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
-import { signOut, type User } from "firebase/auth";
-import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { requestNotificationPermission, unsubscribeFromNotifications, getSubscription } from "@/firebase/messaging";
+import { signOut } from "firebase/auth";
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import {
+  requestNotificationPermission,
+  unsubscribeFromNotifications,
+  getSubscription,
+  syncSubscriptionWithFirestore,
+} from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 
 
 export type SortOption = 'latest' | 'highest' | 'category';
@@ -132,6 +136,11 @@ export function Dashboard() {
     };
     checkSubscription();
   }, []);
+
+  useEffect(() => {
+    if (!isClient || !user || !firestore) return;
+    void syncSubscriptionWithFirestore(user.uid, firestore);
+  }, [isClient, user, firestore]);
   
   const handleSetupSave = async (data: { name: string }) => {
     if (!userDocRef || !firestore || !user) return;
@@ -300,10 +309,10 @@ export function Dashboard() {
         return { start: null, end: null };
     }
   }, [dateRange]);
-  
-    const getDisplayDate = (range: DateRange): string => {
+
+  const getDisplayDate = useCallback((range: DateRange): string => {
     if (!transactions?.length && range !== 'all') return "No data for this period";
-    
+
     const { start, end } = dateFilterRange;
 
     switch (range) {
@@ -330,12 +339,12 @@ export function Dashboard() {
         
         return `${format(oldestDate, 'd MMM yyyy')} - ${format(mostRecentDate, 'd MMM yyyy')}`;
     }
-  };
+  }, [dateFilterRange, transactions]);
 
   useEffect(() => {
     if (!isClient) return;
     setDisplayDate(getDisplayDate(dateRange));
-  }, [dateRange, transactions, isClient, dateFilterRange]);
+  }, [dateRange, getDisplayDate, isClient]);
 
   const filteredTransactions = useMemo(() => {
     if (!isClient || !transactions) return [];
@@ -497,7 +506,7 @@ export function Dashboard() {
                 <DialogDescription className="text-center pt-2">
                   To enable push notifications on iOS, you must first add this app to your Home Screen.
                   <br /><br />
-                  Tap the <span className="font-bold">Share</span> icon in Safari, then scroll down and select <span className="font-bold">"Add to Home Screen"</span>.
+                  Tap the <span className="font-bold">Share</span> icon in Safari, then scroll down and select <span className="font-bold">&quot;Add to Home Screen&quot;</span>.
                 </DialogDescription>
               </DialogHeader>
             </DialogContent>
