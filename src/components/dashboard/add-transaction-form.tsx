@@ -11,7 +11,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -42,13 +41,13 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
   const [step, setStep] = useState(0);
   const { toast } = useToast();
   const firestore = useFirestore();
-  const amountInputRef = useRef<HTMLInputElement>(null);
-  const notesInputRef = useRef<HTMLInputElement>(null);
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+  const notesInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      Amount: '' as any,
+      Amount: '' as unknown as FormValues['Amount'],
       Category: "",
       Notes: "",
     },
@@ -63,7 +62,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
       });
     } else {
       form.reset({
-        Amount: '' as any,
+        Amount: '' as unknown as FormValues['Amount'],
         Category: "",
         Notes: "",
       });
@@ -72,7 +71,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
     setTimeout(() => {
       amountInputRef.current?.focus();
     }, 100);
-  }, [transactionToEdit, form, setOpen]);
+  }, [transactionToEdit, form]);
 
   const nextStep = async (field?: keyof FormValues) => {
     if (field) {
@@ -118,17 +117,17 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
             const transactionsCollection = collection(firestore, `users/${userId}/transactions`);
             await addDocumentNonBlocking(transactionsCollection, transactionData);
         }
-    } catch(e) {
+    } catch (error) {
+        console.error('Failed to save transaction', error);
         toast({
             variant: "destructive",
             title: "Error adding transaction",
             description: "There was an error adding the transaction.",
         });
+    } finally {
+        setIsLoading(false);
+        setOpen(false);
     }
-
-
-    setIsLoading(false);
-    setOpen(false);
   }
 
   const handleCategorySelect = (category: string) => {
@@ -153,25 +152,31 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                 <FormField
                     control={form.control}
                     name="Amount"
-                    render={({ field }) => (
-                    <FormItem className="flex-grow flex flex-col justify-center">
-                        <FormControl>
-                          <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-4xl text-muted-foreground">$</span>
-                            <Input 
-                              ref={amountInputRef}
-                              type="number" 
-                              step="0.01" 
-                              {...field} 
-                              placeholder="0.00" 
-                              inputMode="decimal"
-                              className="h-auto w-full border-none bg-transparent text-center text-6xl font-bold focus-visible:outline-none"
-                            />
-                          </div>
-                        </FormControl>
-                        <FormMessage className="text-center pt-2" />
-                    </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const { ref, ...fieldProps } = field;
+                      return (
+                        <FormItem className="flex-grow flex flex-col justify-center">
+                            <FormControl>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-4xl text-muted-foreground">$</span>
+                                <Input
+                                  {...fieldProps}
+                                  type="number"
+                                  step="0.01"
+                                  placeholder="0.00"
+                                  inputMode="decimal"
+                                  className="h-auto w-full border-none bg-transparent text-center text-6xl font-bold focus-visible:outline-none"
+                                  ref={(element) => {
+                                    ref(element);
+                                    amountInputRef.current = element;
+                                  }}
+                                />
+                              </div>
+                            </FormControl>
+                            <FormMessage className="text-center pt-2" />
+                        </FormItem>
+                      );
+                    }}
                 />
                  <Button 
                     type="button"
@@ -207,19 +212,25 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                 <FormField
                     control={form.control}
                     name="Notes"
-                    render={({ field }) => (
-                      <FormItem className="flex-grow flex flex-col justify-center">
-                          <FormControl>
-                              <Input
-                                  ref={notesInputRef}
-                                  {...field}
-                                  placeholder="e.g., Coffee"
-                                  className="h-auto w-full border-none bg-transparent text-center text-4xl font-bold focus-visible:outline-none"
-                              />
-                          </FormControl>
-                          <FormMessage className="text-center pt-2" />
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const { ref, ...fieldProps } = field;
+                      return (
+                        <FormItem className="flex-grow flex flex-col justify-center">
+                            <FormControl>
+                                <Input
+                                    {...fieldProps}
+                                    placeholder="e.g., Coffee"
+                                    className="h-auto w-full border-none bg-transparent text-center text-4xl font-bold focus-visible:outline-none"
+                                    ref={(element) => {
+                                      ref(element);
+                                      notesInputRef.current = element;
+                                    }}
+                                />
+                            </FormControl>
+                            <FormMessage className="text-center pt-2" />
+                        </FormItem>
+                      );
+                    }}
                 />
                  <Button 
                     type="submit" 
