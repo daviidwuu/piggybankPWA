@@ -140,7 +140,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
     <>
       <DrawerHeader className="text-left relative">
         {step > 0 && (
-          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-1/2 -translate-y-1/2 px-2 h-auto focus-visible:ring-0 focus-visible:ring-offset-0">
+          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-1/2 -translate-y-1/2 px-2 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
