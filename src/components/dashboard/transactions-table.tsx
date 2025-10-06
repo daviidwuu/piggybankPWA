@@ -124,17 +124,17 @@ export function TransactionsTable({
                             <div className="text-muted-foreground">{time}</div>
                         </TableCell>
                         <TableCell className="p-1">
-                          <div className="flex flex-col items-start gap-1">
-                            <span className="font-medium truncate block max-w-[120px] text-sm">{transaction.Notes}</span>
+                          <div className="flex items-center gap-2">
                              <Badge
                               className="whitespace-nowrap px-1.5 py-0.5 font-semibold text-xs"
                               style={{
-                                backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820', // 12.5% opacity
+                                backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820',
                                 color: chartConfig[transaction.Category]?.color || '#888888',
                               }}
                             >
                               {transaction.Category}
                             </Badge>
+                            <span className="font-medium truncate block max-w-[120px] text-sm">{transaction.Notes}</span>
                           </div>
                         </TableCell>
                         <TableCell className="font-medium text-sm p-1 text-right">
@@ -188,4 +188,5 @@ export function TransactionsTable({
 }
 
     
+
 
