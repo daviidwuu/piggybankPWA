@@ -90,7 +90,7 @@ export function Balance({
           <Button
             variant="ghost"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent"
+            className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0"
           >
             <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
           </Button>

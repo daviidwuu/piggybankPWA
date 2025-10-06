@@ -30,7 +30,7 @@ export function DateFilter({ value, onValueChange }: DateFilterProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20" aria-label="Filter by date">
+        <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10" aria-label="Filter by date">
           <CalendarIcon className="h-4 w-4 text-primary" />
         </Button>
       </DropdownMenuTrigger>
@@ -49,5 +49,3 @@ export function DateFilter({ value, onValueChange }: DateFilterProps) {
     </DropdownMenu>
   );
 }
-
-    

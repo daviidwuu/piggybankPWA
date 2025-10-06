@@ -83,7 +83,7 @@ export function TransactionsTable({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20" aria-label="Sort transactions">
+            <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10" aria-label="Sort transactions">
               <ArrowUpDown className="h-4 w-4 text-primary" />
             </Button>
           </DropdownMenuTrigger>
@@ -107,7 +107,7 @@ export function TransactionsTable({
             <Table>
               <caption className="sr-only">Recent Transactions</caption>
               <TableHeader>
-                <TableRow className="hover:bg-transparent">
+                <TableRow className="border-b-0">
                   <TableHead scope="col" className="p-1 pl-0">Date</TableHead>
                   <TableHead scope="col" className="p-1 text-left">Description</TableHead>
                   <TableHead scope="col" className="p-1 text-right">Amount</TableHead>
@@ -118,7 +118,7 @@ export function TransactionsTable({
                 {data.map((transaction) => {
                     const { date, time } = formatDate(transaction.Date);
                     return (
-                      <TableRow key={transaction.id} className="hover:bg-transparent">
+                      <TableRow key={transaction.id} className="border-b-0">
                         <TableCell className="font-medium text-xs p-1 pl-0">
                             <div>{date}</div>
                             <div className="text-muted-foreground">{time}</div>
@@ -146,7 +146,7 @@ export function TransactionsTable({
                         <TableCell className="p-1 pr-0 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent" aria-label={`More options for transaction of $${transaction.Amount.toFixed(2)} on ${date}`}>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0 focus-visible:ring-offset-0" aria-label={`More options for transaction of $${transaction.Amount.toFixed(2)} on ${date}`}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -170,7 +170,7 @@ export function TransactionsTable({
                 <Button
                   variant="ghost"
                   onClick={onLoadMore}
-                  className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent"
+                  className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </Button>
@@ -186,7 +186,3 @@ export function TransactionsTable({
     </Card>
   );
 }
-
-    
-
-

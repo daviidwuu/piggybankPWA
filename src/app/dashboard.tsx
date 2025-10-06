@@ -495,7 +495,7 @@ export function Dashboard() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground">
                     Log Out
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -529,7 +529,7 @@ export function Dashboard() {
                   
                   <Drawer open={isSettingsOpen} onOpenChange={setSettingsOpen}>
                       <DrawerTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10 hover:bg-primary/20">
+                           <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10">
                               <Settings className="h-4 w-4 text-primary" />
                            </Button>
                       </DrawerTrigger>
@@ -589,7 +589,7 @@ export function Dashboard() {
                                 </div>
                                 <Button
                                     variant="ghost"
-                                    className="justify-start p-4 h-auto text-destructive hover:text-destructive mt-4"
+                                    className="justify-start p-4 h-auto text-destructive mt-4"
                                     onClick={() => { setSettingsOpen(false); setShowLogoutConfirm(true); }}
                                 >
                                     <LogOut className="mr-4 h-5 w-5" />
