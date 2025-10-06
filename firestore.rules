@@ -7,7 +7,7 @@
  * `/users/{userId}`.
  *
  * Data Structure:
- * - /users/{userId}: User profile data, including name and categories.
+ * - /users/{userId}: User profile data.
  * - /users/{userId}/transactions/{transactionId}: Individual transactions.
  * - /users/{userId}/budgets/{budgetId}: Budget configurations.
  * - /users/{userId}/pushSubscriptions/{subscriptionId}: Push notification subscriptions.
@@ -17,10 +17,10 @@
  * - Listing of user documents is disallowed for security.
  * - Data schema is not strictly enforced in this prototyping phase, except for fields
  *   critical for authorization (e.g., userId).
- * - User profile updates enforce immutability of the `id` field.  Categories can be updated.
  *
  * Denormalization for Authorization:
- *  - The `userId` field is present in the `/transactions` collection to avoid costly `get()` operations and enforce ownership.
+ *  - The `userId` field is present in the `/transactions`, `/budgets`, and `/pushSubscriptions`
+ *    collections to avoid costly `get()` operations and enforce ownership.
  *
  * Structural Segregation:
  *  - Private user data is stored under the `/users/{userId}` collection, ensuring
@@ -63,13 +63,15 @@ service cloud.firestore {
      * @deny (update) User 'eve' with ID 'david' cannot update profile with ID 'david'.
      * @allow (delete) User 'david' with ID 'david' can delete their profile.
      * @deny (delete) User 'eve' with ID 'david' cannot delete profile with ID 'david'.
-     * @principle Enforces document ownership for all operations.  Validates that the 'id' field matches the document ID on creation. Enforces immutability of the 'id' field on updates.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow create: if isSignedIn() && isOwner(userId);
       allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow update: if isExistingOwner(userId) && resource.data.id == request.resource.data.id;
+      allow update: if isExistingOwner(userId) &&
+                       // Ensure the id is not being changed in the update
+                       (!('id' in request.resource.data) || request.resource.data.id == resource.data.id);
       allow delete: if isExistingOwner(userId);
     }
 
@@ -86,7 +88,7 @@ service cloud.firestore {
      * @deny (update) User 'eve' cannot update a transaction under user 'david''s profile.
      * @allow (delete) User 'david' can delete a transaction under their profile.
      * @deny (delete) User 'eve' cannot delete a transaction under user 'david''s profile.
-     * @principle Enforces document ownership for all operations. Validates the userId on create and update.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/transactions/{transactionId} {
       allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
