@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { BellRing } from "lucide-react";
 
-interface NotificationPermissionDialogProps {
+export interface NotificationPermissionDialogProps {
   open: boolean;
   onAllow: () => void;
   onDeny: () => void;

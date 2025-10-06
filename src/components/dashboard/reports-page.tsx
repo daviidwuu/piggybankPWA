@@ -28,7 +28,7 @@ import { DrawerHeader, DrawerTitle } from "../ui/drawer";
 
 type ReportPeriod = "last7" | "last30" | "custom";
 
-interface ReportsPageProps {
+export interface ReportsPageProps {
   allTransactions: Transaction[];
   categories: string[];
 }

@@ -6,6 +6,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import webpush from 'web-push';
 import { type PushSubscription } from "web-push";
+import { normalizeSubscriptionPayload } from '@/lib/push-subscriptions';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (admin.apps.length === 0) {
@@ -45,7 +46,27 @@ async function sendPushNotification(userId: string, messageBody: string, url: st
         });
 
         const sendPromises = subscriptionsSnapshot.docs.map(doc => {
-            const subscription = doc.data() as PushSubscription;
+            const rawData: unknown = doc.data();
+            const normalized = normalizeSubscriptionPayload(rawData);
+
+            if (!normalized) {
+                console.warn("Skipping malformed push subscription document:", doc.id);
+                return Promise.resolve();
+            }
+
+            const subscription: PushSubscription = {
+                endpoint: normalized.endpoint,
+                keys: normalized.keys,
+            };
+
+            const expirationTime = typeof (rawData as { expirationTime?: unknown }).expirationTime === 'number'
+                ? (rawData as { expirationTime: number }).expirationTime
+                : null;
+
+            if (expirationTime !== null) {
+                subscription.expirationTime = expirationTime;
+            }
+
             return webpush.sendNotification(subscription, payload).catch(error => {
                 // If subscription is expired or invalid, delete it
                 if (error.statusCode === 410 || error.statusCode === 404) {
