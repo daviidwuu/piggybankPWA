@@ -176,7 +176,7 @@ export function BudgetPage({
         <Card className="border-none shadow-none">
             <CardHeader className="flex-row items-center justify-between">
                 <div className="space-y-1.5">
-                    <CardTitle>Category Budgets</CardTitle>
+                    <CardTitle>Budget</CardTitle>
                     <CardDescription>Allocate your spending limits.</CardDescription>
                 </div>
                 <Drawer open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
