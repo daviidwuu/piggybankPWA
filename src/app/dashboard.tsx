@@ -47,8 +47,8 @@ import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
-import { signOut } from "firebase/auth";
-import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { signOut, type User } from "firebase/auth";
+import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import {
   requestNotificationPermission,
   unsubscribeFromNotifications,
@@ -212,6 +212,8 @@ export function Dashboard() {
   const [isUserSettingsOpen, setUserSettingsOpen] = useState(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
+  const [displayDate, setDisplayDate] = useState('');
+  const [isClient, setIsClient] = useState(false);
   
   const { toast } = useToast();
   const auth = useAuth();
@@ -238,6 +240,10 @@ export function Dashboard() {
   const { data: budgets, isLoading: isBudgetsLoading } = useCollection<Budget>(budgetsQuery);
 
   const finalUserData = userData;
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
     const checkSubscription = async () => {
@@ -431,10 +437,6 @@ export function Dashboard() {
   }, [dateRange]);
 
   const getDisplayDate = useCallback((range: DateRange): string => {
-    if (transactions === undefined) {
-      return "Loading...";
-    }
-
     if (!transactions?.length && range !== 'all') return "No data for this period";
 
     const { start, end } = dateFilterRange;
@@ -465,7 +467,10 @@ export function Dashboard() {
     }
   }, [dateFilterRange, transactions]);
 
-  const displayDate = useMemo(() => getDisplayDate(dateRange), [dateRange, getDisplayDate]);
+  useEffect(() => {
+    if (!isClient) return;
+    setDisplayDate(getDisplayDate(dateRange));
+  }, [dateRange, getDisplayDate, isClient]);
 
   const filteredTransactions = useMemo(() => {
     if (!transactions) return [];
@@ -816,3 +821,6 @@ export function Dashboard() {
     </div>
   );
 }
+
+
+    

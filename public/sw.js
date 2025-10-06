@@ -1,9 +1,4 @@
 
-import {cleanupOutdatedCaches, precacheAndRoute} from 'workbox-precaching';
-
-precacheAndRoute(self.__WB_MANIFEST || []);
-cleanupOutdatedCaches();
-
 const PUSH_METADATA_CACHE = 'push-subscription-metadata';
 const PUSH_METADATA_REQUEST = new Request('/__push_subscription_metadata__');
 
@@ -18,25 +13,18 @@ function urlBase64ToUint8Array(base64String) {
   return outputArray;
 }
 
-function sanitizeVapidKey(rawKey) {
-  return typeof rawKey === 'string'
-    ? rawKey.trim().replace(/^['"]|['"]$/g, '').replace(/\s+/g, '')
-    : '';
-}
-
 async function storeMetadata(payload) {
   if (!payload || typeof payload !== 'object') return;
   const { userId, vapidPublicKey } = payload;
-  const sanitizedKey = sanitizeVapidKey(vapidPublicKey);
 
-  if (typeof userId !== 'string' || !sanitizedKey) {
+  if (typeof userId !== 'string' || typeof vapidPublicKey !== 'string') {
     return;
   }
 
   const cache = await caches.open(PUSH_METADATA_CACHE);
   await cache.put(
     PUSH_METADATA_REQUEST,
-    new Response(JSON.stringify({ userId, vapidPublicKey: sanitizedKey }), {
+    new Response(JSON.stringify({ userId, vapidPublicKey }), {
       headers: { 'Content-Type': 'application/json' },
     })
   );
@@ -154,59 +142,39 @@ self.addEventListener('notificationclick', e => {
 self.addEventListener('pushsubscriptionchange', event => {
   event.waitUntil(
     (async () => {
-      const metadata = await readMetadata();
-      const oldEndpoint = event.oldSubscription?.endpoint || null;
       let refreshedSubscription = event.newSubscription || null;
-      let shouldResubscribe = !refreshedSubscription;
-      let autoPersisted = false;
 
-      const sanitizedKey = sanitizeVapidKey(metadata?.vapidPublicKey);
-
-      if (!refreshedSubscription && sanitizedKey) {
+      if (!refreshedSubscription) {
         try {
+          const applicationServerKey = event.oldSubscription?.options?.applicationServerKey;
           refreshedSubscription = await self.registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(sanitizedKey),
+            applicationServerKey: applicationServerKey || undefined,
           });
-          shouldResubscribe = false;
         } catch (error) {
           console.error('Failed to automatically resubscribe after pushsubscriptionchange.', error);
-          shouldResubscribe = true;
         }
       }
 
-      if (refreshedSubscription && metadata?.userId) {
-        try {
-          await persistSubscriptionToServer(metadata, refreshedSubscription, oldEndpoint);
-          autoPersisted = true;
-        } catch (error) {
-          console.error('Failed to persist rotated subscription from service worker.', error);
-          shouldResubscribe = true;
-        }
-      } else if (refreshedSubscription && !metadata?.userId) {
-        shouldResubscribe = true;
-      }
+      const serializedSubscription = refreshedSubscription ? refreshedSubscription.toJSON() : null;
+      const oldEndpoint = event.oldSubscription?.endpoint || null;
+      const shouldResubscribe = !serializedSubscription;
 
-      await broadcastSubscriptionChange({
-        newSubscription: refreshedSubscription ? refreshedSubscription.toJSON() : null,
-        oldEndpoint,
-        shouldResubscribe,
-        autoPersisted,
-      });
+      try {
+        const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of clientsArr) {
+          client.postMessage({
+            type: 'PUSH_SUBSCRIPTION_CHANGE',
+            payload: {
+              newSubscription: serializedSubscription,
+              oldEndpoint,
+              shouldResubscribe,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to broadcast push subscription change to clients.', error);
+      }
     })()
   );
-});
-
-self.addEventListener('message', event => {
-  const { data } = event;
-  if (!data || typeof data !== 'object') return;
-
-  if (data.type === 'STORE_PUSH_METADATA') {
-    event.waitUntil(storeMetadata(data.payload));
-    return;
-  }
-
-  if (data.type === 'CLEAR_PUSH_METADATA') {
-    event.waitUntil(clearMetadata());
-  }
 });
