@@ -101,7 +101,7 @@ export function TransactionsTable({
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
-      <CardContent className="px-6 pt-0">
+      <CardContent className="px-4 pt-0">
         {data.length > 0 ? (
           <>
             <Table>
@@ -119,7 +119,7 @@ export function TransactionsTable({
                     const { date, time } = formatDate(transaction.Date);
                     return (
                       <TableRow key={transaction.id} className="hover:bg-transparent">
-                        <TableCell className="font-medium text-sm p-1 pl-0">
+                        <TableCell className="font-medium text-xs p-1 pl-0">
                             <div>{date}</div>
                             <div className="text-muted-foreground">{time}</div>
                         </TableCell>
@@ -132,12 +132,10 @@ export function TransactionsTable({
                         <TableCell className="p-1">
                           <div className="flex items-center gap-2">
                             <Badge
-                              className="whitespace-nowrap px-1.5 py-0 font-semibold"
+                              className="whitespace-nowrap px-1.5 py-0.5 font-semibold text-xs"
                               style={{
                                 backgroundColor: chartConfig[transaction.Category]?.color ? `${chartConfig[transaction.Category]?.color}20` : '#88888820', // 12.5% opacity
                                 color: chartConfig[transaction.Category]?.color || '#888888',
-                                borderColor: chartConfig[transaction.Category]?.color || '#888888',
-                                borderWidth: '1px',
                               }}
                             >
                               {transaction.Category}
@@ -188,5 +186,3 @@ export function TransactionsTable({
     </Card>
   );
 }
-
-    

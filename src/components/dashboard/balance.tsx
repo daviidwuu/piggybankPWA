@@ -57,10 +57,10 @@ export function Balance({
       </CardHeader>
       <CardContent className="space-y-2 pt-0">
         <div className="flex justify-between items-baseline">
-          <div className="text-3xl font-bold text-foreground">
+          <div className="text-2xl font-bold text-foreground">
             ${totalSpending.toFixed(2)}
           </div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-base text-muted-foreground">
             of ${budget.toFixed(2)}
           </div>
         </div>
@@ -99,5 +99,3 @@ export function Balance({
     </Card>
   );
 }
-
-    
