@@ -1,7 +1,8 @@
 
 'use client';
 
-import { collection, doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import { doc, setDoc, deleteDoc, serverTimestamp, Firestore } from "firebase/firestore";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Converts a VAPID key from a URL-safe base64 string to a Uint8Array.
@@ -35,11 +36,19 @@ export async function getSubscription(): Promise<PushSubscription | null> {
  * @param userId The ID of the current user.
  * @param firestore The Firestore instance.
  */
+function buildSubscriptionId(endpoint: string) {
+  return endpoint.replace(/\//g, "_");
+}
+
 export async function requestNotificationPermission(userId: string, firestore: Firestore) {
   // Check if Push Notifications are supported
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.warn("Push notifications are not supported in this browser.");
-    alert("Push notifications are not supported on this device or browser.");
+    toast({
+      variant: "destructive",
+      title: "Notifications unsupported",
+      description: "This browser does not support push notifications.",
+    });
     return;
   }
   
@@ -72,10 +81,10 @@ export async function requestNotificationPermission(userId: string, firestore: F
     console.log("Push subscription successful:", subscription);
 
     // Use a stable identifier for the document ID. The endpoint is a good candidate.
-    // Use btoa to create a filesystem-safe ID from the endpoint URL.
-    const subscriptionId = btoa(subscription.endpoint);
+    // Replace slashes so the ID remains Firestore-safe while preserving readability.
+    const subscriptionId = buildSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
-    
+
     await setDoc(subscriptionRef, {
       endpoint: subscription.endpoint,
       keys: subscription.toJSON().keys,
@@ -83,11 +92,18 @@ export async function requestNotificationPermission(userId: string, firestore: F
     });
 
     console.log("Push subscription saved to Firestore.");
-    alert("Push notifications have been enabled!");
+    toast({
+      title: "Notifications enabled",
+      description: "You'll receive alerts on this device.",
+    });
 
   } catch (error) {
     console.error("An error occurred during push notification setup:", error);
-    alert(`Failed to enable push notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    toast({
+      variant: "destructive",
+      title: "Failed to enable notifications",
+      description: error instanceof Error ? error.message : "Unknown error",
+    });
     // Re-throw the error so the calling component can handle UI state if needed
     throw error;
   }
@@ -106,7 +122,7 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
       return;
     }
 
-    const subscriptionId = btoa(subscription.endpoint);
+    const subscriptionId = buildSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
 
     // Unsubscribe the user first
@@ -116,14 +132,21 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
       // If successful, remove from Firestore
       await deleteDoc(subscriptionRef);
       console.log("Successfully removed subscription from Firestore.");
-      alert("Push notifications have been disabled.");
+      toast({
+        title: "Notifications disabled",
+        description: "You will no longer receive alerts on this device.",
+      });
     } else {
       console.error("Failed to unsubscribe.");
       throw new Error("The unsubscribe operation failed.");
     }
   } catch (error) {
     console.error("Error unsubscribing from push notifications:", error);
-    alert(`Failed to disable push notifications: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    toast({
+      variant: "destructive",
+      title: "Failed to disable notifications",
+      description: error instanceof Error ? error.message : "Unknown error",
+    });
     // Re-throw so the UI can revert its state
     throw error;
   }
