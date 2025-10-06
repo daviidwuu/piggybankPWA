@@ -20,12 +20,12 @@ import {
   Drawer,
   DrawerContent,
   DrawerTrigger,
+  DrawerHeader,
+  DrawerTitle,
 } from "@/components/ui/drawer";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -454,14 +454,16 @@ export function Dashboard() {
               onConfirm={handleConfirmDelete}
               transaction={transactionToDelete}
            />
-           <UserSettingsDialog
-              open={isUserSettingsOpen}
-              onOpenChange={setUserSettingsOpen}
-              user={finalUserData}
-              userId={user?.uid}
-              onSave={handleUpdateUser}
-              onCopyUserId={handleCopyUserIdToast}
-            />
+          <Dialog open={isUserSettingsOpen} onOpenChange={setUserSettingsOpen}>
+            <DialogContent className="max-w-[400px]" onOpenAutoFocus={(e) => e.preventDefault()}>
+                <UserSettingsDialog
+                  user={finalUserData}
+                  userId={user?.uid}
+                  onSave={handleUpdateUser}
+                  onCopyUserId={handleCopyUserIdToast}
+                />
+            </DialogContent>
+          </Dialog>
             <AlertDialog open={showLogoutConfirm} onOpenChange={setShowLogoutConfirm}>
               <AlertDialogContent>
                 <AlertDialogHeader>
@@ -485,11 +487,11 @@ export function Dashboard() {
             </div>
             <div className="flex flex-col items-end">
                 <div className="flex items-center gap-2">
-                  <Dialog open={isBudgetOpen} onOpenChange={setBudgetOpen}>
-                    <DialogContent className="max-w-[400px]" onOpenAutoFocus={(e) => e.preventDefault()}>
-                       <DialogHeader>
-                        <DialogTitle>Wallet</DialogTitle>
-                      </DialogHeader>
+                  <Drawer open={isBudgetOpen} onOpenChange={setBudgetOpen}>
+                    <DrawerContent>
+                       <DrawerHeader>
+                        <DrawerTitle>Wallet</DrawerTitle>
+                      </DrawerHeader>
                       <BudgetPage 
                         user={finalUserData}
                         budgets={budgets || []} 
@@ -499,8 +501,8 @@ export function Dashboard() {
                         onAddCategory={handleAddCategory}
                         onDeleteCategory={handleDeleteCategory}
                       />
-                    </DialogContent>
-                  </Dialog>
+                    </DrawerContent>
+                  </Drawer>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full">

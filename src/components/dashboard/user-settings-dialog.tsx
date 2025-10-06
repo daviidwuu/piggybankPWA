@@ -7,8 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -32,8 +30,6 @@ const formSchema = z.object({
 });
 
 interface UserSettingsDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   user: UserData | null;
   userId?: string;
   onSave: (name: string) => void;
@@ -41,8 +37,6 @@ interface UserSettingsDialogProps {
 }
 
 export function UserSettingsDialog({
-  open,
-  onOpenChange,
   user,
   userId,
   onSave,
@@ -59,57 +53,55 @@ export function UserSettingsDialog({
     if (user) {
       form.reset({ name: user.name });
     }
-  }, [user, form, open]);
+  }, [user, form]);
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     onSave(values.name);
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <DialogTitle>User Profile</DialogTitle>
-          <DialogDescription>
-            Manage your account settings and personal information.
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Your Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., David" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             {userId && (
-              <div className="w-full space-y-2 pt-2">
-                <p className="text-sm text-muted-foreground">Your unique User ID:</p>
-                <div className="flex items-center w-full gap-2">
-                    <Input readOnly value={userId} className="text-xs" />
-                    <Button variant="outline" size="icon" type="button" onClick={onCopyUserId}>
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                </div>
-              </div>
+    <>
+      <DialogHeader>
+        <DialogTitle>User Profile</DialogTitle>
+        <DialogDescription>
+          Manage your account settings and personal information.
+        </DialogDescription>
+      </DialogHeader>
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Your Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="e.g., David" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
             )}
-            <DialogFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          />
+            {userId && (
+            <div className="w-full space-y-2 pt-2">
+              <p className="text-sm text-muted-foreground">Your unique User ID:</p>
+              <div className="flex items-center w-full gap-2">
+                  <Input readOnly value={userId} className="text-xs" />
+                  <Button variant="outline" size="icon" type="button" onClick={onCopyUserId}>
+                      <Copy className="h-4 w-4" />
+                  </Button>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </form>
+      </Form>
+    </>
   );
 }
 

@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -72,7 +73,7 @@ export function TransactionsTable({
   ];
 
   return (
-    <Card className="rounded-lg">
+    <Card className="rounded-[var(--radius)]">
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
           <CardTitle>Recent Transactions</CardTitle>
@@ -187,3 +188,5 @@ export function TransactionsTable({
     </Card>
   );
 }
+
+    
