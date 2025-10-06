@@ -48,6 +48,10 @@ function createSubscriptionId(endpoint: string): string {
  * @param userId The ID of the current user.
  * @param firestore The Firestore instance.
  */
+function buildSubscriptionId(endpoint: string) {
+  return endpoint.replace(/\//g, "_");
+}
+
 export async function requestNotificationPermission(userId: string, firestore: Firestore) {
   // Check if Push Notifications are supported
   if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
@@ -90,7 +94,7 @@ export async function requestNotificationPermission(userId: string, firestore: F
 
     const subscriptionId = createSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
-    
+
     await setDoc(subscriptionRef, {
       endpoint: subscription.endpoint,
       keys: subscription.toJSON().keys,
