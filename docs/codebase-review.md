@@ -10,8 +10,6 @@ The remediation work in this branch addresses the highest-impact findings from t
 - **Firestore subscription IDs no longer use `btoa`.** A dedicated helper replaces forward slashes in the endpoint with underscores before persisting, ensuring Firestore accepts the document IDs while still storing the raw endpoint for downstream delivery.【F:src/firebase/messaging.ts†L22-L28】【F:src/firebase/messaging.ts†L65-L85】
 - **`next-pwa` now respects the custom worker.** The build pipeline points `swSrc` to the handcrafted `public/sw.js`, so production bundles keep the push handlers required for iOS PWAs.【F:next.config.ts†L5-L15】【F:public/sw.js†L2-L50】
 - **Blocking alerts were replaced with design-system toasts.** Push enablement and teardown now surface non-blocking toast notifications, aligning with the rest of the UI and improving the installation flow on Safari.【F:src/firebase/messaging.ts†L30-L47】【F:src/firebase/messaging.ts†L87-L122】
-- **Rotation handling now covers the full stack.** The service worker stores the active user’s metadata, resubscribes with the correct VAPID key when Safari rotates endpoints, persists the new subscription through a dedicated API route, and still notifies open clients as a fallback.【F:public/sw.js†L1-L133】【F:src/app/api/push-subscriptions/route.ts†L1-L74】【F:src/firebase/messaging.ts†L1-L229】
-- **Server fan-out normalises Firestore documents.** Both the rotation endpoint and the transaction webhook reuse a shared helper to strip extraneous fields before invoking `webpush.sendNotification`, reducing the risk of future type regressions.【F:src/lib/push-subscriptions.ts†L1-L35】【F:src/app/api/transactions/route.ts†L1-L96】【F:src/app/api/push-subscriptions/route.ts†L1-L74】
 
 ## Critical Issues
 
@@ -32,12 +30,12 @@ The backend stores raw Web Push subscriptions and uses `web-push` to fan out mes
 
 ## Additional Observations
 
-- ✅ The API route reuses the `PushSubscription` type but never strips `expirationTime`; consider pruning undefined fields before calling `webpush.sendNotification` to avoid future type regressions.【F:src/app/api/transactions/route.ts†L37-L96】
-- ✅ Consider adding a `pushsubscriptionchange` handler inside the service worker so iOS can silently resubscribe when Apple rotates the subscription, preventing stale entries in Firestore.【F:public/sw.js†L91-L133】
+- The API route reuses the `PushSubscription` type but never strips `expirationTime`; consider pruning undefined fields before calling `webpush.sendNotification` to avoid future type regressions.【F:src/app/api/transactions/route.ts†L47-L60】
+- Consider adding a `pushsubscriptionchange` handler inside the service worker so iOS can silently resubscribe when Apple rotates the subscription, preventing stale entries in Firestore.【F:public/sw.js†L6-L33】
 - Client code now surfaces non-blocking toast notifications during permission flows, matching the design system and avoiding disruptive alerts on iOS.【F:src/firebase/messaging.ts†L30-L47】【F:src/firebase/messaging.ts†L95-L122】
 
 ## Next Steps
 1. QA the updated subscription identifier logic on real iOS Safari devices and monitor Firestore for duplicate entries.
 2. Add a CI assertion that the built service worker bundle still contains the custom `push` and `notificationclick` handlers.
 3. Keep using standards-based Web Push delivery (or APNs) for iOS PWAs and update documentation to set expectations around FCM coverage.
-4. Monitor logs for the new rotation endpoint/service-worker path to ensure automated resubscriptions succeed in production.
+4. Address the remaining secondary observations to improve resilience and user experience.

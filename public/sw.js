@@ -142,57 +142,39 @@ self.addEventListener('notificationclick', e => {
 self.addEventListener('pushsubscriptionchange', event => {
   event.waitUntil(
     (async () => {
-      const metadata = await readMetadata();
-      const oldEndpoint = event.oldSubscription?.endpoint || null;
       let refreshedSubscription = event.newSubscription || null;
-      let shouldResubscribe = !refreshedSubscription;
-      let autoPersisted = false;
 
-      if (!refreshedSubscription && metadata?.vapidPublicKey) {
+      if (!refreshedSubscription) {
         try {
+          const applicationServerKey = event.oldSubscription?.options?.applicationServerKey;
           refreshedSubscription = await self.registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(metadata.vapidPublicKey),
+            applicationServerKey: applicationServerKey || undefined,
           });
-          shouldResubscribe = false;
         } catch (error) {
           console.error('Failed to automatically resubscribe after pushsubscriptionchange.', error);
-          shouldResubscribe = true;
         }
       }
 
-      if (refreshedSubscription && metadata?.userId) {
-        try {
-          await persistSubscriptionToServer(metadata, refreshedSubscription, oldEndpoint);
-          autoPersisted = true;
-        } catch (error) {
-          console.error('Failed to persist rotated subscription from service worker.', error);
-          shouldResubscribe = true;
-        }
-      } else if (refreshedSubscription && !metadata?.userId) {
-        shouldResubscribe = true;
-      }
+      const serializedSubscription = refreshedSubscription ? refreshedSubscription.toJSON() : null;
+      const oldEndpoint = event.oldSubscription?.endpoint || null;
+      const shouldResubscribe = !serializedSubscription;
 
-      await broadcastSubscriptionChange({
-        newSubscription: refreshedSubscription ? refreshedSubscription.toJSON() : null,
-        oldEndpoint,
-        shouldResubscribe,
-        autoPersisted,
-      });
+      try {
+        const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of clientsArr) {
+          client.postMessage({
+            type: 'PUSH_SUBSCRIPTION_CHANGE',
+            payload: {
+              newSubscription: serializedSubscription,
+              oldEndpoint,
+              shouldResubscribe,
+            },
+          });
+        }
+      } catch (error) {
+        console.error('Failed to broadcast push subscription change to clients.', error);
+      }
     })()
   );
-});
-
-self.addEventListener('message', event => {
-  const { data } = event;
-  if (!data || typeof data !== 'object') return;
-
-  if (data.type === 'STORE_PUSH_METADATA') {
-    event.waitUntil(storeMetadata(data.payload));
-    return;
-  }
-
-  if (data.type === 'CLEAR_PUSH_METADATA') {
-    event.waitUntil(clearMetadata());
-  }
 });
