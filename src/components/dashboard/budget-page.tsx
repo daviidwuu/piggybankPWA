@@ -93,32 +93,34 @@ export function BudgetPage({
                 </CardHeader>
                 <CardContent className="space-y-4 pb-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium">Monthly Income</label>
-                        <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <label className="text-sm font-medium text-center block pb-2">Monthly Income</label>
+                        <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-4xl text-muted-foreground">$</span>
                             <Input
                                 type="number"
+                                step="0.01"
+                                inputMode="decimal"
                                 defaultValue={currentIncome}
                                 onBlur={(e) => onUpdateIncome(parseFloat(e.target.value) || 0)}
                                 onChange={(e) => setCurrentIncome(parseFloat(e.target.value) || 0)}
-                                className="h-9"
-                                placeholder="e.g., 3000"
-                                inputMode="decimal"
+                                placeholder="0.00"
+                                className="h-auto w-full border-none bg-transparent text-center text-6xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
                             />
                         </div>
                     </div>
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium">Monthly Savings Goal</label>
-                        <div className="flex items-center gap-2">
-                            <DollarSign className="h-4 w-4 text-muted-foreground" />
-                            <Input
+                     <div className="space-y-2 pt-4">
+                        <label className="text-sm font-medium text-center block pb-2">Monthly Savings Goal</label>
+                        <div className="relative">
+                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-4xl text-muted-foreground">$</span>
+                           <Input
                                 type="number"
+                                step="0.01"
+                                inputMode="decimal"
                                 defaultValue={currentSavings}
                                 onBlur={(e) => onUpdateSavings(parseFloat(e.target.value) || 0)}
                                 onChange={(e) => setCurrentSavings(parseFloat(e.target.value) || 0)}
-                                className="h-9"
-                                placeholder="e.g., 500"
-                                inputMode="decimal"
+                                placeholder="0.00"
+                                className="h-auto w-full border-none bg-transparent text-center text-6xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
                             />
                         </div>
                     </div>
@@ -133,7 +135,7 @@ export function BudgetPage({
                     </div>
                     <Drawer open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
                         <DrawerTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0 focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent">
                                 <Pencil className="h-4 w-4" />
                             </Button>
                         </DrawerTrigger>
