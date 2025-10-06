@@ -93,7 +93,7 @@ export function ReportsPage({ allTransactions, categories }: ReportsPageProps) {
       <DrawerHeader>
         <DrawerTitle>Generate Report</DrawerTitle>
       </DrawerHeader>
-      <div className="p-4 space-y-6 h-[35vh]">
+      <div className="px-4 pt-4 space-y-6 h-[35vh]">
         <div className="grid grid-cols-2 gap-4">
           <Select value={period} onValueChange={(value) => setPeriod(value as ReportPeriod)}>
             <SelectTrigger>
