@@ -165,8 +165,8 @@ export function BudgetPage({
             </CardHeader>
             <CardContent>
                 <div className="relative text-center">
-                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-5xl ${leftToBudget < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>$</span>
-                    <div className={`h-auto w-full text-5xl font-bold ${leftToBudget < 0 ? 'text-destructive' : ''}`}>
+                    <span className={`absolute left-3 top-1/2 -translate-y-1/2 text-3xl ${leftToBudget < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>$</span>
+                    <div className={`h-auto w-full text-3xl font-bold ${leftToBudget < 0 ? 'text-destructive' : ''}`}>
                         {Math.abs(leftToBudget).toFixed(2)}
                     </div>
                 </div>
