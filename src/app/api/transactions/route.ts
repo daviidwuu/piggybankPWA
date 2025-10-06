@@ -46,9 +46,7 @@ async function sendPushNotification(userId: string, messageBody: string, url: st
         });
 
         const sendPromises = subscriptionsSnapshot.docs.map(doc => {
-            const rawData: unknown = doc.data();
-            const normalized = normalizeSubscriptionPayload(rawData);
-
+            const normalized = normalizeSubscriptionPayload(doc.data());
             if (!normalized) {
                 console.warn("Skipping malformed push subscription document:", doc.id);
                 return Promise.resolve();
@@ -58,14 +56,6 @@ async function sendPushNotification(userId: string, messageBody: string, url: st
                 endpoint: normalized.endpoint,
                 keys: normalized.keys,
             };
-
-            const expirationTime = typeof (rawData as { expirationTime?: unknown }).expirationTime === 'number'
-                ? (rawData as { expirationTime: number }).expirationTime
-                : null;
-
-            if (expirationTime !== null) {
-                subscription.expirationTime = expirationTime;
-            }
 
             return webpush.sendNotification(subscription, payload).catch(error => {
                 // If subscription is expired or invalid, delete it
