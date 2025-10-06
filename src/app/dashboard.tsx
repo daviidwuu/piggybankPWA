@@ -48,7 +48,13 @@ import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc 
 import { doc, collection, setDoc, query, orderBy, limit } from 'firebase/firestore';
 import { signOut, type User } from "firebase/auth";
 import { addDocumentNonBlocking, deleteDocumentNonBlocking, updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
-import { requestNotificationPermission, unsubscribeFromNotifications, getSubscription } from "@/firebase/messaging";
+import {
+  requestNotificationPermission,
+  unsubscribeFromNotifications,
+  getSubscription,
+  registerSubscriptionChangeListener,
+  syncSubscriptionWithFirestore,
+} from "@/firebase/messaging";
 import { toDate } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -132,6 +138,12 @@ export function Dashboard() {
     };
     checkSubscription();
   }, []);
+
+  useEffect(() => {
+    if (!isClient || !user || !firestore) return;
+    registerSubscriptionChangeListener(user.uid, firestore);
+    void syncSubscriptionWithFirestore(user.uid, firestore);
+  }, [isClient, user, firestore]);
   
   const handleSetupSave = async (data: { name: string }) => {
     if (!userDocRef || !firestore || !user) return;
