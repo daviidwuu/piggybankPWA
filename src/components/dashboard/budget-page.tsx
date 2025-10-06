@@ -133,7 +133,7 @@ export function BudgetPage({
                     </div>
                     <Drawer open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
                         <DrawerTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0 focus-visible:ring-0 focus-visible:ring-offset-0">
                                 <Pencil className="h-4 w-4" />
                             </Button>
                         </DrawerTrigger>
@@ -161,7 +161,7 @@ export function BudgetPage({
                                         {categories.map((category) => (
                                             <div key={category} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
                                                 <span className="font-medium">{category}</span>
-                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => onDeleteCategory(category)}>
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => onDeleteCategory(category)}>
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
                                             </div>
@@ -203,5 +203,3 @@ export function BudgetPage({
     </ScrollArea>
   );
 }
-
-    
