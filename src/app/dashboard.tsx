@@ -68,6 +68,7 @@ const defaultCategories = [
 ];
 
 const USER_ID_COPIED_KEY = 'userIdCopied';
+const NOTIFICATION_PROMPT_KEY = 'notificationPromptShown';
 
 export function Dashboard() {
   const [dateRange, setDateRange] = useState<DateRange>('month');
@@ -89,6 +90,7 @@ export function Dashboard() {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isUserSettingsOpen, setUserSettingsOpen] = useState(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false);
   
   const { toast } = useToast();
   const auth = useAuth();
@@ -122,6 +124,10 @@ export function Dashboard() {
       if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
         const sub = await getSubscription();
         setIsPushSubscribed(!!sub);
+        const promptShown = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
+        if (!promptShown && !sub) {
+            setShowNotificationPrompt(true);
+        }
       }
     };
     checkSubscription();
@@ -233,31 +239,46 @@ export function Dashboard() {
   };
 
   const handleNotificationToggle = async (checked: boolean) => {
+    if (checked) {
+        await handleAllowNotifications();
+    } else {
+        await handleDenyNotifications(true); // true to indicate it's from the toggle
+    }
+  };
+
+  const handleAllowNotifications = async () => {
     if (!user || !firestore || !isClient) return;
+
+    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
+    setShowNotificationPrompt(false);
 
     const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
     const isStandalone = 'standalone' in window.navigator && (window.navigator as any).standalone;
 
-    if (checked) {
-        if (isIos && !isStandalone) {
-            setShowIosPwaInstructions(true);
-            return;
-        }
+    if (isIos && !isStandalone) {
+        setShowIosPwaInstructions(true);
+        return;
+    }
 
-        setIsPushSubscribed(true); // Optimistically update UI
-        try {
-            await requestNotificationPermission(user.uid, firestore);
-        } catch (error) {
-            console.error("Failed to subscribe:", error);
-            setIsPushSubscribed(false); // Revert on failure
-        }
-    } else {
-        setIsPushSubscribed(false); // Optimistically update UI
+    setIsPushSubscribed(true);
+    try {
+        await requestNotificationPermission(user.uid, firestore);
+    } catch (error) {
+        console.error("Failed to subscribe:", error);
+        setIsPushSubscribed(false);
+    }
+  };
+
+  const handleDenyNotifications = async (fromToggle = false) => {
+    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
+    setShowNotificationPrompt(false);
+    if (fromToggle && user && firestore) {
+        setIsPushSubscribed(false);
         try {
             await unsubscribeFromNotifications(user.uid, firestore);
         } catch (error) {
             console.error("Failed to unsubscribe:", error);
-            setIsPushSubscribed(true); // Revert on failure
+            setIsPushSubscribed(true);
         }
     }
   };
@@ -461,6 +482,11 @@ export function Dashboard() {
     <div className="flex flex-col min-h-screen bg-background items-center">
       <div className="w-full max-w-[428px] pt-[env(safe-area-inset-top)]">
         <main className="flex-1 p-4 space-y-4 pb-[calc(env(safe-area-inset-bottom)+4rem)]">
+          <NotificationPermissionDialog
+              open={showNotificationPrompt}
+              onAllow={handleAllowNotifications}
+              onDeny={() => handleDenyNotifications(false)}
+           />
            <Dialog open={showIosPwaInstructions} onOpenChange={setShowIosPwaInstructions}>
             <DialogContent>
               <DialogHeader>
