@@ -93,7 +93,7 @@ export function ReportsPage({ allTransactions, categories }: ReportsPageProps) {
       <DrawerHeader>
         <DrawerTitle>Generate Report</DrawerTitle>
       </DrawerHeader>
-      <div className="h-[35vh] overflow-hidden">
+      <div className="h-[65vh] overflow-hidden">
         <ScrollArea className="h-full px-4">
             <div className="space-y-6 pb-4">
                 <div className="grid grid-cols-2 gap-4">
