@@ -26,6 +26,9 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -38,7 +41,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText, Bell } from "lucide-react";
+import { Plus, Settings, Wallet, User as UserIcon, LogOut, FileText, Bell, Smartphone } from "lucide-react";
 import { SkeletonLoader } from "@/components/dashboard/skeleton-loader";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth, useUser, useFirestore, useMemoFirebase, useCollection, useDoc } from "@/firebase";
@@ -64,7 +67,6 @@ const defaultCategories = [
   "F&B", "Shopping", "Transport", "Bills",
 ];
 
-const NOTIFICATION_PROMPT_KEY = 'notificationPrompted';
 const USER_ID_COPIED_KEY = 'userIdCopied';
 
 export function Dashboard() {
@@ -83,7 +85,7 @@ export function Dashboard() {
   const [transactionToEdit, setTransactionToEdit] = useState<Transaction | null>(null);
   const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
   
-  const [showNotificationDialog, setShowNotificationDialog] = useState(false);
+  const [showIosPwaInstructions, setShowIosPwaInstructions] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isUserSettingsOpen, setUserSettingsOpen] = useState(false);
   const [isPushSubscribed, setIsPushSubscribed] = useState(false);
@@ -117,24 +119,14 @@ export function Dashboard() {
   useEffect(() => {
     setIsClient(true);
     const checkSubscription = async () => {
+      if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
         const sub = await getSubscription();
         setIsPushSubscribed(!!sub);
+      }
     };
-
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
-      checkSubscription();
-    }
+    checkSubscription();
   }, []);
   
-  useEffect(() => {
-    if (finalUserData && typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && Notification.permission === 'default') {
-      const alreadyPrompted = localStorage.getItem(NOTIFICATION_PROMPT_KEY);
-      if (!alreadyPrompted) {
-          setTimeout(() => setShowNotificationDialog(true), 2000);
-      }
-    }
-  }, [finalUserData]);
-
   const handleSetupSave = async (data: { name: string }) => {
     if (!userDocRef || !firestore || !user) return;
     const newUserData = {
@@ -229,20 +221,6 @@ export function Dashboard() {
       });
     }
   };
-  
-  const handlePermissionRequest = async () => {
-    if (user && firestore) {
-      await requestNotificationPermission(user.uid, firestore);
-      setIsPushSubscribed(true);
-    }
-    setShowNotificationDialog(false);
-    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
-  };
-
-  const handlePermissionDenial = () => {
-    setShowNotificationDialog(false);
-    localStorage.setItem(NOTIFICATION_PROMPT_KEY, 'true');
-  }
 
   const handleCopyUserIdToast = () => {
     if (!user) return;
@@ -255,38 +233,46 @@ export function Dashboard() {
   };
 
   const handleNotificationToggle = async (checked: boolean) => {
-    if (!user || !firestore) return;
-    
-    // Optimistically update the UI
-    setIsPushSubscribed(checked);
+    if (!user || !firestore || !isClient) return;
 
-    try {
-        if (checked) {
-            await requestNotificationPermission(user.uid, firestore);
-            // Re-verify subscription state after attempt
-            const sub = await getSubscription();
-            if (!sub) {
-              throw new Error("Subscription failed.");
-            }
-            setIsPushSubscribed(true);
+    const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
 
-        } else {
-            await unsubscribeFromNotifications(user.uid, firestore);
-             // Re-verify subscription state after attempt
-            const sub = await getSubscription();
-            if (sub) {
-              throw new Error("Unsubscription failed.");
-            }
-            setIsPushSubscribed(false);
+    if (checked) {
+        if (isIos && !isStandalone) {
+            setShowIosPwaInstructions(true);
+            return;
         }
-    } catch (error) {
-        // If operation fails, revert the UI and show toast
-        setIsPushSubscribed(!checked);
-        toast({
-            variant: "destructive",
-            title: "Notification Update Failed",
-            description: error instanceof Error ? error.message : "Could not update your notification settings.",
-        });
+
+        setIsPushSubscribed(true); // Optimistically update UI
+        try {
+            await requestNotificationPermission(user.uid, firestore);
+            const sub = await getSubscription();
+            if (!sub) throw new Error("Subscription failed.");
+            setIsPushSubscribed(true);
+        } catch (error) {
+            setIsPushSubscribed(false); // Revert on failure
+            toast({
+                variant: "destructive",
+                title: "Failed to Enable Notifications",
+                description: error instanceof Error ? error.message : "An unexpected error occurred.",
+            });
+        }
+    } else {
+        setIsPushSubscribed(false); // Optimistically update UI
+        try {
+            await unsubscribeFromNotifications(user.uid, firestore);
+            const sub = await getSubscription();
+            if (sub) throw new Error("Unsubscription failed.");
+             setIsPushSubscribed(false);
+        } catch (error) {
+            setIsPushSubscribed(true); // Revert on failure
+             toast({
+                variant: "destructive",
+                title: "Failed to Disable Notifications",
+                description: error instanceof Error ? error.message : "An unexpected error occurred.",
+            });
+        }
     }
   };
 
@@ -489,11 +475,21 @@ export function Dashboard() {
     <div className="flex flex-col min-h-screen bg-background items-center">
       <div className="w-full max-w-[428px] pt-[env(safe-area-inset-top)]">
         <main className="flex-1 p-4 space-y-4 pb-[calc(env(safe-area-inset-bottom)+4rem)]">
-           <NotificationPermissionDialog
-              open={showNotificationDialog}
-              onAllow={handlePermissionRequest}
-              onDeny={handlePermissionDenial}
-           />
+           <Dialog open={showIosPwaInstructions} onOpenChange={setShowIosPwaInstructions}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex flex-col items-center gap-4">
+                  <Smartphone className="h-12 w-12" />
+                  Add to Home Screen
+                </DialogTitle>
+                <DialogDescription className="text-center pt-2">
+                  To enable push notifications on iOS, you must first add this app to your Home Screen.
+                  <br /><br />
+                  Tap the <span className="font-bold">Share</span> icon in Safari, then scroll down and select <span className="font-bold">"Add to Home Screen"</span>.
+                </DialogDescription>
+              </DialogHeader>
+            </DialogContent>
+           </Dialog>
            <DeleteTransactionDialog
               open={!!transactionToDelete}
               onOpenChange={() => setTransactionToDelete(null)}
@@ -554,7 +550,7 @@ export function Dashboard() {
                   
                   <Drawer open={isSettingsOpen} onOpenChange={setSettingsOpen}>
                       <DrawerTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:outline-none rounded-full bg-primary/10">
+                           <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Settings className="h-4 w-4 text-primary" />
                            </Button>
                       </DrawerTrigger>
