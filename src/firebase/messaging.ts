@@ -79,11 +79,18 @@ export async function requestNotificationPermission(userId: string, firestore: F
     const swRegistration = await navigator.serviceWorker.ready;
     console.log('Service Worker is ready and active:', swRegistration.active);
 
-    registerSubscriptionChangeListener(userId, firestore);
+    const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!publicVapidKey) {
+        throw new Error("VAPID public key is not defined.");
+    }
+    const applicationServerKey = urlBase64ToUint8Array(publicVapidKey);
 
-    const subscription = await ensureActiveSubscription(userId, firestore, swRegistration);
+    const subscription = await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+    });
 
-    const subscriptionId = createSubscriptionId(subscription.endpoint);
+    const subscriptionId = buildSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
 
     await setDoc(subscriptionRef, {
@@ -120,7 +127,6 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
     const subscription = await getSubscription();
     if (!subscription) {
       console.log("No active subscription to unsubscribe from.");
-      await clearServiceWorkerMetadata();
       return;
     }
 
@@ -159,8 +165,18 @@ export async function syncSubscriptionWithFirestore(userId: string, firestore: F
   if (!userId) return;
 
   try {
-    await ensureActiveSubscription(userId, firestore);
-    await syncServiceWorkerMetadata(userId);
+    const swRegistration = await navigator.serviceWorker.ready;
+    const publicVapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!publicVapidKey) {
+        throw new Error("VAPID public key is not defined.");
+    }
+    const applicationServerKey = urlBase64ToUint8Array(publicVapidKey);
+
+    await swRegistration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+    });
+
   } catch (error) {
     console.error('Failed to synchronize push subscription with Firestore on load.', error);
   }
