@@ -29,7 +29,7 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface AddTransactionFormProps {
+export interface AddTransactionFormProps {
   setOpen: (open: boolean) => void;
   userId?: string;
   transactionToEdit?: Transaction | null;

@@ -24,7 +24,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Pencil, Trash2, Plus } from "lucide-react";
 
-interface BudgetPageProps {
+export interface BudgetPageProps {
   user: User;
   budgets: Budget[];
   onUpdateIncome: (newIncome: number) => void;

@@ -127,6 +127,7 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
     const subscription = await getSubscription();
     if (!subscription) {
       console.log("No active subscription to unsubscribe from.");
+      await clearServiceWorkerMetadata();
       return;
     }
 
