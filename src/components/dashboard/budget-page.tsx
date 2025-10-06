@@ -66,7 +66,7 @@ function BudgetEditDrawer({ category, currentBudget, onUpdateBudget }: BudgetEdi
                         onChange={(e) => setBudgetValue(e.target.value)}
                         onBlur={handleUpdate}
                         placeholder="0.00"
-                        className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:outline-none"
                     />
                 </div>
             </div>
@@ -136,7 +136,7 @@ export function BudgetPage({
                             onBlur={(e) => onUpdateIncome(parseFloat(e.target.value) || 0)}
                             onChange={(e) => setCurrentIncome(parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
-                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:outline-none"
                         />
                     </div>
                 </div>
@@ -152,7 +152,7 @@ export function BudgetPage({
                             onBlur={(e) => onUpdateSavings(parseFloat(e.target.value) || 0)}
                             onChange={(e) => setCurrentSavings(parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
-                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="h-auto w-full border-none bg-transparent text-center text-5xl font-bold focus-visible:outline-none"
                         />
                     </div>
                 </div>
@@ -181,7 +181,7 @@ export function BudgetPage({
                 </div>
                 <Drawer open={isCategoryManagerOpen} onOpenChange={setCategoryManagerOpen}>
                     <DrawerTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0 focus-visible:ring-0 focus-visible:ring-offset-0">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary flex-shrink-0 focus-visible:outline-none">
                             <Pencil className="h-4 w-4" />
                         </Button>
                     </DrawerTrigger>
@@ -209,7 +209,7 @@ export function BudgetPage({
                                     {categories.map((category) => (
                                         <div key={category} className="flex items-center justify-between p-2 rounded-md">
                                             <span className="font-medium">{category}</span>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive focus-visible:ring-0 focus-visible:ring-offset-0" onClick={() => onDeleteCategory(category)}>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive focus-visible:outline-none" onClick={() => onDeleteCategory(category)}>
                                                 <Trash2 className="h-4 w-4" />
                                             </Button>
                                         </div>

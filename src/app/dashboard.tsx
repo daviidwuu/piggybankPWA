@@ -257,14 +257,39 @@ export function Dashboard() {
   const handleNotificationToggle = async (checked: boolean) => {
     if (!user || !firestore) return;
     
-    if (checked) {
-      await requestNotificationPermission(user.uid, firestore);
-      setIsPushSubscribed(true);
-    } else {
-      await unsubscribeFromNotifications(user.uid, firestore);
-      setIsPushSubscribed(false);
+    // Optimistically update the UI
+    setIsPushSubscribed(checked);
+
+    try {
+        if (checked) {
+            await requestNotificationPermission(user.uid, firestore);
+            // Re-verify subscription state after attempt
+            const sub = await getSubscription();
+            if (!sub) {
+              throw new Error("Subscription failed.");
+            }
+            setIsPushSubscribed(true);
+
+        } else {
+            await unsubscribeFromNotifications(user.uid, firestore);
+             // Re-verify subscription state after attempt
+            const sub = await getSubscription();
+            if (sub) {
+              throw new Error("Unsubscription failed.");
+            }
+            setIsPushSubscribed(false);
+        }
+    } catch (error) {
+        // If operation fails, revert the UI and show toast
+        setIsPushSubscribed(!checked);
+        toast({
+            variant: "destructive",
+            title: "Notification Update Failed",
+            description: error instanceof Error ? error.message : "Could not update your notification settings.",
+        });
     }
   };
+
 
   const dateFilterRange = useMemo(() => {
     const today = new Date();
@@ -529,7 +554,7 @@ export function Dashboard() {
                   
                   <Drawer open={isSettingsOpen} onOpenChange={setSettingsOpen}>
                       <DrawerTrigger asChild>
-                           <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10">
+                           <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:outline-none rounded-full bg-primary/10">
                               <Settings className="h-4 w-4 text-primary" />
                            </Button>
                       </DrawerTrigger>

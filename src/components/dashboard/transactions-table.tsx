@@ -83,7 +83,7 @@ export function TransactionsTable({
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:ring-0 focus-visible:ring-offset-0 rounded-full bg-primary/10" aria-label="Sort transactions">
+            <Button variant="ghost" size="icon" className="h-8 w-8 focus-visible:outline-none rounded-full bg-primary/10" aria-label="Sort transactions">
               <ArrowUpDown className="h-4 w-4 text-primary" />
             </Button>
           </DropdownMenuTrigger>
@@ -146,7 +146,7 @@ export function TransactionsTable({
                         <TableCell className="p-1 pr-0 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:ring-0 focus-visible:ring-offset-0" aria-label={`More options for transaction of $${transaction.Amount.toFixed(2)} on ${date}`}>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 focus-visible:outline-none" aria-label={`More options for transaction of $${transaction.Amount.toFixed(2)} on ${date}`}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -170,7 +170,7 @@ export function TransactionsTable({
                 <Button
                   variant="ghost"
                   onClick={onLoadMore}
-                  className="w-full h-auto p-1 focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="w-full h-auto p-1 focus-visible:outline-none"
                 >
                   <ChevronDown className="h-4 w-4" />
                 </Button>

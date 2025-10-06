@@ -140,7 +140,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
     <>
       <DrawerHeader className="text-left relative">
         {step > 0 && (
-          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-1/2 -translate-y-1/2 px-2 h-auto focus-visible:ring-0 focus-visible:ring-offset-0 hover:bg-transparent">
+          <Button variant="ghost" onClick={prevStep} className="absolute left-4 top-1/2 -translate-y-1/2 px-2 h-auto focus-visible:outline-none">
             <ArrowLeft className="h-4 w-4" />
           </Button>
         )}
@@ -165,7 +165,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                               {...field} 
                               placeholder="0.00" 
                               inputMode="decimal"
-                              className="h-auto w-full border-none bg-transparent text-center text-6xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                              className="h-auto w-full border-none bg-transparent text-center text-6xl font-bold focus-visible:outline-none"
                             />
                           </div>
                         </FormControl>
@@ -214,7 +214,7 @@ export function AddTransactionForm({ setOpen, userId, transactionToEdit, categor
                                   ref={notesInputRef}
                                   {...field}
                                   placeholder="e.g., Coffee"
-                                  className="h-auto w-full border-none bg-transparent text-center text-4xl font-bold focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  className="h-auto w-full border-none bg-transparent text-center text-4xl font-bold focus-visible:outline-none"
                               />
                           </FormControl>
                           <FormMessage className="text-center pt-2" />

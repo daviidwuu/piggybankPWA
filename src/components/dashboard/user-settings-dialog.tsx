@@ -87,7 +87,7 @@ export function UserSettingsDialog({
               <p className="text-sm text-muted-foreground">Your unique User ID:</p>
               <div className="flex items-center w-full gap-2">
                   <Input readOnly value={userId} className="text-xs" />
-                  <Button variant="outline" size="icon" type="button" onClick={onCopyUserId} className="focus-visible:ring-0 focus-visible:ring-offset-0">
+                  <Button variant="outline" size="icon" type="button" onClick={onCopyUserId} className="focus-visible:outline-none">
                       <Copy className="h-4 w-4" />
                   </Button>
               </div>
