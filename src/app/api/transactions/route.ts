@@ -46,22 +46,27 @@ async function sendPushNotification(userId: string, messageBody: string, url: st
         });
 
         const sendPromises = subscriptionsSnapshot.docs.map(doc => {
-            const rawData = doc.data();
-            const normalized = normalizeSubscriptionPayload(rawData);
+            const data = doc.data() as {
+                endpoint?: unknown;
+                keys?: { [key: string]: unknown };
+                expirationTime?: unknown;
+            };
 
-            if (!normalized) {
+            const endpoint = typeof data.endpoint === 'string' ? data.endpoint : undefined;
+            const keys = data.keys || {};
+            const auth = typeof keys.auth === 'string' ? keys.auth : undefined;
+            const p256dh = typeof keys.p256dh === 'string' ? keys.p256dh : undefined;
+            const expirationTime = typeof data.expirationTime === 'number' ? data.expirationTime : null;
+
+            if (!endpoint || !auth || !p256dh) {
                 console.warn("Skipping malformed push subscription document:", doc.id);
                 return Promise.resolve();
             }
 
             const subscription: PushSubscription = {
-                endpoint: normalized.endpoint,
-                keys: normalized.keys,
+                endpoint,
+                keys: { auth, p256dh },
             };
-
-            const expirationTime = typeof (rawData as { expirationTime?: unknown }).expirationTime === 'number'
-                ? (rawData as { expirationTime: number }).expirationTime
-                : null;
 
             if (expirationTime !== null) {
                 subscription.expirationTime = expirationTime;
