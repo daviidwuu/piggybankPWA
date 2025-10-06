@@ -43,7 +43,7 @@ const withPWA = require('next-pwa')({
     },
     {
       urlPattern: /\.(?:js)$/i,
-      handler: 'StaleWhileRevalidate',
+      handler: 'NetworkFirst',
       options: {
         cacheName: 'static-js-assets',
         expiration: {
