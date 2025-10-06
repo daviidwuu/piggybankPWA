@@ -120,6 +120,7 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
     const subscription = await getSubscription();
     if (!subscription) {
       console.log("No active subscription to unsubscribe from.");
+      await clearServiceWorkerMetadata();
       return;
     }
 
@@ -150,5 +151,17 @@ export async function unsubscribeFromNotifications(userId: string, firestore: Fi
     });
     // Re-throw so the UI can revert its state
     throw error;
+  }
+}
+
+export async function syncSubscriptionWithFirestore(userId: string, firestore: Firestore) {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+  if (!userId) return;
+
+  try {
+    await ensureActiveSubscription(userId, firestore);
+    await syncServiceWorkerMetadata(userId);
+  } catch (error) {
+    console.error('Failed to synchronize push subscription with Firestore on load.', error);
   }
 }

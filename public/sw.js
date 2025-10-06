@@ -1,4 +1,93 @@
 
+const PUSH_METADATA_CACHE = 'push-subscription-metadata';
+const PUSH_METADATA_REQUEST = new Request('/__push_subscription_metadata__');
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function storeMetadata(payload) {
+  if (!payload || typeof payload !== 'object') return;
+  const { userId, vapidPublicKey } = payload;
+
+  if (typeof userId !== 'string' || typeof vapidPublicKey !== 'string') {
+    return;
+  }
+
+  const cache = await caches.open(PUSH_METADATA_CACHE);
+  await cache.put(
+    PUSH_METADATA_REQUEST,
+    new Response(JSON.stringify({ userId, vapidPublicKey }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  );
+}
+
+async function readMetadata() {
+  const cache = await caches.open(PUSH_METADATA_CACHE);
+  const response = await cache.match(PUSH_METADATA_REQUEST);
+
+  if (!response) {
+    return null;
+  }
+
+  try {
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to parse stored push metadata.', error);
+    return null;
+  }
+}
+
+async function clearMetadata() {
+  const cache = await caches.open(PUSH_METADATA_CACHE);
+  await cache.delete(PUSH_METADATA_REQUEST);
+}
+
+async function persistSubscriptionToServer(metadata, subscription, oldEndpoint) {
+  if (!metadata || typeof metadata.userId !== 'string') {
+    throw new Error('Missing user metadata for push subscription persistence.');
+  }
+
+  const body = {
+    userId: metadata.userId,
+    subscription: subscription.toJSON(),
+  };
+
+  if (oldEndpoint) {
+    body.oldEndpoint = oldEndpoint;
+  }
+
+  const response = await fetch('/api/push-subscriptions', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to persist rotated subscription: ${response.status}`);
+  }
+}
+
+async function broadcastSubscriptionChange(payload) {
+  try {
+    const clientsArr = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientsArr) {
+      client.postMessage({ type: 'PUSH_SUBSCRIPTION_CHANGE', payload });
+    }
+  } catch (error) {
+    console.error('Failed to broadcast push subscription change to clients.', error);
+  }
+}
+
 // --- INSTALL / ACTIVATE ---
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));

@@ -6,6 +6,7 @@ import * as admin from 'firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import webpush from 'web-push';
 import { type PushSubscription } from "web-push";
+import { normalizeSubscriptionPayload } from '@/lib/push-subscriptions';
 
 // Initialize Firebase Admin SDK if not already initialized
 if (admin.apps.length === 0) {
