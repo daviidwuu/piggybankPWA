@@ -69,28 +69,19 @@ export async function requestNotificationPermission(userId: string, firestore: F
     await navigator.serviceWorker.register('/sw.js');
     console.log('Service Worker registered.');
 
-    // Await the service worker to be ready and active. This is crucial for iOS.
-    const swRegistration = await navigator.serviceWorker.ready;
-    console.log('Service Worker is ready and active:', swRegistration.active);
-
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
       throw new Error("Push notification permission not granted.");
     }
     console.log('Notification permission granted.');
 
-    const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    if (!vapidPublicKey) {
-      throw new Error("VAPID public key is not defined in environment variables.");
-    }
-    console.log('VAPID key found.');
+    // Await the service worker to be ready and active. This is crucial for iOS.
+    const swRegistration = await navigator.serviceWorker.ready;
+    console.log('Service Worker is ready and active:', swRegistration.active);
 
-    const subscription = await swRegistration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-    });
+    registerSubscriptionChangeListener(userId, firestore);
 
-    console.log("Push subscription successful:", subscription);
+    const subscription = await ensureActiveSubscription(userId, firestore, swRegistration);
 
     const subscriptionId = createSubscriptionId(subscription.endpoint);
     const subscriptionRef = doc(firestore, `users/${userId}/pushSubscriptions`, subscriptionId);
