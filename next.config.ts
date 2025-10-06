@@ -3,7 +3,7 @@ import type {NextConfig} from 'next';
 
 const withPWA = require('next-pwa')({
   dest: 'public',
-  register: true,
+  // register: true, // We are now handling registration manually
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   sw: 'sw.js',
