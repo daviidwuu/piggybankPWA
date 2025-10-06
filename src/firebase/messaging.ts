@@ -44,7 +44,11 @@ export async function requestNotificationPermission(userId: string, firestore: F
   }
   
   try {
-    // Await the service worker to be ready
+    // Register the service worker. The browser will handle updates.
+    await navigator.serviceWorker.register('/sw.js');
+    console.log('Service Worker registered.');
+
+    // Await the service worker to be ready and active. This is crucial for iOS.
     const swRegistration = await navigator.serviceWorker.ready;
     console.log('Service Worker is ready and active:', swRegistration.active);
 

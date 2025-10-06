@@ -1,87 +1,48 @@
-
 // This is the service worker file for handling push notifications.
 
-// Listen for the 'push' event.
+// Listen for push events from the server.
 self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Push Received.');
-  
-  // Default data if payload is empty
-  let data = {
-    title: 'piggybank',
-    body: 'You have a new notification.',
-    url: '/',
-  };
+  if (!event.data) {
+    console.error('Push event but no data');
+    return;
+  }
 
-  // Try to parse the payload from the push event
-  if (event.data) {
-    try {
-      const payload = event.data.json();
-      data.title = payload.title || data.title;
-      data.body = payload.body || data.body;
-      data.url = payload.url || data.url;
-    } catch (e) {
-      console.error('[Service Worker] Push event payload is not valid JSON:', e);
-      // Fallback to text if JSON parsing fails
-      try {
-        data.body = event.data.text();
-      } catch (e2) {
-        console.error('[Service Worker] Could not get text from push data:', e2);
-      }
-    }
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch (e) {
+    // If the payload is not JSON, treat it as text.
+    payload = {
+      title: 'piggybank',
+      body: event.data.text(),
+      url: '/', // Default URL
+    };
   }
 
   const options = {
-    body: data.body,
-    icon: '/icon.png', // Path to your app icon
-    badge: '/icon.png', // Path to a badge icon (often monochrome)
+    body: payload.body,
+    icon: '/icon.png', // App icon
+    badge: '/icon.png', // Icon for the notification shade
+    requireInteraction: true, // Keep notification visible until interacted with
     data: {
-      url: data.url, // Store the URL to open on click
+      url: payload.url || '/', // URL to open on click
     },
+    // Example actions
+    actions: [
+      { action: 'view_app', title: 'Open App' },
+    ],
   };
 
-  // Show the notification.
-  event.waitUntil(
-    self.registration.showNotification(data.title, options)
-  );
+  const promiseChain = self.registration.showNotification(payload.title, options);
+  event.waitUntil(promiseChain);
 });
 
-// Listen for the 'notificationclick' event.
+// Listen for clicks on the notification.
 self.addEventListener('notificationclick', (event) => {
-  console.log('[Service Worker] Notification click Received.');
+  const clickedNotification = event.notification;
+  clickedNotification.close();
 
-  // Close the notification.
-  event.notification.close();
-
-  // Get the URL from the notification data and open a new window/tab.
-  const urlToOpen = event.notification.data.url || '/';
-  
-  event.waitUntil(
-    clients.matchAll({ type: 'window' }).then((clientList) => {
-      // Check if there's already a window open at the target URL.
-      for (const client of clientList) {
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      // If not, open a new window.
-      if (clients.openWindow) {
-        return clients.openWindow(urlToOpen);
-      }
-    })
-  );
-});
-
-// This is a basic service worker. It's often enhanced with caching strategies for PWA offline capability.
-// The `next-pwa` package handles this for you, but this basic setup is good for push notifications.
-
-self.addEventListener('install', (event) => {
-    console.log('[Service Worker] Install');
-    // Skip waiting to ensure the new service worker activates immediately.
-    self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-    console.log('[Service Worker] Activate');
-    // Take control of all pages under this service worker's scope immediately.
-    event.waitUntil(clients.claim());
+  // Decide what to do based on the action button clicked.
+  const promiseChain = clients.openWindow(clickedNotification.data.url);
+  event.waitUntil(promiseChain);
 });
