@@ -1,102 +1,145 @@
 /**
- * @fileOverview Firestore Security Rules for Piggybank App
+ * @fileoverview Firestore Security Rules for Piggybank App
  *
- * @corePhilosophy This ruleset enforces a strict user-ownership model.  Each user can only access their own data,
- *  and no global admin roles are defined.
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model. Users can only
+ * access data associated with their own user ID. All data is nested under
+ * `/users/{userId}`.
  *
- * @dataStructure The data is structured hierarchically under `/users/{userId}`.  Each user has a profile document,
- *  a collection of transactions, and a collection of budgets.
+ * Data Structure:
+ * - /users/{userId}: User profile data.
+ * - /users/{userId}/transactions/{transactionId}: Individual transactions.
+ * - /users/{userId}/budgets/{budgetId}: Budget configurations.
+ * - /users/{userId}/pushSubscriptions/{subscriptionId}: Push notification subscriptions.
  *
- * @keySecurityDecisions
- *   - User listing is disallowed.
- *   - Transactions and budgets are private to each user.
+ * Key Security Decisions:
+ * - Users can only create, read, update, and delete data under their own user ID.
+ * - Listing of user documents is disallowed for security.
+ * - Data schema is not strictly enforced in this prototyping phase, except for fields
+ *   critical for authorization (e.g., userId).
+ *
+ * Denormalization for Authorization:
+ *  - The `userId` field is present in the `/transactions`, `/budgets`, and `/pushSubscriptions`
+ *    collections to avoid costly `get()` operations and enforce ownership.
+ *
+ * Structural Segregation:
+ *  - Private user data is stored under the `/users/{userId}` collection, ensuring
+ *    it is not mixed with public data, simplifying security rules.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Defines the isSignedIn helper function to check for authentication.
+     * @description Checks if the user is signed in.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Defines the isOwner helper function to check if the request is made by the owner.
+     * @description Checks if the authenticated user's ID matches the provided userId.
      */
     function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
 
     /**
-     * @description Defines the isExistingOwner helper function to check if the request is made by the owner and the resource exists.
+     * @description Checks if the authenticated user is the owner of the existing document.
      */
     function isExistingOwner(userId) {
-        return isOwner(userId);
+        return isOwner(userId) && resource != null;
     }
 
     /**
-     * @description Rules for the /users/{userId} document.
+     * @description Security rules for user profiles.
      * @path /users/{userId}
-     * @allow (create) User 'test_user' with id 'test_user' can create their own profile.
-     * @deny (create) User 'another_user' cannot create a profile with id 'test_user'.
-     * @allow (get) User 'test_user' can read their own profile.
-     * @deny (get) User 'another_user' cannot read the profile of 'test_user'.
-     * @allow (update) User 'test_user' can update their own profile.
-     * @deny (update) User 'another_user' cannot update the profile of 'test_user'.
-     * @allow (delete) User 'test_user' can delete their own profile.
-     * @deny (delete) User 'another_user' cannot delete the profile of 'test_user'.
-     * @principle Enforces document ownership for writes and reads.  Validates userId consistency.
+     * @allow (create) User 'david' with ID 'david' can create their profile.
+     * @deny (create) User 'eve' with ID 'david' cannot create a profile with ID 'david'.
+     * @allow (get) User 'david' with ID 'david' can get their profile.
+     * @deny (get) User 'eve' with ID 'david' cannot get profile with ID 'david'.
+     * @deny (list) No one can list the users collection.
+     * @allow (update) User 'david' with ID 'david' can update their profile.
+     * @deny (update) User 'eve' with ID 'david' cannot update profile with ID 'david'.
+     * @allow (delete) User 'david' with ID 'david' can delete their profile.
+     * @deny (delete) User 'eve' with ID 'david' cannot delete profile with ID 'david'.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.id == userId;
+      allow get: if isSignedIn() && isOwner(userId);
       allow list: if false;
-      allow create: if isSignedIn() && isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for the /users/{userId}/transactions/{transactionId} collection.
+     * @description Security rules for user transactions.
      * @path /users/{userId}/transactions/{transactionId}
-     * @allow (create) User 'test_user' can create a transaction in their own collection.
-     * @deny (create) User 'another_user' cannot create a transaction in 'test_user's collection.
-     * @allow (get) User 'test_user' can read a transaction from their own collection.
-     * @deny (get) User 'another_user' cannot read a transaction from 'test_user's collection.
-     * @allow (update) User 'test_user' can update a transaction in their own collection.
-     * @deny (update) User 'another_user' cannot update a transaction in 'test_user's collection.
-     * @allow (delete) User 'test_user' can delete a transaction from their own collection.
-     * @deny (delete) User 'another_user' cannot delete a transaction from 'test_user's collection.
-     * @principle Enforces document ownership for writes and reads. Validates the userId field on creation.
+     * @allow (create) User 'david' can create a transaction under their profile.
+     * @deny (create) User 'eve' cannot create a transaction under user 'david''s profile.
+     * @allow (get) User 'david' can get a transaction under their profile.
+     * @deny (get) User 'eve' cannot get a transaction under user 'david''s profile.
+     * @allow (list) User 'david' can list transactions under their profile.
+     * @deny (list) User 'eve' cannot list transactions under user 'david''s profile.
+     * @allow (update) User 'david' can update a transaction under their profile.
+     * @deny (update) User 'eve' cannot update a transaction under user 'david''s profile.
+     * @allow (delete) User 'david' can delete a transaction under their profile.
+     * @deny (delete) User 'eve' cannot delete a transaction under user 'david''s profile.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/transactions/{transactionId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for the /users/{userId}/budgets/{budgetId} collection.
+     * @description Security rules for user budgets.
      * @path /users/{userId}/budgets/{budgetId}
-     * @allow (create) User 'test_user' can create a budget in their own collection.
-     * @deny (create) User 'another_user' cannot create a budget in 'test_user's collection.
-     * @allow (get) User 'test_user' can read a budget from their own collection.
-     * @deny (get) User 'another_user' cannot read a budget from 'test_user's collection.
-     * @allow (update) User 'test_user' can update a budget in their own collection.
-     * @deny (update) User 'another_user' cannot update a budget in 'test_user's collection.
-     * @allow (delete) User 'test_user' can delete a budget from their own collection.
-     * @deny (delete) User 'another_user' cannot delete a budget from 'test_user's collection.
-     * @principle Enforces document ownership for writes and reads. Validates the userId field on creation.
+     * @allow (create) User 'david' can create a budget under their profile.
+     * @deny (create) User 'eve' cannot create a budget under user 'david''s profile.
+     * @allow (get) User 'david' can get a budget under their profile.
+     * @deny (get) User 'eve' cannot get a budget under user 'david''s profile.
+     * @allow (list) User 'david' can list budgets under their profile.
+     * @deny (list) User 'eve' cannot list budgets under user 'david''s profile.
+     * @allow (update) User 'david' can update a budget under their profile.
+     * @deny (update) User 'eve' cannot update a budget under user 'david''s profile.
+     * @allow (delete) User 'david' can delete a budget under their profile.
+     * @deny (delete) User 'eve' cannot delete a budget under user 'david''s profile.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId}/budgets/{budgetId} {
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Security rules for user push subscriptions.
+     * @path /users/{userId}/pushSubscriptions/{subscriptionId}
+     * @allow (create) User 'david' can create a push subscription under their profile.
+     * @deny (create) User 'eve' cannot create a push subscription under user 'david''s profile.
+     * @allow (get) User 'david' can get a push subscription under their profile.
+     * @deny (get) User 'eve' cannot get a push subscription under user 'david''s profile.
+     * @allow (list) User 'david' can list push subscriptions under their profile.
+     * @deny (list) User 'eve' cannot list push subscriptions under user 'david''s profile.
+     * @allow (update) User 'david' can update a push subscription under their profile.
+     * @deny (update) User 'eve' cannot update a push subscription under user 'david''s profile.
+     * @allow (delete) User 'david' can delete a push subscription under their profile.
+     * @deny (delete) User 'eve' cannot delete a push subscription under user 'david''s profile.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /users/{userId}/pushSubscriptions/{subscriptionId} {
+      allow create: if isSignedIn() && isOwner(userId);
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow update: if isExistingOwner(userId);
+      allow delete: if isExistingOwner(userId);
     }
   }
 }
